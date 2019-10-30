@@ -1,0 +1,4 @@
+[B]Version 0.0.1[/B]
+- Initial version
+- Improved Widget Parsing
+- Icons to come as I redo Blamo's
