@@ -110,6 +110,8 @@ class Scraper(object):
         """
         if link.startswith('magnet:'):
             return link
+        elif link.startwith('//'):
+            return  'http:' + link
         elif not link.startswith('http'):
             return scraper_utils.urljoin(self.base_url, link)
         else:
