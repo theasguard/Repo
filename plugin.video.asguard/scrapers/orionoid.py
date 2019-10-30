@@ -30,7 +30,7 @@ class Scraper(scraper.Scraper):
 
 	def __init__(self, timeout = scraper.DEFAULT_TIMEOUT):
 		self.base_url = kodi.get_setting('%s-base_url' % (self.get_name()))
-		self.key = 'VkVOQ1VVbEdWV2RVYVVKSFNVWmpaMUpwUWtKSlJXTm5VbWxDVFVsRmQyZFNRMEpQU1VaUlowMTVRazlKUlVsblRubENTMGxHU1dkT2VVSkNTVVZWWjFSRFFYcEpSVzluVmtOQ1NFbEZaMmRQVTBKTw=='
+		self.key = 'VDBOQ1IwbEdSV2RYVTBKR1NVVm5aMVJwUWxsSlJXOW5WME5CTWtsR1JXZFZhVUpMU1VWbloxSjVRbEpKUlhkblZHbENUVWxGVVdkU1UwSlNTVVZKWjFOcFFrMUpSR3RuVW5sQ1dVbEZZMmRQVTBKUA==' # blamo - add your API key here.
 		self.hosts = self._hosts()
 
 	@classmethod
@@ -60,11 +60,15 @@ class Scraper(scraper.Scraper):
 		parameters = ' | '.join([str(parameter) for parameter in parameters])
 		xbmc.log('DEATH STREAMS ORION [ERROR]: ' + parameters, xbmc.LOGERROR)
 
-	def _link(self, data):
+	def _link(self, data, orion = False):
 		links = data['links']
 		for link in links:
 			if link.lower().startswith('magnet:'):
 				return link
+		if orion:
+			for link in links:
+				if 'orionoid.com' in link.lower():
+					return link
 		return links[0]
 
 	def _quality(self, data):
@@ -153,8 +157,35 @@ class Scraper(scraper.Scraper):
 			results = orion.streams(
 				type = type,
 				query = query,
-				streamType = Orion.StreamHoster
+				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeHoster]),
+				protocolTorrent = Orion.ProtocolMagnet
 			)
+
+			# blamo - If you want to get .torrent files as well:
+			'''
+				results = orion.streams(
+					type = type,
+					query = query,
+					streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeHoster])
+				)
+			'''
+
+			# blamo - If you want to get .torrent and .nzb (usenet) files:
+			'''
+				results = orion.streams(
+					type = type,
+					query = query,
+					streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster])
+				)
+			'''
+
+			# blamo - If you want to get .torrent and .nzb files, it would be better to just leave out the "streamType" parameter. Then Orion will retrieve all links by default, and the user can manually change Orion's settings to only retrieve some types, like only torrents or torrents and usenet, or whatever combination they want. If you hard-code the "streamType" here, the user's settings are ignored, and only these types aree returned.
+			'''
+				results = orion.streams(
+					type = type,
+					query = query
+				)
+			'''
 
 			for data in results:
 				try:
@@ -177,6 +208,16 @@ class Scraper(scraper.Scraper):
 							'rating' : int(self._popularity(data, True)),
 							'direct' : data['access']['direct'],
 						}
+
+						# blamo - If you want to get .torrent and usenet .nzb files, change the URL parameter:
+						'''
+							...  'url' : self._link(data, orion = True), ...
+						'''
+						# blamo - this will return a URL as follows:
+						#	1. Hosters: the URL to the hoster site (eg: https://rapidgator.com/DFAGDSFHGDG)
+						#	2. Torrents: A magnet link if available. Otherwise if there is no magnet but only a .torrent file, then the link to the file on Orion's server (eg: https://orionid.com/container/ABCDEFGHIJKLMNOP/ABCDEFGHIJKLMNOP)
+						#	3. Usenet: A URL to the .nzb file on Orion's server (eg: https://orionid.com/container/ABCDEFGHIJKLMNOP/ABCDEFGHIJKLMNOP). Otherwise a URL to the orignal .zb file (eg: https://nzbfinder.ccom/get/ABCDEFGHIJKLMNOP)
+						# Note that if you use the .torrent or .nzb URLs, you have to download the file locally and then use your multi-part parameter somehow to submit the file data to Premiumize.
 
 						if data['video']['codec']:
 							stream['format'] = data['video']['codec']

@@ -108,8 +108,8 @@ class Scraper(object):
         on the video page.
         * This method is called for the user selected source before calling resolveurl on it.
         """
-        if link.startswith('//'):
-            return 'http:' + link
+        if link.startswith('magnet:'):
+            return link
         elif not link.startswith('http'):
             return scraper_utils.urljoin(self.base_url, link)
         else:
