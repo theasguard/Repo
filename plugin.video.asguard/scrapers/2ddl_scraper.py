@@ -31,7 +31,7 @@ from asguard_lib import debrid
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'http://invictus.ws'
+BASE_URL = 'https://yify.yt/'
 CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/', VIDEO_TYPES.TVSHOW: '/category/tv-shows/'}
 EXCLUDE_LINKS = ['adf.ly', urlparse.urlparse(BASE_URL).hostname]
 

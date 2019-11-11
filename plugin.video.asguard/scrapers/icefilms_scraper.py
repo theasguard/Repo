@@ -32,7 +32,7 @@ import scraper
 logger = log_utils.Logger.get_logger()
 QUALITY_MAP = {'HD720P': QUALITIES.HD720, 'HD720P+': QUALITIES.HD720, 'DVDRIP/STANDARDDEF': QUALITIES.HIGH,
                'SD/DVD480P': QUALITIES.HIGH, 'DVDSCREENER': QUALITIES.HIGH, 'FASTSTREAM/LOWQUALITY': QUALITIES.HIGH}
-BASE_URL = 'http://www.icefilms.info'
+BASE_URL = 'https://www.icefilms-info.com'
 LIST_URL = BASE_URL + '/membersonly/components/com_iceplayer/video.php?h=374&w=631&vid={vid_id}&img='
 AJAX_URL = '/membersonly/components/com_iceplayer/video.phpAjaxResp.php?id={link_id}&s={s}&iqs=&url=&m={m}&cap= &sec={secret}&t={t}'
 

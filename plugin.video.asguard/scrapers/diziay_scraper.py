@@ -28,9 +28,9 @@ import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
 
-BASE_URL = 'https://diziay.com'
+BASE_URL = 'https://diziay.me'
 SEASON_URL = '/posts/filmgonder.php?action=sezongets'
-AJAX_URL = 'http://dizipas.org/player/ajax.php'
+AJAX_URL = 'https://dizipas.org/player/ajax.php'
 XHR = {'X-Requested-With': 'XMLHttpRequest'}
 
 class Scraper(scraper.Scraper):

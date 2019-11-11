@@ -379,11 +379,17 @@ def format_sub_label(sub):
 
 def format_source_label(item):
     color = kodi.get_setting('debrid_color') or 'green'
+    # BLAMO
+    orion = 'orion' in item and kodi.get_setting('show_orion') == 'true'
+    if orion: color = kodi.get_setting('orion_color') or 'red'
+    # BLAMO
     label = item['class'].format_source_label(item)
     label = '[%s] %s' % (item['class'].get_name(), label)
     if kodi.get_setting('show_debrid') == 'true' and 'debrid' in item and item['debrid']:
         label = '[COLOR %s]%s[/COLOR]' % (color, label)
-        
+    # BLAMO
+    elif orion: label = '[COLOR %s]%s[/COLOR]' % (color, label)
+    # BLAMO
     if 'debrid' in item and item['debrid']:
         label += ' (%s)' % (', '.join(item['debrid']))
     item['label'] = label

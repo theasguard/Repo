@@ -32,8 +32,8 @@ import scraper
 
 logger = log_utils.Logger.get_logger()
 Q_LIST = [item[0] for item in sorted(Q_ORDER.items(), key=lambda x:x[1])]
-BASE_URL = 'https://dizipub.org'
-LINKS = ['king.php', 'zeus.php', 'hades.php', 'juliet.php', 'ares.php', 'Odnoklassniki.php', 'vidmolly.php', 'openload.php', 'mailru.php', 'molly.php', 'open.php']
+BASE_URL = 'https://dizipub.net'
+LINKS = ['king.php', 'zeus.php', 'hades.php', 'juliet.php', 'ares.php', 'altyazısız.php', 'vid', 'embed', 'mailru.php', 'molly.php', 'open.php']
 QUALITY_MAP = {
     QUALITIES.LOW: ['DVDSCR', 'CAMr BlamoIP', 'HDCAM'],
     QUALITIES.MEDIUM: [],

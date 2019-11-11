@@ -1456,16 +1456,16 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
         from_library = xbmc.getInfoLabel('Container.PluginName') == ''
         wd.update(50)
         win = xbmcgui.Window(10000)
-        win.setProperty('blamo.playing', 'True')
-        win.setProperty('blamo.playing.trakt_id', str(trakt_id))
-        win.setProperty('blamo.playing.season', str(season))
-        win.setProperty('blamo.playing.episode', str(episode))
-        win.setProperty('blamo.playing.library', str(from_library))
+        win.setProperty('asguard.playing', 'True')
+        win.setProperty('asguard.playing.trakt_id', str(trakt_id))
+        win.setProperty('asguard.playing.season', str(season))
+        win.setProperty('asguard.playing.episode', str(episode))
+        win.setProperty('asguard.playing.library', str(from_library))
         if resume_point > 0:
             if kodi.get_setting('trakt_bookmark') == 'true':
-                win.setProperty('blamo.playing.trakt_resume', str(resume_point))
+                win.setProperty('asguard.playing.trakt_resume', str(resume_point))
             else:
-                win.setProperty('blamo.playing.blamo_resume', str(resume_point))
+                win.setProperty('asguard.playing.asguard_resume', str(resume_point))
 
         art = {'thumb': '', 'fanart': ''}
         info = {}
@@ -1512,7 +1512,7 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
             srt_path = download_subtitles(kodi.get_setting('subtitle-lang'), show_meta['title'], show_meta['year'], season, episode)
             if utils2.srt_show_enabled() and srt_path:
                 logger.log('Setting srt path: %s' % (srt_path), log_utils.LOGDEBUG)
-                win.setProperty('blamo.playing.srt', srt_path)
+                win.setProperty('asguard.playing.srt', srt_path)
     
         listitem = xbmcgui.ListItem(path=stream_url, iconImage=art['thumb'], thumbnailImage=art['thumb'])
         listitem.setProperty('fanart_image', art['fanart'])
@@ -2838,41 +2838,7 @@ def CheckRedirect(url):
 def add_contextsearchmenu(title, video_type):
     title=urllib.quote(title)
     contextmenuitems = []
-    #if os.path.exists(xbmc.translatePath("special://home/addons/") + 'plugin.video.1channel'):
-    #    contextmenuitems.append(('Search 1channel',
-    #                             'XBMC.Container.Update(%s?mode=%s&section=%s&query=%s)' % (
-    #                                 'plugin://plugin.video.1channel/', '7000',video_type, title)))
-    #if os.path.exists(xbmc.translatePath("special://home/addons/") + 'plugin.video.icefilms'):
-    #    contextmenuitems.append(('Search Icefilms',
-    #                             'XBMC.Container.Update(%s?mode=555&url=%s&search=%s&nextPage=%s)' % (
-    #                                 'plugin://plugin.video.icefilms/', 'http://icefilms.unblocked.pro/', title, '1')))
-    #if os.path.exists(xbmc.translatePath("special://home/addons/") + 'plugin.video.movie25'):
-    #    contextmenuitems.append(('Search Mash Up',
-    #                             'XBMC.Container.Update(%s?mode=%s&url=%s)' % (
-    #                                 'plugin://plugin.video.movie25/', '4', title)))
-    #if os.path.exists(xbmc.translatePath("special://home/addons/") + 'plugin.video.tubeplus'):
-    #    if video_type == 'tv':
-    #        section = 'None'
-    #        serurl='http://www.tubeplus.me/search/tv-shows/%s/'%(title)
-     #   else:
-    #        serurl='http://www.tubeplus.me/search/movies/"%s"/'%(title)
-    #        section = 'movie'
-    #   
-    #    contextmenuitems.append(('Search tubeplus', 'XBMC.Container.Update(%s?mode=150&types=%s&url=%s&linkback=latesttv)' % (
-    #        'plugin://plugin.video.tubeplus/', section, serurl)))
-    #if os.path.exists(xbmc.translatePath("special://home/addons/") + 'plugin.video.tvlinks'):
-    #    if video_type == 'tv':
-    #        contextmenuitems.append(('Search tvlinks', 'XBMC.Container.Update(%s?mode=Search&query=%s)' % (
-    #            'plugin://plugin.video.tvlinks/', title)))
-    #if os.path.exists(xbmc.translatePath("special://home/addons/") + 'plugin.video.solarmovie'):
-    #    if video_type == 'tv':
-    #        section = 'tv-shows'
-    #    else:
-    #        section = 'movies'
-    #    contextmenuitems.append(('Search solarmovie', 'XBMC.Container.Update(%s?mode=Search&section=%s&query=%s)' % (
-    #        'plugin://plugin.video.solarmovie/', section, title)))
 
-    #contextmenuitems.insert(0,"addDir('[COLOR green][B]Pair For More HD Content[/B][/COLOR]','Link',9898,'')")
     xbmcplugin.setContent(addon_handle, 'movies')
     return contextmenuitems
 
@@ -2886,17 +2852,11 @@ def ParseVideoLink(url,name,movieinfo):
     link=respon.content
     tmpcontent=link
     dialog.update(5)
-    redirlink = respon.get_url() #.lower()
-    #link=link.replace(":","&")
+    redirlink = respon.get_url()
     link = ''.join(link.splitlines()).replace('\'','"')
-    link=link.replace("openload.co","oload.stream")
-    link=link.replace("openload.co","oload.stream")
+    link=link.replace("onlystream.tv","onlystream.tv")
+    link=link.replace("onlystream.tv","onlystream.tv")
     link=link.replace("putlocker.com","putlocker.unblocked.pl")
-    #link=link.replace("https&","https:")
-    #link=link.replace("http&","http:")
-    #link2=link[:-1]
-    #if "oload.stream" in link:
-    #link[::-1].replace(':','',1)[::-1]
 
 
     dialog.update(10)
@@ -2904,12 +2864,11 @@ def ParseVideoLink(url,name,movieinfo):
             (respon,cj) = GetParts(link,name)
             link=respon.content
             tmpcontent=link
-            redirlink = respon.get_url() #.lower()
+            redirlink = respon.get_url()
             link = ''.join(link.splitlines()).replace('\'','"')
-            #link=link[:-1]
-    # end 1channel code
+
     print redirlink
-    #try:
+
     dialog.update(20)
     if True:
 
@@ -3421,10 +3380,6 @@ def ParseVideoLink(url,name,movieinfo):
                 pcontent=''.join(pcontent.splitlines()).replace('\'','"')
                 vidlink= re.compile(':content url="([^"]+)" type="video/x-flv" [^>]*>').findall(pcontent)[0]
                 vidlink= ( '%s|Cookie="%s"' % (vidlink,ckStr) )
-        #elif (redirlink.find("billionuploads") > -1):
-        #        vidlink=resolve_billionuploads(redirlink,tmpcontent)
-        #elif (redirlink.find("movreel") > -1):
-        #        vidlink=resolve_movreel(redirlink,tmpcontent)
         elif (redirlink.find("jumbofiles") > -1):
                 vidlink=resolve_jumbofiles(redirlink,tmpcontent)
         elif (redirlink.find("glumbouploads") > -1):
@@ -3439,7 +3394,7 @@ def ParseVideoLink(url,name,movieinfo):
                 vidlink=resolve_speedyshare(redirlink,tmpcontent)
         elif (redirlink.find("streamango") > -1):
                 vidcode = re.compile('streamango.com/(.+?)dk').findall(redirlink+"dk")[0] 
-                urlnew= 'http://streamango.com/embed-'+vidcode+'.html'
+                urlnew= 'http://onlystream.tv/embed-'+vidcode+'.html'
                 link=GetContent(urlnew)
                 file_code = re.compile('<input type="hidden" name="file_code" [^>]*value=["\']?([^>^"^\']+)["\']?[^>]*>').findall(link)[0]
                 op = re.compile('<input type="hidden" name="op" [^>]*value=["\']?([^>^"^\']+)["\']?[^>]*>').findall(link)[0]
@@ -3462,9 +3417,6 @@ def ParseVideoLink(url,name,movieinfo):
                         redirlink = redir[0] +"/file/" + redir[1].upper()
                 sources = []
                 label=name
-                #redirlink=redirlink.replace(":","")
-                #redirlink=redirlink.replace("http","http:")
-                #redirlink=redirlink.replace("https","https:")
                 hosted_media = resolveurl.HostedMediaFile(url=redirlink, title=label)
                 sources.append(hosted_media)
                 source = resolveurl.choose_source(sources)
@@ -3697,11 +3649,6 @@ def resolve_billionuploads(url,inhtml=None):
         print 'Link Found: %s' % dl                
 
         return dl
-
-
-    #except Exception, e:
-    #    print '**** BillionUploads Error occured: %s' % e
-    #    raise
 
 
 def resolve_speedyshare(url,inhtml=None):

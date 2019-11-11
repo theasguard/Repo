@@ -25,7 +25,7 @@ from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'http://onlinemovies-pro.org/'
+BASE_URL = 'http://onlinemovies-pro.org'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

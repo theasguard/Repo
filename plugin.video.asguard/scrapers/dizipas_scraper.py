@@ -39,8 +39,8 @@ except ImportError:
     class ParseError(Exception): pass
 
 logger = log_utils.Logger.get_logger()
-BASE_URL = 'http://dizipas.net'
-AJAX_URL = 'http://dizipas.net/player/ajax.php'
+BASE_URL = 'https://dizipas.org'
+AJAX_URL = 'https://dizipas.org/player/ajax.php'
 XHR = {'X-Requested-With': 'XMLHttpRequest'}
 
 

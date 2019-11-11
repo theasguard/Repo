@@ -25,9 +25,14 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
+
 logger = log_utils.Logger.get_logger()
 QUALITY_MAP = {'DVD': QUALITIES.HIGH, 'TS': QUALITIES.MEDIUM, 'CAM': QUALITIES.LOW}
-BASE_URL = 'https://www2.primewire.ac'
+BASE_URL = 'http://m.primewire.gr'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -67,7 +72,7 @@ class Scraper(scraper.Scraper):
             for i, source in enumerate(re.finditer(item_pattern, container.group(1), re.DOTALL)):
                 qual, url, host, parts, views = source.groups()
 
-                if host == 'ZnJhbWVndGZv': continue  # filter out promo hosts
+                if host == 'dlNoYXJl': continue  # filter out promo hosts
 
                 item = {'host': host.decode('base-64'), 'url': url.decode('base-64')}
                 item['verified'] = source.group(0).find('star.gif') > -1
@@ -82,7 +87,7 @@ class Scraper(scraper.Scraper):
                 pattern = r'<a href=".*?url=(.*?)&(?:amp;)?.*?".*?>(part \d*)</a>'
                 other_parts = re.findall(pattern, parts, re.DOTALL | re.I)
                 if other_parts:
-                    item['multi-part'] = True
+                    item['multi-part'] = False
                     item['parts'] = [part[0].decode('base-64') for part in other_parts]
                 else:
                     item['multi-part'] = False

@@ -19,6 +19,7 @@ import re
 import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
+import urlparse
 from asguard_lib import scraper_utils
 from asguard_lib import pyaes
 from asguard_lib.constants import FORCE_NO_MATCH
@@ -38,7 +39,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def provides(cls):
-        return frozenset([VIDEO_TYPES.MOVIE, VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE])
+        return frozenset([VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE, VIDEO_TYPES.MOVIE])
 
     @classmethod
     def get_name(cls):

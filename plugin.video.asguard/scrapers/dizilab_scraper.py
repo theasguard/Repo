@@ -30,7 +30,7 @@ import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
 
-BASE_URL = 'http://dizilab6.com/'
+BASE_URL = 'https://dizilab.pw'
 AJAX_URL = '/request/php/'
 ICONS = {'icon-tr': 'Turkish Subtitles', 'icon-en': 'English Subtitles', 'icon-orj': ''}
 DEFAULT_SUB = 'Turkish Subtitles'

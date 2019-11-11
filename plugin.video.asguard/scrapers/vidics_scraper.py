@@ -29,7 +29,7 @@ import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
 
-BASE_URL = 'https://vidics.unblocked.how'
+BASE_URL = 'https://www.vidics.to'
 FRAGMENTS = {VIDEO_TYPES.MOVIE: '/film/', VIDEO_TYPES.TVSHOW: '/serie/'}
 
 class Scraper(scraper.Scraper):

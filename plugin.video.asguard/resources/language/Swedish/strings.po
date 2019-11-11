@@ -1111,15 +1111,15 @@ msgid "Include Movies?"
 msgstr "Inkludera Filmer?"
 
 msgctxt "#30575"
-msgid "    Show Download Progress"
+msgid "Show Download Progress"
 msgstr "Visa Hämtningsframsteg"
 
 msgctxt "#30576"
-msgid "    TV Show Download Folder"
+msgid "TV Show Download Folder"
 msgstr "TV Serie Hämtningsmapp"
 
 msgctxt "#30577"
-msgid "    Movie Download Folder"
+msgid "Movie Download Folder"
 msgstr "Film Hämtningsmapp"
 
 msgctxt "#30589"

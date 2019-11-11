@@ -28,7 +28,7 @@ import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
 
-BASE_URL = 'https://dizimag5.co/'
+BASE_URL = 'https://dizimag.pro'
 XHR = {'X-Requested-With': 'XMLHttpRequest'}
 
 class Scraper(scraper.Scraper):

@@ -27,7 +27,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'http://moviexk.co'
+BASE_URL = 'https://moviexk.biz'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -76,7 +76,7 @@ class Scraper(scraper.Scraper):
             
         headers = {'User-Agent': scraper_utils.get_ua(), 'Referer': page_url}
         for stream_url, height in streams:
-            if 'video.php' in stream_url or 'moviexk.php' in stream_url:
+            if 'play.php' in stream_url or 'grab1.php' in stream_url:
                 if 'title=' in stream_url:
                     title = stream_url.split('title=')[-1]
                     stream_url = stream_url.replace(title, urllib.quote(title))
@@ -89,7 +89,7 @@ class Scraper(scraper.Scraper):
             
             if direct:
                 host = scraper_utils.get_direct_hostname(self, stream_url)
-                if host == 'gvideo':
+                if host == 'streamango':
                     quality = scraper_utils.gv_get_quality(stream_url)
                 else:
                     quality = scraper_utils.height_get_quality(height)

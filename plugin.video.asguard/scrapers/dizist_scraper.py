@@ -29,8 +29,8 @@ import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
 
-BASE_URL = 'https://www.dizist.org/'
-ALLOWED = [u'odnok', u'rodi', u'odnokaltyazısız', u'openload', 'ok.ru']
+BASE_URL = 'https://www.dizist.org'
+ALLOWED = [u'odnok', u'rodi', u'odnokaltyazısız', u'openload', u'ok.ru']
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

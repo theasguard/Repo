@@ -28,7 +28,7 @@ import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
 
-BASE_URL = 'http://www.dizigold5.com'
+BASE_URL = 'https://www.dizigold1.net'
 AJAX_URL = '/sistem/ajax.php'
 
 class Scraper(scraper.Scraper):
@@ -92,7 +92,7 @@ class Scraper(scraper.Scraper):
             stream_url = source['file'] + scraper_utils.append_headers({'User-Agent': scraper_utils.get_ua()})
             if direct:
                 host = scraper_utils.get_direct_hostname(self, stream_url)
-                if host == 'gvideo':
+                if host == 'gold-drive':
                     quality = scraper_utils.gv_get_quality(stream_url)
                 elif 'label' in source:
                     quality = scraper_utils.height_get_quality(source['label'])

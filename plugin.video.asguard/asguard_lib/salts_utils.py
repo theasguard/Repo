@@ -183,7 +183,16 @@ def parallel_get_sources(scraper, video):
     hosters = scraper.get_sources(video)
     if hosters is None: hosters = []
     if kodi.get_setting('filter_direct') == 'true':
-        hosters = [hoster for hoster in hosters if not hoster['direct'] or utils2.test_stream(hoster)]
+        # BLAMO
+        # hosters = [hoster for hoster in hosters if not hoster['direct'] or utils2.test_stream(hoster)]
+        import threading
+        def _parallel_get_sources(hoster):
+            hoster['valid'] = utils2.test_stream(hoster)
+        threads = [threading.Thread(target = _parallel_get_sources, args = (hoster,)) for hoster in hosters if hoster['direct']]
+        [thread.start() for thread in threads]
+        [thread.join() for thread in threads]
+        hosters = [hoster for hoster in hosters if not hoster['direct'] or ('valid' in hoster and hoster['valid'])]
+        # BLAMO
 
     found = False
     for hoster in hosters:

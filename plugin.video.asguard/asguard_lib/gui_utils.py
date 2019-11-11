@@ -41,6 +41,7 @@ def perform_auto_conf(responses):
         if responses[5]: kodi.set_setting('filter_direct', 'true')
         if responses[6]: kodi.set_setting('filter_unusable', 'true')
         if responses[7]: kodi.set_setting('show_debrid', 'true')
+        if responses[7]: kodi.set_setting('show_orion', 'true')
         if responses[8]: kodi.set_setting('source_results', '0')
         if responses[9]:
             kodi.set_setting('enable_sort', 'true')
@@ -52,7 +53,7 @@ def perform_auto_conf(responses):
             kodi.set_setting('sort6_field', '4')
     
         if responses[10]:
-            tiers = ['Local', 'Premiumize.V2', 'Premiumize.me', 'Furk.net', 'EasyNews', 'DD.tv', 'NoobRoom', 'Sit2Play',
+            tiers = ['Local', 'Premiumize.V2', 'Premiumize.me', 'Furk.net', 'EasyNews', 'DD.tv', 'Orion', 'Orion',
                      ['yify.tv', 'MoviesPlanet', 'goojara', '123Movies', '9Movies', 'DayT.se', 'mvgee', 'niter.tv', 'YesMovies', 'ororo.tv', 'MovieOcean'],
                      ['StreamLord', 'MovieFlix', 'CyberReel', 'm4ufree', 'tunemovie', 'fmovie.co', 'xmovies8', 'xmovies8.v2', 'KiwiHD', 'HDMovieFree', 'Mehliz'],
                      ['OLMovies', 'MovieGo', 'MovieXK', 'PelisPedia', 'PutMV', 'PirateJunkies', 'SeriesWatch', 'VidNow4K', 'VeoCube', 'Quikr', 'MovieBlast', 'Pubfilm.to'],

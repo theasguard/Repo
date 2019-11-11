@@ -28,7 +28,7 @@ from asguard_lib.constants import Q_ORDER
 import scraper
 
 
-BASE_URL = 'https://seehd.info'
+BASE_URL = 'https://seehd.world'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

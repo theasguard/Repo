@@ -97,7 +97,7 @@ class Scraper(scraper.Scraper):
         return settings
 
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
-        search_url = scraper_utils.urljoin(self.base_url, '/?s=%s')
+        search_url = scraper_utils.urljoin(self.base_url, '/?s=%s&submit=Find')
         search_url = search_url % (urllib.quote_plus(title))
         headers = {'Referer': self.base_url}
         all_html = self._http_get(search_url, headers=headers, require_debrid=True, cache_limit=3)

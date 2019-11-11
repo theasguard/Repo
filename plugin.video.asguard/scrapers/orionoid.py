@@ -10,6 +10,8 @@
 '''
 
 from orion import *
+from orion.modules.orionnetworker import *
+import threading
 import urlparse
 import base64
 import time
@@ -28,9 +30,12 @@ BASE_URL = 'https://orionoid.com'
 class Scraper(scraper.Scraper):
 	base_url = BASE_URL
 
+	CacheLimit = 100
+	PremiumizeLink = 'https://www.premiumize.me/api/torrent/checkhashes'
+
 	def __init__(self, timeout = scraper.DEFAULT_TIMEOUT):
 		self.base_url = kodi.get_setting('%s-base_url' % (self.get_name()))
-		self.key = 'VDBOQ1IwbEdSV2RYVTBKR1NVVm5aMVJwUWxsSlJXOW5WME5CTWtsR1JXZFZhVUpMU1VWbloxSjVRbEpKUlhkblZHbENUVWxGVVdkU1UwSlNTVVZKWjFOcFFrMUpSR3RuVW5sQ1dVbEZZMmRQVTBKUA==' # blamo - add your API key here.
+		self.key = 'VDBOQ1IwbEdSV2RYVTBKR1NVVm5aMVJwUWxsSlJXOW5WME5CTWtsR1JXZFZhVUpMU1VWbloxSjVRbEpKUlhkblZHbENUVWxGVVdkU1UwSlNTVVZKWjFOcFFrMUpSR3RuVW5sQ1dVbEZZMmRQVTBKUA=='
 		self.hosts = self._hosts()
 
 	@classmethod
@@ -139,6 +144,55 @@ class Scraper(scraper.Scraper):
 			import resolveurl
 			return resolveurl.HostedMediaFile(self._link(data)).valid_url()
 
+	def _premiumizeParameters(self, parameters = None):
+		from resolveurl.plugins.premiumize_me import PremiumizeMeResolver
+		if parameters: parameters = [urllib.urlencode(parameters, doseq = True)]
+		else: parameters = []
+		parameters.append(urllib.urlencode({'access_token' : PremiumizeMeResolver.get_setting('token')}, doseq = True))
+		return '&'.join(parameters)
+
+	def _premiumizeRequest(self, link, parameters = None):
+		networker = OrionNetworker(link = link, parameters = parameters, timeout = 60, agent = OrionNetworker.AgentOrion, debug = False, json = True)
+		return networker.request()
+
+	def _premiumizeCached(self, hashes):
+		return self._premiumizeRequest(link = Scraper.PremiumizeLink, parameters = self._premiumizeParameters({'hashes[]' : hashes}))
+
+	def _cached(self, sources):
+		try:
+			hashes = []
+			for i in sources:
+				try:
+					if i['stream']['type'] == Orion.StreamTorrent:
+						hash = i['file']['hash']
+						if hash: hashes.append(hash)
+				except: pass
+			chunks = [hashes[i:i + Scraper.CacheLimit] for i in xrange(0, len(hashes), Scraper.CacheLimit)]
+			threads = [threading.Thread(target = self._cachedCheck, args = (i,)) for i in chunks]
+			self.cachedHashes = []
+			self.cachedLock = threading.Lock()
+			[i.start() for i in threads]
+			[i.join() for i in threads]
+			for i in range(len(sources)):
+				sources[i]['cached'] = False
+			for i in range(len(sources)):
+				try:
+					if sources[i]['file']['hash'] in self.cachedHashes:
+						sources[i]['cached'] = True
+				except: pass
+		except: self._error()
+		return sources
+
+	def _cachedCheck(self, hashes):
+		try:
+			data = self._premiumizeCached(hashes = hashes)['hashes']
+			self.cachedLock.acquire()
+			for key, value in data.iteritems():
+				if value['status'] == 'finished':
+					self.cachedHashes.append(key)
+			self.cachedLock.release()
+		except: self._error()
+
 	def get_sources(self, video):
 		sources = []
 		try:
@@ -157,36 +211,10 @@ class Scraper(scraper.Scraper):
 			results = orion.streams(
 				type = type,
 				query = query,
-				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeHoster]),
-				protocolTorrent = Orion.ProtocolMagnet
+				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster])
 			)
 
-			# blamo - If you want to get .torrent files as well:
-			'''
-				results = orion.streams(
-					type = type,
-					query = query,
-					streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeHoster])
-				)
-			'''
-
-			# blamo - If you want to get .torrent and .nzb (usenet) files:
-			'''
-				results = orion.streams(
-					type = type,
-					query = query,
-					streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster])
-				)
-			'''
-
-			# blamo - If you want to get .torrent and .nzb files, it would be better to just leave out the "streamType" parameter. Then Orion will retrieve all links by default, and the user can manually change Orion's settings to only retrieve some types, like only torrents or torrents and usenet, or whatever combination they want. If you hard-code the "streamType" here, the user's settings are ignored, and only these types aree returned.
-			'''
-				results = orion.streams(
-					type = type,
-					query = query
-				)
-			'''
-
+			results = self._cached(results)
 			for data in results:
 				try:
 					if self._valid(data):
@@ -209,15 +237,6 @@ class Scraper(scraper.Scraper):
 							'direct' : data['access']['direct'],
 						}
 
-						# blamo - If you want to get .torrent and usenet .nzb files, change the URL parameter:
-						'''
-							...  'url' : self._link(data, orion = True), ...
-						'''
-						# blamo - this will return a URL as follows:
-						#	1. Hosters: the URL to the hoster site (eg: https://rapidgator.com/DFAGDSFHGDG)
-						#	2. Torrents: A magnet link if available. Otherwise if there is no magnet but only a .torrent file, then the link to the file on Orion's server (eg: https://orionid.com/container/ABCDEFGHIJKLMNOP/ABCDEFGHIJKLMNOP)
-						#	3. Usenet: A URL to the .nzb file on Orion's server (eg: https://orionid.com/container/ABCDEFGHIJKLMNOP/ABCDEFGHIJKLMNOP). Otherwise a URL to the orignal .zb file (eg: https://nzbfinder.ccom/get/ABCDEFGHIJKLMNOP)
-						# Note that if you use the .torrent or .nzb URLs, you have to download the file locally and then use your multi-part parameter somehow to submit the file data to Premiumize.
 
 						if data['video']['codec']:
 							stream['format'] = data['video']['codec']

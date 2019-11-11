@@ -27,7 +27,7 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import XHR
 import scraper
 
-BASE_URL = 'http://www.watchepisodes4.com'
+BASE_URL = 'https://www.watchepisodes4.com'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -49,7 +49,7 @@ class Scraper(scraper.Scraper):
         source_url = self.get_url(video)
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
-        html = self._http_get(page_url, cache_limit=.25)
+        html = self._http_get(page_url, cache_limit=.5)
         for _attrs, link in dom_parser2.parse_dom(html, 'div', {'class': 'ldr-item'}):
             stream_url = dom_parser2.parse_dom(link, 'a', req='data-actuallink')
             

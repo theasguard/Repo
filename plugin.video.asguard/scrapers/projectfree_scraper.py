@@ -25,7 +25,7 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'http://www1.projectfreetv.live'
+BASE_URL = 'https://www8.project-free-tv.ag/'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -82,7 +82,7 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         norm_title = scraper_utils.normalize_title(title)
-        url = scraper_utils.urljoin(self.base_url, '/search/')
+        url = scraper_utils.urljoin(self.base_url, '/episode/%s-season-%s-episode-%s')
         headers = {'Referer': self.base_url}
         html = self._http_get(url, headers=headers, cache_limit=8)
         for _attrs, item in dom_parser2.parse_dom(html, 'li'):

@@ -2143,3 +2143,10 @@ msgctxt "#30732"
 msgid "Image Proxy Port"
 msgstr ""
 
+msgctxt "#30734"
+msgid "Orion"
+msgstr ""
+
+msgctxt "#30735"
+msgid "Show Orion Supported Sources in ..."
+msgstr ""

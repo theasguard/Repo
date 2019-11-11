@@ -26,7 +26,7 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'http://moviesco.cc'
+BASE_URL = 'https://vkflix.online'
 QUALITY_MAP = {'HD': QUALITIES.HIGH, 'DVD': QUALITIES.HIGH, 'TS': QUALITIES.MEDIUM, 'CAM': QUALITIES.LOW}
 
 class Scraper(scraper.Scraper):

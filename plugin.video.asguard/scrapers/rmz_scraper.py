@@ -149,7 +149,7 @@ class Scraper(scraper.Scraper):
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search/')
         search_url = scraper_utils.urljoin(search_url, urllib.quote_plus(title))
-        html = self._http_get(search_url, require_debrid=True, cache_limit=8)
+        html = self._http_get(search_url, require_debrid=True, cache_limit=.8)
         for _attrs, fragment in dom_parser2.parse_dom(html, 'div', {'class': 'list'}):
             if not dom_parser2.parse_dom(fragment, 'div', {'class': 'lists_titles'}): continue
             for attrs, match_title_year in dom_parser2.parse_dom(fragment, 'a', {'class': 'title'}, req='href'):

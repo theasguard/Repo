@@ -26,7 +26,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 
-BASE_URL = 'http://los-movies.com'
+BASE_URL = 'http://losmovies.fun'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -71,7 +71,7 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search')
-        params = {'type': 'movies', 'q': title}
+        params = {}
         html = self._http_get(search_url, params=params, cache_limit=8)
         for _attrs, item in dom_parser2.parse_dom(html, 'div', {'id': re.compile('movie-\d+')}):
             is_tvshow = dom_parser2.parse_dom(item, 'div', {'class': 'movieTV'})

@@ -29,7 +29,7 @@ from asguard_lib.constants import XHR
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'http://www.filmovizija.live'
+BASE_URL = 'https://vjblog.live'
 EP_URL = '/episode.php?vid=%s'
 LINK_URL = '/morgan.php'
 

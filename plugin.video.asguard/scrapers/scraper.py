@@ -74,7 +74,7 @@ class Scraper(object):
     base_url = BASE_URL
     __db_connection = None
     worker_id = None
-    debrid_resolvers = None
+    debrid_resolvers = resolveurl
     row_pattern = '\s*<a\s+href="(?P<link>[^"]+)">(?P<title>[^<]+)</a>\s+(?P<date>\d+-[a-zA-Z]+-\d+ \d+:\d+)\s+(?P<size>-|\d+)'
 
     def __init__(self, timeout=DEFAULT_TIMEOUT):
@@ -110,8 +110,6 @@ class Scraper(object):
         """
         if link.startswith('magnet:'):
             return link
-        elif link.startwith('//'):
-            return  'http:' + link
         elif not link.startswith('http'):
             return scraper_utils.urljoin(self.base_url, link)
         else:

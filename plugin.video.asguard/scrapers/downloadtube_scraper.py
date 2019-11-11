@@ -41,7 +41,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def provides(cls):
-        return frozenset([VIDEO_TYPES.MOVIE])
+        return frozenset([VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE, VIDEO_TYPES.MOVIE])
 
     @classmethod
     def get_name(cls):
@@ -57,8 +57,8 @@ class Scraper(scraper.Scraper):
         movie_id = dom_parser2.parse_dom(html, 'input', {'id': 'movie_id'}, req='value')
         if not movie_id: return hosters
         
-        data = {'movie': movie_id[0].attrs['value'], 'starttime': 'undefined', 'pageevent': 0, 'aspectration': ''}
-        xhr_url = scraper_utils.urljoin(self.base_url, '/movies/play_online')
+        data = {'series': movie_id[0].attrs['value'], 'starttime': 'undefined', 'pageevent': 0, 'aspectration': ''}
+        xhr_url = scraper_utils.urljoin(self.base_url, '/series/play_online')
         headers = {'Referer': page_url}
         headers.update(XHR)
         html = self._http_get(xhr_url, data=data, headers=headers, cache_limit=.5)
