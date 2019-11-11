@@ -225,7 +225,7 @@
          <setting id="DDLSeries-base_url" type="text" label="    Base Url" default="http://ddlseries.rssing.com" visible="eq(-1,true)"/>
          <setting id="DDLSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
          <setting id="DDLValley-enable" type="bool" label="DDLValley Enabled" default="true" visible="true"/>
-         <setting id="DDLValley-base_url" type="text" label="    Base Url" default="https://www.ddlvalley.me" visible="eq(-1,true)"/>
+         <setting id="DDLValley-base_url" type="text" label="    Base Url" default="https://www.ddlvalley.cool" visible="eq(-1,true)"/>
          <setting id="DDLValley-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
          <setting id="DDLValley-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-3,true)"/>
          <setting id="Diziay-enable" type="bool" label="Diziay Enabled" default="true" visible="true"/>
@@ -265,6 +265,9 @@
          <setting id="EasyNews-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
          <setting id="EasyNews-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>
          <setting id="EasyNews-size_limit" label="     Maximum Allowed Size (GB) (0 = No Limit)" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>
+         <setting id="Filmovi-enable" type="bool" label="Filmovi Enabled" default="true" visible="true"/>
+         <setting id="Filmovi-base_url" type="text" label="    Base Url" default="http://filmativa.ws" visible="eq(-1,true)"/>
+         <setting id="Filmovi-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Filmovizija-enable" type="bool" label="Filmovizija Enabled" default="true" visible="true"/>
          <setting id="Filmovizija-base_url" type="text" label="    Base Url" default="https://vjblog.live" visible="eq(-1,true)"/>
          <setting id="Filmovizija-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -276,7 +279,7 @@
          <setting id="Furk.net-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>
          <setting id="Furk.net-size_limit" label="     Maximum Allowed Size (GB) (0 = No Limit)" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>
          <setting id="Hastidl-enable" type="bool" label="Hastidl Enabled" default="true" visible="true"/>
-         <setting id="Hastidl-base_url" type="text" label="    Base Url" default="http://dl3.haylimoviez.info/Movie%202019/" visible="eq(-1,true)"/>
+         <setting id="Hastidl-base_url" type="text" label="    Base Url" default="http://79.127.126.110/Film/1900-2016/" visible="eq(-1,true)"/>
          <setting id="Hastidl-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="HDMovieFree-enable" type="bool" label="HDMovieFree Enabled" default="true" visible="true"/>
          <setting id="HDMovieFree-base_url" type="text" label="    Base Url" default="http://moviestreamhd.org" visible="eq(-1,true)"/>
@@ -287,12 +290,12 @@
          <setting id="HeyDL-enable" type="bool" label="HeyDL Enabled" default="true" visible="true"/>
          <setting id="HeyDL-base_url" type="text" label="    Base Url" default="https://heydl.org" visible="eq(-1,true)"/>
          <setting id="HeyDL-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="IceFilms-enable" type="bool" label="IceFilms Enabled" default="true" visible="true"/>
-         <setting id="IceFilms-base_url" type="text" label="    Base Url" default="https://www.icefilms-info.com" visible="eq(-1,true)"/>
-         <setting id="IceFilms-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
     </category>
 
     <category label="Scrapers 2">
+         <setting id="IceFilms-enable" type="bool" label="IceFilms Enabled" default="true" visible="true"/>
+         <setting id="IceFilms-base_url" type="text" label="    Base Url" default="https://www.icefilms-info.com" visible="eq(-1,true)"/>
+         <setting id="IceFilms-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Indexer-enable" type="bool" label="Indexer Enabled" default="true" visible="true"/>
          <setting id="Indexer-base_url" type="text" label="    Base Url" default="http://sv4avadl.uploadt.com/Movie/2017/09/x265.HEVC/" visible="eq(-1,true)"/>
          <setting id="Indexer-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -382,17 +385,17 @@
          <setting id="SeeHD-enable" type="bool" label="SeeHD Enabled" default="true" visible="true"/>
          <setting id="SeeHD-base_url" type="text" label="    Base Url" default="https://seehd.world" visible="eq(-1,true)"/>
          <setting id="SeeHD-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SeriesCoco-enable" type="bool" label="SeriesCoco Enabled" default="true" visible="true"/>
-         <setting id="SeriesCoco-base_url" type="text" label="    Base Url" default="https://www2.watchseriesnet.net" visible="eq(-1,true)"/>
-         <setting id="SeriesCoco-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
     </category>
 
     <category label="Scrapers 3">
+         <setting id="SeriesCoco-enable" type="bool" label="SeriesCoco Enabled" default="true" visible="true"/>
+         <setting id="SeriesCoco-base_url" type="text" label="    Base Url" default="https://www2.watchseriesnet.net" visible="eq(-1,true)"/>
+         <setting id="SeriesCoco-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SeriesF-enable" type="bool" label="SeriesF Enabled" default="true" visible="true"/>
          <setting id="SeriesF-base_url" type="text" label="    Base Url" default="https://watchtvseries.unblockall.org" visible="eq(-1,true)"/>
          <setting id="SeriesF-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SeriesOnline-enable" type="bool" label="SeriesOnline Enabled" default="true" visible="true"/>
-         <setting id="SeriesOnline-base_url" type="text" label="    Base Url" default="https://www5.series9.to/" visible="eq(-1,true)"/>
+         <setting id="SeriesOnline-base_url" type="text" label="    Base Url" default="https://www2.series9.io" visible="eq(-1,true)"/>
          <setting id="SeriesOnline-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SeriesWatch-enable" type="bool" label="SeriesWatch Enabled" default="true" visible="true"/>
          <setting id="SeriesWatch-base_url" type="text" label="    Base Url" default="http://dl.resafilm.com" visible="eq(-1,true)"/>
@@ -433,7 +436,7 @@
          <setting id="WatchEpisodes-base_url" type="text" label="    Base Url" default="https://www.watchepisodes4.com" visible="eq(-1,true)"/>
          <setting id="WatchEpisodes-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="WatchFree.to-enable" type="bool" label="WatchFree.to Enabled" default="true" visible="true"/>
-         <setting id="WatchFree.to-base_url" type="text" label="    Base Url" default="http://www.watchfreemovies.ch" visible="eq(-1,true)"/>
+         <setting id="WatchFree.to-base_url" type="text" label="    Base Url" default="https://www.watchfree.website" visible="eq(-1,true)"/>
          <setting id="WatchFree.to-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="WatchSeries-enable" type="bool" label="WatchSeries Enabled" default="true" visible="true"/>
          <setting id="WatchSeries-base_url" type="text" label="    Base Url" default="https://seriesfree.to" visible="eq(-1,true)"/>

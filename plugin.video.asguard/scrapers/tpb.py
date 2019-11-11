@@ -73,8 +73,8 @@ class Scraper(scraper.Scraper):
         return settings
 
 # Result may need a small edit you can compare between other scrapers
-    def get_url(self, video):
-        result = self.db_connection().get_related_url(video.video_type, video.title, video.year, self.get_name(), video.season, video.episode)
+    def get_url(self, video_type, title, year, season='', episode=''):
+        result = self.get_url(video_type, title, year, self.get_name(), season, episode)
         if result:
             return result[0][0]
 

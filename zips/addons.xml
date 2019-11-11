@@ -20,7 +20,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.asguard" version="0.0.5" name="Asguard" provider-name="Thor">
+<addon id="plugin.video.asguard" version="0.0.6" name="Asguard" provider-name="Thor">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
         <import addon="script.module.pyxbmct"/>
@@ -74,21 +74,6 @@ This is a Non-profit resource, organized solely for educational purposes which i
                 <info compressed="false">https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/addons.xml</info>
                 <checksum>https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/addons.xml.md5</checksum>
                 <datadir zip="true">https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/</datadir>
-            </dir>
-            <dir>
-                <info compressed="false">https://raw.githubusercontent.com/totalrevolution/python-koding/master/zips/addons.xml</info>
-                <checksum>https://raw.githubusercontent.com/totalrevolution/python-koding/master/zips/addons.xml.md5</checksum>
-                <datadir zip="true">https://raw.githubusercontent.com/totalrevolution/python-koding/master/zips/</datadir>
-            </dir>
-            <dir>
-                <info compressed="false">https://repo.orionoid.com/addons.xml?v=3.3.0</info>
-                <checksum>https://repo.orionoid.com/addons.xml.md5?v=3.3.0</checksum>
-                <datadir zip="true">https://repo.orionoid.com</datadir>
-            </dir>
-            <dir>
-                <info compressed="false">https://raw.githubusercontent.com/teamuniversal/scrapers/master/_modules4all/zips/addons.xml</info>
-                <checksum>https://raw.githubusercontent.com/teamuniversal/scrapers/master/_modules4all/zips/addons.xml.md5</checksum>
-                <datadir zip="true">https://raw.githubusercontent.com/teamuniversal/scrapers/master/_modules4all/zips/</datadir>
             </dir>
             <dir>
                 <info compressed="false">https://raw.githubusercontent.com/jsergio123/zips/master/addons.xml</info>

@@ -71,7 +71,7 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search')
-        params = {}
+        params = {'type': 'movies', 'q': title}
         html = self._http_get(search_url, params=params, cache_limit=8)
         for _attrs, item in dom_parser2.parse_dom(html, 'div', {'id': re.compile('movie-\d+')}):
             is_tvshow = dom_parser2.parse_dom(item, 'div', {'class': 'movieTV'})

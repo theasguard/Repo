@@ -24,7 +24,7 @@ from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'http://dl3.haylimoviez.info/Movie%202019/'
+BASE_URL = 'http://79.127.126.110/Film/1900-2016/'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

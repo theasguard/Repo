@@ -27,7 +27,7 @@ from asguard_lib.constants import QUALITIES
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'https://www5.series9.to/'
+BASE_URL = 'https://www2.series9.io'
 Q_MAP = {'TS': QUALITIES.LOW, 'CAM': QUALITIES.LOW, 'HDTS': QUALITIES.LOW, 'HD-720P': QUALITIES.HD720}
 
 class Scraper(scraper.Scraper):

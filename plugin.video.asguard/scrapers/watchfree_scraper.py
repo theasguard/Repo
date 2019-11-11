@@ -26,7 +26,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 QUALITY_MAP = {'HD': QUALITIES.HIGH, 'LOW': QUALITIES.LOW}
-BASE_URL = 'http://www.watchfreemovies.ch'
+BASE_URL = 'https://www.watchfree.website'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -70,10 +70,10 @@ class Scraper(scraper.Scraper):
         results = []
         if video_type == VIDEO_TYPES.MOVIE:
             section = '1'
-            url_marker = '-watch-movies-'
+            url_marker = '-movie-online-'
         else:
             section = '2'
-            url_marker = '-watch-tv-shows-'
+            url_marker = '-tv-show-online-'
         params = {'keyword': title, 'search_section': section}
         html = self._http_get(self.base_url, params=params, cache_limit=1)
 

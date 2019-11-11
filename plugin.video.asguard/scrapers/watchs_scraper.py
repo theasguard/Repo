@@ -85,7 +85,7 @@ class Scraper(scraper.Scraper):
     
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
-        search_url = scraper_utils.urljoin(self.base_url, '/search/')
+        search_url = scraper_utils.urljoin(self.base_url, '/search/%s')
         headers = {'Referer': self.base_url}
         headers.update(XHR)
         html = self._http_get(search_url, cache_limit=8)
