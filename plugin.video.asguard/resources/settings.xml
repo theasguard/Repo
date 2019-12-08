@@ -323,9 +323,6 @@
          <setting id="MoviesPlanet-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="MoviesPlanet-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
          <setting id="MoviesPlanet-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
-         <setting id="MovieSub-enable" type="bool" label="MovieSub Enabled" default="true" visible="true"/>
-         <setting id="MovieSub-base_url" type="text" label="    Base Url" default="https://www0.moviesub.is" visible="eq(-1,true)"/>
-         <setting id="MovieSub-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="MovieTube-enable" type="bool" label="MovieTube Enabled" default="true" visible="true"/>
          <setting id="MovieTube-base_url" type="text" label="    Base Url" default="http://www.movietubehere.net" visible="eq(-1,true)"/>
          <setting id="MovieTube-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -385,12 +382,12 @@
          <setting id="SeeHD-enable" type="bool" label="SeeHD Enabled" default="true" visible="true"/>
          <setting id="SeeHD-base_url" type="text" label="    Base Url" default="https://seehd.world" visible="eq(-1,true)"/>
          <setting id="SeeHD-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-    </category>
-
-    <category label="Scrapers 3">
          <setting id="SeriesCoco-enable" type="bool" label="SeriesCoco Enabled" default="true" visible="true"/>
          <setting id="SeriesCoco-base_url" type="text" label="    Base Url" default="https://www2.watchseriesnet.net" visible="eq(-1,true)"/>
          <setting id="SeriesCoco-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+    </category>
+
+    <category label="Scrapers 3">
          <setting id="SeriesF-enable" type="bool" label="SeriesF Enabled" default="true" visible="true"/>
          <setting id="SeriesF-base_url" type="text" label="    Base Url" default="https://watchtvseries.unblockall.org" visible="eq(-1,true)"/>
          <setting id="SeriesF-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -449,114 +446,6 @@
          <setting id="wso.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="YesMovies-enable" type="bool" label="YesMovies Enabled" default="true" visible="true"/>
          <setting id="YesMovies-base_url" type="text" label="    Base Url" default="https://yesmovies.ru" visible="eq(-1,true)"/>
-         <setting id="YesMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-    </category>
-    
-    <category label="Scrapers 4">
-         <setting id="SeeHD-enable" type="bool" label="SeeHD Enabled" default="true" visible="true"/>
-         <setting id="SeeHD-base_url" type="text" label="    Base Url" default="https://seehd.info" visible="eq(-1,true)"/>
-         <setting id="SeeHD-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SeriesCoco-enable" type="bool" label="SeriesCoco Enabled" default="true" visible="true"/>
-         <setting id="SeriesCoco-base_url" type="text" label="    Base Url" default="https://www2.watchseriesnet.net" visible="eq(-1,true)"/>
-         <setting id="SeriesCoco-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SeriesF-enable" type="bool" label="SeriesF Enabled" default="true" visible="true"/>
-         <setting id="SeriesF-base_url" type="text" label="    Base Url" default="https://watchtvseries.unblockall.org" visible="eq(-1,true)"/>
-         <setting id="SeriesF-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SeriesOnline-enable" type="bool" label="SeriesOnline Enabled" default="true" visible="true"/>
-         <setting id="SeriesOnline-base_url" type="text" label="    Base Url" default="https://www2.series9.io" visible="eq(-1,true)"/>
-         <setting id="SeriesOnline-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SeriesWatch-enable" type="bool" label="SeriesWatch Enabled" default="true" visible="true"/>
-         <setting id="SeriesWatch-base_url" type="text" label="    Base Url" default="http://dl.resafilm.com" visible="eq(-1,true)"/>
-         <setting id="SeriesWatch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SezonLukDizi-enable" type="bool" label="SezonLukDizi Enabled" default="true" visible="true"/>
-         <setting id="SezonLukDizi-base_url" type="text" label="    Base Url" default="http://sezonlukdizi.net" visible="eq(-1,true)"/>
-         <setting id="SezonLukDizi-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Sit2Play-enable" type="bool" label="Sit2Play Enabled" default="true" visible="true"/>
-         <setting id="Sit2Play-base_url" type="text" label="    Base Url" default="https://sit2play.com" visible="eq(-1,true)"/>
-         <setting id="Sit2Play-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Sit2Play-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
-         <setting id="Sit2Play-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
-         <setting id="SnagFilms-enable" type="bool" label="SnagFilms Enabled" default="true" visible="true"/>
-         <setting id="SnagFilms-base_url" type="text" label="    Base Url" default="http://www.snagfilms.com" visible="eq(-1,true)"/>
-         <setting id="SnagFilms-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SnagFilms-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
-         <setting id="SnagFilms-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
-         <setting id="StreamDor-enable" type="bool" label="StreamDor Enabled" default="true" visible="true"/>
-         <setting id="StreamDor-base_url" type="text" label="    Base Url" default="https://api.streamdor-test.com" visible="eq(-1,true)"/>
-         <setting id="StreamDor-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="StreamLord-enable" type="bool" label="StreamLord Enabled" default="true" visible="true"/>
-         <setting id="StreamLord-base_url" type="text" label="    Base Url" default="http://www.streamlord.com" visible="eq(-1,true)"/>
-         <setting id="StreamLord-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="StreamLord-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
-         <setting id="StreamLord-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
-         <setting id="Tor-enable" type="bool" label="Tor Enabled" default="true" visible="true"/>
-         <setting id="Tor-base_url" type="text" label="    Base Url" default="http://62.210.103.107/torrent/" visible="eq(-1,true)"/>
-         <setting id="Tor-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Uploadt-enable" type="bool" label="Uploadt Enabled" default="true" visible="true"/>
-         <setting id="Uploadt-base_url" type="text" label="    Base Url" default="http://sv4avadl.uploadt.com/Movie/2017/06/" visible="eq(-1,true)"/>
-         <setting id="Uploadt-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Vebup-enable" type="bool" label="Vebup Enabled" default="true" visible="true"/>
-         <setting id="Vebup-base_url" type="text" label="    Base Url" default="http://vexmovies.org" visible="eq(-1,true)"/>
-         <setting id="Vebup-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Vidics-enable" type="bool" label="Vidics Enabled" default="true" visible="true"/>
-         <setting id="Vidics-base_url" type="text" label="    Base Url" default="https://vidics.unblocked.how" visible="eq(-1,true)"/>
-         <setting id="Vidics-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="viooz.ac-enable" type="bool" label="viooz.ac Enabled" default="true" visible="true"/>
-         <setting id="viooz.ac-base_url" type="text" label="    Base Url" default="https://vioozgo.org" visible="eq(-1,true)"/>
-         <setting id="viooz.ac-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="VKFlix-enable" type="bool" label="VKFlix Enabled" default="true" visible="true"/>
-         <setting id="VKFlix-base_url" type="text" label="    Base Url" default="http://moviesco.cc" visible="eq(-1,true)"/>
-         <setting id="VKFlix-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchEpisodes-enable" type="bool" label="WatchEpisodes Enabled" default="true" visible="true"/>
-         <setting id="WatchEpisodes-base_url" type="text" label="    Base Url" default="http://www.watchepisodes4.com" visible="eq(-1,true)"/>
-         <setting id="WatchEpisodes-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchFree.to-enable" type="bool" label="WatchFree.to Enabled" default="true" visible="true"/>
-         <setting id="WatchFree.to-base_url" type="text" label="    Base Url" default="http://www.watchfreemovies.ch/" visible="eq(-1,true)"/>
-         <setting id="WatchFree.to-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchSeries-enable" type="bool" label="WatchSeries Enabled" default="true" visible="true"/>
-         <setting id="WatchSeries-base_url" type="text" label="    Base Url" default="https://seriesfree.to" visible="eq(-1,true)"/>
-         <setting id="WatchSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="wmo.ch-enable" type="bool" label="wmo.ch Enabled" default="true" visible="true"/>
-         <setting id="wmo.ch-base_url" type="text" label="    Base Url" default="https://newmoviesonline.tv/" visible="eq(-1,true)"/>
-         <setting id="wmo.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="wso.ch-enable" type="bool" label="wso.ch Enabled" default="true" visible="true"/>
-         <setting id="wso.ch-base_url" type="text" label="    Base Url" default="https://ww1.watchseries-online.be" visible="eq(-1,true)"/>
-         <setting id="wso.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="YesMovies-enable" type="bool" label="YesMovies Enabled" default="true" visible="true"/>
-         <setting id="YesMovies-base_url" type="text" label="    Base Url" default="https://yesmovies.ru" visible="eq(-1,true)"/>
-         <setting id="YesMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-    </category>
-
-    <category label="Scrapers 5">
-         <setting id="viooz.ac-enable" type="bool" label="viooz.ac Enabled" default="true" visible="true"/>
-         <setting id="viooz.ac-base_url" type="text" label="    Base Url" default="https://viooz.ac" visible="eq(-1,true)"/>
-         <setting id="viooz.ac-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="VKFlix-enable" type="bool" label="VKFlix Enabled" default="true" visible="true"/>
-         <setting id="VKFlix-base_url" type="text" label="    Base Url" default="http://moviesco.cc" visible="eq(-1,true)"/>
-         <setting id="VKFlix-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Watch8Now-enable" type="bool" label="Watch8Now Enabled" default="true" visible="true"/>
-         <setting id="Watch8Now-base_url" type="text" label="    Base Url" default="https://shows.geektv.so/" visible="eq(-1,true)"/>
-         <setting id="Watch8Now-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchEpisodes-enable" type="bool" label="WatchEpisodes Enabled" default="true" visible="true"/>
-         <setting id="WatchEpisodes-base_url" type="text" label="    Base Url" default="http://www.watchepisodes4.com" visible="eq(-1,true)"/>
-         <setting id="WatchEpisodes-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchFree.to-enable" type="bool" label="WatchFree.to Enabled" default="true" visible="true"/>
-         <setting id="WatchFree.to-base_url" type="text" label="    Base Url" default="http://www.watchfreemovies.ch/" visible="eq(-1,true)"/>
-         <setting id="WatchFree.to-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchFrees-enable" type="bool" label="WatchFrees Enabled" default="true" visible="true"/>
-         <setting id="WatchFrees-base_url" type="text" label="    Base Url" default="https://watchfree.movie" visible="eq(-1,true)"/>
-         <setting id="WatchFrees-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchSeries-enable" type="bool" label="WatchSeries Enabled" default="true" visible="true"/>
-         <setting id="WatchSeries-base_url" type="text" label="    Base Url" default="https://seriesfree.to" visible="eq(-1,true)"/>
-         <setting id="WatchSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="wmo.ch-enable" type="bool" label="wmo.ch Enabled" default="true" visible="true"/>
-         <setting id="wmo.ch-base_url" type="text" label="    Base Url" default="http://watchmoviesonline.co/" visible="eq(-1,true)"/>
-         <setting id="wmo.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="wso.ch-enable" type="bool" label="wso.ch Enabled" default="true" visible="true"/>
-         <setting id="wso.ch-base_url" type="text" label="    Base Url" default="https://watchseries-online.be" visible="eq(-1,true)"/>
-         <setting id="wso.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="YesMovies-enable" type="bool" label="YesMovies Enabled" default="true" visible="true"/>
-         <setting id="YesMovies-base_url" type="text" label="    Base Url" default="https://yesmovies.to" visible="eq(-1,true)"/>
          <setting id="YesMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
     </category>
 
