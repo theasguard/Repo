@@ -32,11 +32,6 @@
 		<import addon="script.module.requests" />
         <import addon="script.module.six"/>
         <import addon="script.module.dateutil"/>
-
-		<!-- [ORION/] -->
-		<import addon="script.module.orion" version="3.4.1" />
-		<!-- [/ORION] -->
-
 		<import addon="script.module.orion" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
