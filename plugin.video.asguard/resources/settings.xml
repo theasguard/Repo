@@ -201,7 +201,7 @@
          <setting id="CinemaMKV-base_url" type="text" label="    Base Url" default="http://cinemamkv.net" visible="eq(-1,true)"/>
          <setting id="CinemaMKV-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="cmz-enable" type="bool" label="cmz Enabled" default="true" visible="true"/>
-         <setting id="cmz-base_url" type="text" label="    Base Url" default="https://coolmoviezone.xyz" visible="eq(-1,true)"/>
+         <setting id="cmz-base_url" type="text" label="    Base Url" default="https://coolmoviezone.live" visible="eq(-1,true)"/>
          <setting id="cmz-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="CouchTunerV1-enable" type="bool" label="CouchTunerV1 Enabled" default="true" visible="true"/>
          <setting id="CouchTunerV1-base_url" type="text" label="    Base Url" default="https://www.couchtuner.top" visible="eq(-1,true)"/>
@@ -240,6 +240,9 @@
          <setting id="Filmovizija-enable" type="bool" label="Filmovizija Enabled" default="true" visible="true"/>
          <setting id="Filmovizija-base_url" type="text" label="    Base Url" default="https://vjblog.live" visible="eq(-1,true)"/>
          <setting id="Filmovizija-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="fmovie.co-enable" type="bool" label="fmovie.co Enabled" default="true" visible="true"/>
+         <setting id="fmovie.co-base_url" type="text" label="    Base Url" default="https://cmovieshd.net" visible="eq(-1,true)"/>
+         <setting id="fmovie.co-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Furk.net-enable" type="bool" label="Furk.net Enabled" default="true" visible="true"/>
          <setting id="Furk.net-base_url" type="text" label="    Base Url" default="https://www.furk.net" visible="eq(-1,true)"/>
          <setting id="Furk.net-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
@@ -253,6 +256,9 @@
          <setting id="IceFilms-enable" type="bool" label="IceFilms Enabled" default="true" visible="true"/>
          <setting id="IceFilms-base_url" type="text" label="    Base Url" default="https://www.icefilms-info.com" visible="eq(-1,true)"/>
          <setting id="IceFilms-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="IOMovies-enable" type="bool" label="IOMovies Enabled" default="true" visible="true"/>
+         <setting id="IOMovies-base_url" type="text" label="    Base Url" default="https://iomovies.me" visible="eq(-1,true)"/>
+         <setting id="IOMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Local-enable" type="bool" label="Local Enabled" default="true" visible="true"/>
          <setting id="Local-base_url" type="text" label="    Base Url" default="" visible="eq(-1,true)"/>
          <setting id="Local-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -268,6 +274,9 @@
          <setting id="MovieWatcher-enable" type="bool" label="MovieWatcher Enabled" default="true" visible="true"/>
          <setting id="MovieWatcher-base_url" type="text" label="    Base Url" default="http://moviewatcher.is" visible="eq(-1,true)"/>
          <setting id="MovieWatcher-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="OLMovies-enable" type="bool" label="OLMovies Enabled" default="true" visible="true"/>
+         <setting id="OLMovies-base_url" type="text" label="    Base Url" default="https://openloadmovies.uk" visible="eq(-1,true)"/>
+         <setting id="OLMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="OnlineDizi-enable" type="bool" label="OnlineDizi Enabled" default="true" visible="true"/>
          <setting id="OnlineDizi-base_url" type="text" label="    Base Url" default="https://onlinedizi.net" visible="eq(-1,true)"/>
          <setting id="OnlineDizi-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -280,17 +289,26 @@
          <setting id="Orion-enable" type="bool" label="Orion Enabled" default="true" visible="true"/>
          <setting id="Orion-base_url" type="text" label="    Base Url" default="https://orionoid.com" visible="eq(-1,true)"/>
          <setting id="Orion-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+    </category>
+
+    <category label="Scrapers 2">
          <setting id="ororo.tv-enable" type="bool" label="ororo.tv Enabled" default="true" visible="true"/>
          <setting id="ororo.tv-base_url" type="text" label="    Base Url" default="https://ororo.tv" visible="eq(-1,true)"/>
          <setting id="ororo.tv-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="ororo.tv-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
          <setting id="ororo.tv-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
+         <setting id="PrimeWire-enable" type="bool" label="PrimeWire Enabled" default="true" visible="true"/>
+         <setting id="PrimeWire-base_url" type="text" label="    Base Url" default="https://www.primewire.li" visible="eq(-1,true)"/>
+         <setting id="PrimeWire-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="Putlocker-enable" type="bool" label="Putlocker Enabled" default="true" visible="true"/>
+         <setting id="Putlocker-base_url" type="text" label="    Base Url" default="http://putlockers.net" visible="eq(-1,true)"/>
+         <setting id="Putlocker-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="RealMovies-enable" type="bool" label="RealMovies Enabled" default="true" visible="true"/>
+         <setting id="RealMovies-base_url" type="text" label="    Base Url" default="https://revelationmedia.tk" visible="eq(-1,true)"/>
+         <setting id="RealMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SeriesF-enable" type="bool" label="SeriesF Enabled" default="true" visible="true"/>
          <setting id="SeriesF-base_url" type="text" label="    Base Url" default="https://watchtvseries.unblockall.org" visible="eq(-1,true)"/>
          <setting id="SeriesF-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-    </category>
-
-    <category label="Scrapers 2">
          <setting id="SeriesOnline-enable" type="bool" label="SeriesOnline Enabled" default="true" visible="true"/>
          <setting id="SeriesOnline-base_url" type="text" label="    Base Url" default="https://www2.series9.io" visible="eq(-1,true)"/>
          <setting id="SeriesOnline-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -302,6 +320,9 @@
          <setting id="StreamDor-enable" type="bool" label="StreamDor Enabled" default="true" visible="true"/>
          <setting id="StreamDor-base_url" type="text" label="    Base Url" default="https://api.streamdor-test.com" visible="eq(-1,true)"/>
          <setting id="StreamDor-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="TPB-enable" type="bool" label="TPB Enabled" default="true" visible="true"/>
+         <setting id="TPB-base_url" type="text" label="    Base Url" default="" visible="eq(-1,true)"/>
+         <setting id="TPB-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Vidics-enable" type="bool" label="Vidics Enabled" default="true" visible="true"/>
          <setting id="Vidics-base_url" type="text" label="    Base Url" default="https://www.vidics.to" visible="eq(-1,true)"/>
          <setting id="Vidics-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -314,6 +335,9 @@
          <setting id="WatchEpisodes-enable" type="bool" label="WatchEpisodes Enabled" default="true" visible="true"/>
          <setting id="WatchEpisodes-base_url" type="text" label="    Base Url" default="https://www.watchepisodes4.com" visible="eq(-1,true)"/>
          <setting id="WatchEpisodes-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="WatchEpisodeSeries-enable" type="bool" label="WatchEpisodeSeries Enabled" default="true" visible="true"/>
+         <setting id="WatchEpisodeSeries-base_url" type="text" label="    Base Url" default="https://www.watchepisodeseries1.com" visible="eq(-1,true)"/>
+         <setting id="WatchEpisodeSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="WatchFree.to-enable" type="bool" label="WatchFree.to Enabled" default="true" visible="true"/>
          <setting id="WatchFree.to-base_url" type="text" label="    Base Url" default="https://www.watchfree.website" visible="eq(-1,true)"/>
          <setting id="WatchFree.to-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>

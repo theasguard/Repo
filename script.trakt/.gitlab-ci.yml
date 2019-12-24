@@ -1,8 +1,0 @@
-test:
-  script:
-  - export DATABASE_URL=postgres://postgres:@postgres:5432/python-test-app
-  - apt-get update -qy
-  - apt-get install -y python-dev python-pip
-  - pip install python-dateutil pytest
-  - py.test -v
-

@@ -25,6 +25,7 @@ import urllib2
 import urlparse
 from asguard_lib import cf_captcha
 from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import kodi
 import log_utils  # @UnusedImport
 from asguard_lib import scraper_utils
@@ -390,7 +391,7 @@ class Scraper(object):
                 if not html:
                     return ''
             elif e.code == 503 and 'cf-browser-verification' in html:
-                html = cfscrape.CloudflareScraper(url, self.cj, scraper_utils.get_ua())
+                html = cloudflare.solve(url, self.cj, scraper_utils.get_ua())
                 if not html:
                     return ''
             else:

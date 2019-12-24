@@ -11,6 +11,7 @@
 		<import addon="script.module.requests" />
         <import addon="script.module.six"/>
         <import addon="script.module.dateutil"/>
+		<import addon="script.module.beautifulsoup4"/>
 		<import addon="script.module.orion" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
@@ -31,6 +32,5 @@ This is a Non-profit resource, organized solely for educational purposes which i
 		<platform>all</platform>
         <reuselanguageinvoker>false</reuselanguageinvoker>
 		<license>Beerware rev. 42</license>
-	<platform>all</platform>
 	</extension>
 </addon>
