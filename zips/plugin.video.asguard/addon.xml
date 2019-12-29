@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.asguard" version="0.0.6" name="Asguard" provider-name="Thor">
+<addon id="plugin.video.asguard" version="0.0.7" name="Asguard" provider-name="Thor">
     <requires>        
 		<import addon="xbmc.python" version="2.19.0"/>
         <import addon="script.module.pyxbmct"/>
@@ -13,6 +13,8 @@
         <import addon="script.module.dateutil"/>
 		<import addon="script.module.beautifulsoup4"/>
 		<import addon="script.module.orion" />
+		<import addon="script.module.demjson" />
+		<import addon="script.module.html5lib" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>

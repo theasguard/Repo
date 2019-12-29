@@ -237,9 +237,13 @@
          <setting id="EasyNews-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
          <setting id="EasyNews-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>
          <setting id="EasyNews-size_limit" label="     Maximum Allowed Size (GB) (0 = No Limit)" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>
-         <setting id="Filmovizija-enable" type="bool" label="Filmovizija Enabled" default="true" visible="true"/>
-         <setting id="Filmovizija-base_url" type="text" label="    Base Url" default="https://vjblog.live" visible="eq(-1,true)"/>
-         <setting id="Filmovizija-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="eztv-enable" type="bool" label="eztv Enabled" default="true" visible="true"/>
+         <setting id="eztv-base_url" type="text" label="    Base Url" default="" visible="eq(-1,true)"/>
+         <setting id="eztv-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
+         <setting id="eztv-use_https" type="bool" label="     Use HTTPS" default="false" visible="eq(-3,true)"/>
+         <setting id="eztv-base_url2" type="text" label="     Movies Base Url" default="https://yts.lt" visible="eq(-6,true)"/>
+         <setting id="eztv-base_url3" type="text" label="     TV Shows Base Url" default="https://eztv.io" visible="eq(-7,true)"/>
+         <setting id="eztv-include_trans" type="bool" label="     Include Transodes" default="true" visible="eq(-8,true)"/>
          <setting id="fmovie.co-enable" type="bool" label="fmovie.co Enabled" default="true" visible="true"/>
          <setting id="fmovie.co-base_url" type="text" label="    Base Url" default="https://cmovieshd.net" visible="eq(-1,true)"/>
          <setting id="fmovie.co-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -286,17 +290,28 @@
          <setting id="OnlineMoviesPro-enable" type="bool" label="OnlineMoviesPro Enabled" default="true" visible="true"/>
          <setting id="OnlineMoviesPro-base_url" type="text" label="    Base Url" default="http://onlinemovies-pro.org" visible="eq(-1,true)"/>
          <setting id="OnlineMoviesPro-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Orion-enable" type="bool" label="Orion Enabled" default="true" visible="true"/>
-         <setting id="Orion-base_url" type="text" label="    Base Url" default="https://orionoid.com" visible="eq(-1,true)"/>
-         <setting id="Orion-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
     </category>
 
     <category label="Scrapers 2">
+         <setting id="Orion-enable" type="bool" label="Orion Enabled" default="true" visible="true"/>
+         <setting id="Orion-base_url" type="text" label="    Base Url" default="https://orionoid.com" visible="eq(-1,true)"/>
+         <setting id="Orion-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="ororo.tv-enable" type="bool" label="ororo.tv Enabled" default="true" visible="true"/>
          <setting id="ororo.tv-base_url" type="text" label="    Base Url" default="https://ororo.tv" visible="eq(-1,true)"/>
          <setting id="ororo.tv-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="ororo.tv-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
          <setting id="ororo.tv-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
+         <setting id="Premiumize.me-enable" type="bool" label="Premiumize.me Enabled" default="true" visible="true"/>
+         <setting id="Premiumize.me-base_url" type="text" label="    Base Url" default="premiumize.me" visible="eq(-1,true)"/>
+         <setting id="Premiumize.me-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
+         <setting id="Premiumize.me-use_https" type="bool" label="     Use HTTPS" default="false" visible="eq(-3,true)"/>
+         <setting id="Premiumize.me-username" type="text" label="     Username" default="" visible="eq(-4,true)"/>
+         <setting id="Premiumize.me-password" type="text" label="     Password" option="hidden" default="" visible="eq(-5,true)"/>
+         <setting id="Premiumize.me-base_url2" type="text" label="     Movies Base Url" default="https://yts.am" visible="eq(-6,true)"/>
+         <setting id="Premiumize.me-base_url3" type="text" label="     TV Shows Base Url" default="https://eztv.ag" visible="eq(-7,true)"/>
+         <setting id="Premiumize.me-include_trans" type="bool" label="     Include Transodes" default="true" visible="eq(-8,true)"/>
+         <setting id="Premiumize.V2-enable" type="bool" label="Premiumize.V2 Enabled" default="true" visible="true"/>
+         <setting id="Premiumize.V2-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-1,true)"/>
          <setting id="PrimeWire-enable" type="bool" label="PrimeWire Enabled" default="true" visible="true"/>
          <setting id="PrimeWire-base_url" type="text" label="    Base Url" default="https://www.primewire.li" visible="eq(-1,true)"/>
          <setting id="PrimeWire-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -306,6 +321,16 @@
          <setting id="RealMovies-enable" type="bool" label="RealMovies Enabled" default="true" visible="true"/>
          <setting id="RealMovies-base_url" type="text" label="    Base Url" default="https://revelationmedia.tk" visible="eq(-1,true)"/>
          <setting id="RealMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="RMZ-enable" type="bool" label="RMZ Enabled" default="true" visible="true"/>
+         <setting id="RMZ-base_url" type="text" label="    Base Url" default="http://rmz.cr" visible="eq(-1,true)"/>
+         <setting id="RMZ-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
+         <setting id="RMZ-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-3,true)"/>
+         <setting id="RMZ-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
+         <setting id="scene-rls-enable" type="bool" label="scene-rls Enabled" default="true" visible="true"/>
+         <setting id="scene-rls-base_url" type="text" label="    Base Url" default="http://scene-rls.net" visible="eq(-1,true)"/>
+         <setting id="scene-rls-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
+         <setting id="scene-rls-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="30" visible="eq(-3,true)"/>
+         <setting id="scene-rls-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
          <setting id="SeriesF-enable" type="bool" label="SeriesF Enabled" default="true" visible="true"/>
          <setting id="SeriesF-base_url" type="text" label="    Base Url" default="https://watchtvseries.unblockall.org" visible="eq(-1,true)"/>
          <setting id="SeriesF-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>

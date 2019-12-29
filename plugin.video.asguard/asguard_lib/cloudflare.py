@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 #
 #      Copyright (C) 2015 tknorris (Derived from Mikey1234's & Lambda's)
 #
@@ -21,106 +21,137 @@
 #  released under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; version 3
 
-
 import re
-import urllib2
 import urllib
+import urllib2
 import urlparse
-import log_utils
+import util
 import xbmc
-from constants import USER_AGENT
 
 MAX_TRIES = 3
-logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
+COMPONENT = __name__
+
 
 class NoRedirection(urllib2.HTTPErrorProcessor):
-    def http_response(self, request, response):  # @UnusedVariable
-        logger.log('Stopping Redirect', log_utils.LOGDEBUG)
+
+    def http_response(self, request, response):
+        util.info('[CF] Stopping Redirect')
         return response
 
     https_response = http_response
 
 def solve_equation(equation):
     try:
-        offset = 1 if equation[0] == '+' else 0
-        return int(eval(equation.replace('!+[]', '1').replace('!![]', '1').replace('[]', '0').replace('(', 'str(')[offset:]))
+        offset = (1 if equation[0] == '+' else 0)
+        ev = equation.replace('!+[]', '1').replace('!![]',
+                   '1').replace('[]', '0').replace('(', 'str(')[offset:]
+        ev = re.sub(r'^str', 'float', re.sub(r'\/(.)str', r'/\1float', ev))
+        # util.debug('[CF] eval: {0}'.format(ev))
+        return float(eval(ev))
     except:
         pass
 
-def solve(url, cj, user_agent=None, wait=True, extra_headers=None):
-    if extra_headers is None: extra_headers = {}
-    if user_agent is None: user_agent = USER_AGENT
+
+def solve(url, cj, user_agent=None, wait=True):
+    if user_agent is None:
+        user_agent = util.UA
     headers = {'User-Agent': user_agent, 'Referer': url}
     if cj is not None:
-        try: cj.load(ignore_discard=True)
-        except: pass
+        try:
+            cj.load(ignore_discard=True)
+        except:
+            pass
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
         urllib2.install_opener(opener)
 
+    scheme = urlparse.urlparse(url).scheme
+    domain = urlparse.urlparse(url).hostname
     request = urllib2.Request(url)
-    for key in headers: request.add_header(key, headers[key])
+    for key in headers:
+        request.add_header(key, headers[key])
     try:
         response = urllib2.urlopen(request)
         html = response.read()
     except urllib2.HTTPError as e:
         html = e.read()
-    
+
     tries = 0
     while tries < MAX_TRIES:
-        solver_pattern = 'var (?:s,t,o,p,b,r,e,a,k,i,n,g|t,r,a),f,\s*([^=]+)={"([^"]+)":([^}]+)};.+challenge-form\'\);.*?\n.*?;(.*?);a\.value'
-        vc_pattern = 'input type="hidden" name="jschl_vc" value="([^"]+)'
+        solver_pattern = \
+            'var (?:s,t,o,p,b,r,e,a,k,i,n,g|t,r,a),f,\s*([^=]+)'
+        solver_pattern += \
+            '={"([^"]+)":([^}]+)};.+challenge-form\'\);'
+        vc_pattern = \
+            'input type="hidden" name="jschl_vc" value="([^"]+)'
         pass_pattern = 'input type="hidden" name="pass" value="([^"]+)'
+        s_pattern = 'input type="hidden" name="s" value="([^"]+)'
         init_match = re.search(solver_pattern, html, re.DOTALL)
         vc_match = re.search(vc_pattern, html)
         pass_match = re.search(pass_pattern, html)
-    
-        if not init_match or not vc_match or not pass_match:
-            logger.log("Couldn't find attribute: init: |%s| vc: |%s| pass: |%s| No cloudflare check?" % (init_match, vc_match, pass_match), log_utils.LOGWARNING)
+        s_match = re.search(s_pattern, html)
+
+        if not init_match or not vc_match or not pass_match or not s_match:
+            msg = \
+                "[CF] Couldn't find attribute: init: |%s| vc: |%s| pass: |%s| No cloudflare check?"
+            util.info(msg % (init_match, vc_match, pass_match))
             return False
-            
-        init_dict, init_var, init_equation, equations = init_match.groups()
+
+        (init_dict, init_var, init_equation) = \
+            init_match.groups()
         vc = vc_match.group(1)
         password = pass_match.group(1)
-    
-        # logger.log("VC is: %s" % (vc), xbmc.LOGDEBUG)
+        s = s_match.group(1)
+
+        equations = re.compile(r"challenge-form\'\);\s*(.*)a.v").findall(html)[0]
+        # util.info("[CF] VC is: %s" % (vc))
         varname = (init_dict, init_var)
-        result = int(solve_equation(init_equation.rstrip()))
-        logger.log('Initial value: |%s| Result: |%s|' % (init_equation, result), log_utils.LOGDEBUG)
-        
+        # util.info('[CF] init: [{0}]'.format((init_equation.rstrip())))
+        result = float(solve_equation(init_equation.rstrip()))
+        util.info('[CF] Initial value: [ {0} ] Result: [ {1} ]'.format(init_equation,
+                  result))
+
         for equation in equations.split(';'):
-                equation = equation.rstrip()
+            equation = equation.rstrip()
+            if len(equation) > len('.'.join(varname)):
+                # util.debug('[CF] varname {0} line {1}'.format('.'.join(varname), equation))
                 if equation[:len('.'.join(varname))] != '.'.join(varname):
-                        logger.log('Equation does not start with varname |%s|' % (equation), log_utils.LOGDEBUG)
+                    util.info('[CF] Equation does not start with varname |%s|'
+                              % equation)
                 else:
-                        equation = equation[len('.'.join(varname)):]
-    
+                    equation = equation[len('.'.join(varname)):]
+
                 expression = equation[2:]
                 operator = equation[0]
                 if operator not in ['+', '-', '*', '/']:
-                    logger.log('Unknown operator: |%s|' % (equation), log_utils.LOGWARNING)
+                    util.info('[CF] Unknown operator: |%s|' % equation)
                     continue
-                    
-                result = int(str(eval(str(result) + operator + str(solve_equation(expression)))))
-                logger.log('intermediate: %s = %s' % (equation, result), log_utils.LOGDEBUG)
-        
-        scheme = urlparse.urlparse(url).scheme
-        domain = urlparse.urlparse(url).hostname
-        result += len(domain)
-        logger.log('Final Result: |%s|' % (result), log_utils.LOGDEBUG)
-    
+
+                result = float(str(eval(str(result) + operator + str(solve_equation(
+                    expression)))))
+                #util.info('[CF] intermediate: %s = %s' % (equation, result))
+
+        #util.debug('[CF] POCET: {0} {1}'.format(result, len(domain)))
+        result = '{0:.10f}'.format(eval('float({0} + {1})'.format(result, len(domain))))
+        util.info('[CF] Final Result: |%s|' % result)
+
         if wait:
-                logger.log('Sleeping for 5 Seconds', log_utils.LOGDEBUG)
-                xbmc.sleep(5000)
-                
-        url = '%s://%s/cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s&pass=%s' % (scheme, domain, vc, result, urllib.quote(password))
-        logger.log('url: |%s| headers: |%s|' % (url, headers), log_utils.LOGDEBUG)
+            util.info('[CF] Sleeping for 5 Seconds')
+            xbmc.sleep(5000)
+
+        url = \
+            '%s://%s/cdn-cgi/l/chk_jschl?s=%s&jschl_vc=%s&pass=%s&jschl_answer=%s' \
+            % (scheme, domain, urllib.quote(s), urllib.quote(vc), urllib.quote(password), urllib.quote(result))
+        # util.info('[CF] url: %s' % url)
+        # util.debug('[CF] headers: {0}'.format(headers))
         request = urllib2.Request(url)
-        for key in headers: request.add_header(key, headers[key])
+        for key in headers:
+            request.add_header(key, headers[key])
+
         try:
             opener = urllib2.build_opener(NoRedirection)
             urllib2.install_opener(opener)
             response = urllib2.urlopen(request)
+            # util.info('[CF] code: {}'.format(response.getcode()))
             while response.getcode() in [301, 302, 303, 307]:
                 if cj is not None:
                     cj.extract_cookies(response, request)
@@ -129,30 +160,31 @@ def solve(url, cj, user_agent=None, wait=True, extra_headers=None):
                 if not redir_url.startswith('http'):
                     base_url = '%s://%s' % (scheme, domain)
                     redir_url = urlparse.urljoin(base_url, redir_url)
-                    
+
                 request = urllib2.Request(redir_url)
-                headers.update(extra_headers)
-                for key in headers: request.add_header(key, headers[key])
+                for key in headers:
+                    request.add_header(key, headers[key])
                 if cj is not None:
                     cj.add_cookie_header(request)
-                logger.log('redir url: |%s| headers: |%s|' % (redir_url, headers), log_utils.LOGDEBUG)
-                    
+
                 response = urllib2.urlopen(request)
             final = response.read()
             if 'cf-browser-verification' in final:
-                logger.log('CF Failure: html: %s url: %s' % (html, url), log_utils.LOGWARNING)
+                util.info('[CF] Failure: html: %s url: %s' % (html, url))
                 tries += 1
                 html = final
             else:
                 break
         except urllib2.HTTPError as e:
-            logger.log('CloudFlare HTTP Error: %s on url: %s' % (e.code, url), log_utils.LOGWARNING)
+            util.info('[CF] HTTP Error: %s on url: %s' % (e.code,
+                      url))
             return False
         except urllib2.URLError as e:
-            logger.log('CloudFlare URLError Error: %s on url: %s' % (e, url), log_utils.LOGWARNING)
+            util.info('[CF] URLError Error: %s on url: %s' % (e,
+                      url))
             return False
 
     if cj is not None:
-        cj.save()
-        
+        util.cache_cookies()
+
     return final

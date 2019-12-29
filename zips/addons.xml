@@ -20,7 +20,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.asguard" version="0.0.6" name="Asguard" provider-name="Thor">
+<addon id="plugin.video.asguard" version="0.0.7" name="Asguard" provider-name="Thor">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
         <import addon="script.module.pyxbmct"/>
@@ -34,6 +34,8 @@
         <import addon="script.module.dateutil"/>
 		<import addon="script.module.beautifulsoup4"/>
 		<import addon="script.module.orion" />
+		<import addon="script.module.demjson" />
+		<import addon="script.module.html5lib" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>
@@ -123,5 +125,20 @@ This is a Non-profit resource, organized solely for educational purposes which i
         <reuselanguageinvoker>false</reuselanguageinvoker>
 		<license>Beerware rev. 42</license>
 	</extension>
+</addon>
+
+<addon id="script.module.demjson" name="demjson" version="2.2.3" provider-name="Kuci">
+    <requires>
+        <import addon="xbmc.python" version="2.1.0"/>
+    </requires>
+    <extension point="xbmc.python.module" library="lib"/>
+    <extension point="xbmc.addon.metadata">
+        <summary>Python module for JSON data encoding, including jsonlint.</summary>
+        <description>demjson is a Python language module for encoding, decoding, and syntax-checking JSON data.</description>
+        <platform>all</platform>
+        <license>GNU LGPL 3.0</license>
+        <source>https://github.com/dmeranda/demjson.git</source>
+        <website>https://github.com/dmeranda/demjson</website>
+    </extension>
 </addon>
 </addons>
