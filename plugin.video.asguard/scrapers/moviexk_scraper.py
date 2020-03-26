@@ -20,6 +20,8 @@ import urllib
 import urlparse
 import kodi
 import log_utils  # @UnusedImport
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH

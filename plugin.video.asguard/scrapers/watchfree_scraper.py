@@ -19,6 +19,7 @@ import re
 import urlparse
 import kodi
 import dom_parser2
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
@@ -26,7 +27,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 QUALITY_MAP = {'HD': QUALITIES.HIGH, 'LOW': QUALITIES.LOW}
-BASE_URL = 'https://www.watchfree.website'
+BASE_URL = 'https://watchfree.su'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

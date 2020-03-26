@@ -19,6 +19,7 @@ import re
 import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
@@ -26,7 +27,7 @@ from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import XHR
 import scraper
 
-BASE_URL = 'https://seriesfree.to'
+BASE_URL = 'https://www1.swatchseries.to'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

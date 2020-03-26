@@ -19,6 +19,8 @@ import re
 import urlparse
 import kodi
 import dom_parser2
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
@@ -26,7 +28,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 
-BASE_URL = 'http://movienight.ws'
+BASE_URL = 'http://movienight.nu'
 QUALITY_MAP = {'SD': QUALITIES.HIGH, 'HD': QUALITIES.HD720}
 
 class Scraper(scraper.Scraper):

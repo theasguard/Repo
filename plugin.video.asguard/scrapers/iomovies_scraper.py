@@ -24,6 +24,8 @@ import scraper
 import urlparse
 import kodi
 import log_utils  # @UnusedImport
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib import jsunpack
@@ -49,7 +51,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return 'IOMovies'
+        return 'IOMovies.me'
 
     def get_sources(self, video):
         sources = []
@@ -200,7 +202,7 @@ class Scraper(scraper.Scraper):
     
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
-        search_url = scraper_utils.urljoin(self.base_url, '/find?keyword=')
+        search_url = scraper_utils.urljoin(self.base_url, '/find?keyword=%s')
         html = self._http_get(search_url, params={'q': title}, cache_limit=8)
         for _attrs, item in dom_parser2.parse_dom(html, 'div', {'class': 'movie-item'}):
             match = dom_parser2.parse_dom(item, 'a', {'itemprop': 'url'}, req='href')

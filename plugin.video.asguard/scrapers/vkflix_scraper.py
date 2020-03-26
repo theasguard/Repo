@@ -85,7 +85,7 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         if video_type == VIDEO_TYPES.MOVIE:
-            pages = [{'url': ''}, {'url': '/popular-movies'}, {'url': '/latest-movies'}, {'url': '/new-movies'}]
+            pages = [{'url': ''}, {'url': '/top-imdb'}, {'url': '/movies-2'}, {'url': '/genre/2020-movies'}]
         else:
             pages = [{'url': '/free-tv-series-online'}, {'url': '/popular-tv-series'}, {'url': '/latest-episodes'}, {'url': '/new-episodes'}]
         
@@ -93,7 +93,7 @@ class Scraper(scraper.Scraper):
             results += self.__search(video_type, title, year, page)
 
         if not results:
-            page = {'url': '/search', 'params': {'q': title}}
+            page = {'url': '/%s=', 'params': {'q': title}}
             results += self.__search(video_type, title, year, page)
 
         seen_urls = {}

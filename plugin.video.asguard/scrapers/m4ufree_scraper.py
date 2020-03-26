@@ -19,6 +19,8 @@ import re
 import urlparse
 import kodi
 import log_utils  # @UnusedImport
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
@@ -27,7 +29,7 @@ from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import XHR
 import scraper
 
-BASE_URL = 'http://m4ufree.info'
+BASE_URL = 'http://them4ufree.info'
 AJAX_URL = '/ajax.php'
 
 class Scraper(scraper.Scraper):

@@ -27,7 +27,8 @@ import hashlib
 import kodi
 import log_utils  # @UnusedImport
 from asguard_lib import scraper_utils
-from asguard_lib import directstream
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
@@ -37,8 +38,8 @@ from asguard_lib.utils2 import i18n
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'https://flixanity.online'
-API_BASE_URL = 'https://api.flixanity.online'
+BASE_URL = 'https://flixanity.app'
+API_BASE_URL = 'https://api.flixanity.app'
 EMBED_URL = '/ajax/jne.php'
 SEARCH_URL = '/api/v1/cautare/upd'
 KEY = 'MEE2cnUzNXl5aTV5bjRUSFlwSnF5MFg4MnRFOTVidA=='

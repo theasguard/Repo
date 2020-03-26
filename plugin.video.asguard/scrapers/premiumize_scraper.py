@@ -80,10 +80,10 @@ class Scraper(scraper.Scraper):
 
     def resolve_link(self, link):
         query = scraper_utils.parse_query(link)
-        if 'hash_id' in query:
-            hash_id = query['hash_id'].lower()
-            if self.__add_torrent(hash_id):
-                browse_url = BROWSE_URL % (hash_id)
+        if 'file_id' in query:
+            file_id = query['file_id'].lower()
+            if self.__add_torrent(file_id):
+                browse_url = BROWSE_URL % (file_id)
                 browse_url = scraper_utils.urljoin(self.base_url, browse_url)
                 js_data = self._json_get(browse_url, cache_limit=0)
                 if 'content' in js_data:
@@ -96,15 +96,15 @@ class Scraper(scraper.Scraper):
                     elif videos:
                         return videos[0]['url']
                 
-    def __add_torrent(self, hash_id):
+    def __add_torrent(self, file_id):
         list_url = scraper_utils.urljoin(self.base_url, LIST_URL)
         js_data = self._json_get(list_url, cache_limit=0)
         for transfer in js_data.get('transfers', []):
-            if transfer['hash'].lower() == hash_id:
+            if transfer['list'].lower() == file_id:
                 return True
          
         add_url = scraper_utils.urljoin(self.base_url, ADD_URL)
-        data = {'src': MAGNET_LINK % hash_id}
+        data = {'src': MAGNET_LINK % file_id}
         js_data = self._json_get(add_url, data=data, cache_limit=0)
         if js_data.get('status') == 'success':
             return True
@@ -149,7 +149,7 @@ class Scraper(scraper.Scraper):
             try: status = hash_data['hashes'][link[0]]['status']
             except KeyError: status = ''
             if status.lower() != 'finished': continue
-            stream_url = 'hash_id=%s' % (link[0])
+            stream_url = 'file_id=%s' % (link[0])
             host = scraper_utils.get_direct_hostname(self, stream_url)
             quality = scraper_utils.blog_get_quality(video, link[1], '')
             hoster = {'multi-part': False, 'class': self, 'views': None, 'url': stream_url, 'rating': None, 'host': host, 'quality': quality, 'direct': True}
@@ -172,11 +172,11 @@ class Scraper(scraper.Scraper):
         except KeyError: hashes = []
         hash_data = self.__get_hash_data(hashes)
         for torrent in torrents:
-            hash_id = torrent['hash'].lower()
-            try: status = hash_data['hashes'][hash_id]['status']
+            file_id = torrent['hash'].lower()
+            try: status = hash_data['hashes'][file_id]['status']
             except KeyError: status = ''
             if status.lower() != 'finished': continue
-            stream_url = 'hash_id=%s' % (hash_id)
+            stream_url = 'file_id=%s' % (file_id)
             host = scraper_utils.get_direct_hostname(self, stream_url)
             quality = QUALITY_MAP.get(torrent['quality'], QUALITIES.HD720)
             hoster = {'multi-part': False, 'class': self, 'views': None, 'url': stream_url, 'rating': None, 'host': host, 'quality': quality, 'direct': True}
@@ -198,7 +198,7 @@ class Scraper(scraper.Scraper):
             check_url = CHECKHASH_URL + urllib.urlencode([('hashes[]', hashes)], doseq=True)
             check_url = scraper_utils.urljoin(self.base_url, check_url)
             new_data = hash_data = self._json_get(check_url, cache_limit=.1)
-            new_data['hashes'] = dict((hash_id.lower(), hash_data['hashes'][hash_id]) for hash_id in hash_data.get('hashes', {}))
+            new_data['hashes'] = dict((file_id.lower(), hash_data['hashes'][file_id]) for file_id in hash_data.get('hashes', {}))
         return new_data
     
     def _get_episode_url(self, show_url, video):

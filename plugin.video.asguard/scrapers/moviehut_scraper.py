@@ -19,6 +19,8 @@ import re
 import urlparse
 import log_utils  # @UnusedImport
 import kodi
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
@@ -27,7 +29,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 
-BASE_URL = 'https://www.putlocker.pe'
+BASE_URL = 'https://www.putlockers.cr'
 QUALITY_MAP = {'DVD': QUALITIES.HIGH, 'TS': QUALITIES.MEDIUM, 'CAM': QUALITIES.LOW}
 
 class Scraper(scraper.Scraper):

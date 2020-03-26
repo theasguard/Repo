@@ -22,13 +22,15 @@ import urllib
 import base64
 import kodi
 import log_utils
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser
 from asguard_lib import scraper_utils
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
 
-BASE_URL = 'https://www.pelispedia.tv/'
+BASE_URL = 'https://www.pelispedia.rip'
 PK_URL = '/Pe_Player_Html5/pk/pk_2/plugins/protected.php'
 GK_URL = '/Pe_flsh/plugins/gkpluginsphp.php'
 DEL_LIST = ['sub', 'id']

@@ -23,6 +23,8 @@ import urlparse
 import kodi
 import log_utils  # @UnusedImport
 import time
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import json
 import dom_parser2
 from asguard_lib.utils2 import i18n
@@ -32,7 +34,7 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'https://cartoonhd.biz'
+BASE_URL = 'https://cartoonhd.app'
 
 class CartoonHD_Scraper(scraper.Scraper):
     base_url = BASE_URL

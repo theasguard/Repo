@@ -21,6 +21,8 @@ import base64
 import log_utils  # @UnusedImport
 import kodi
 import dom_parser2
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
@@ -28,7 +30,7 @@ from asguard_lib.constants import QUALITIES
 import scraper
 
 
-BASE_URL = 'http://miradetodo.io'
+BASE_URL = 'https://www.miradetodo.film'
 GK_KEY1 = base64.urlsafe_b64decode('QjZVTUMxUms3VFJBVU56V3hraHI=')
 GK_KEY2 = base64.urlsafe_b64decode('aUJocnZjOGdGZENaQWh3V2huUm0=')
 

@@ -18,6 +18,8 @@
 import re
 import kodi
 import log_utils  # @UnusedImport
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
@@ -32,7 +34,7 @@ except ImportError:
 
 logger = log_utils.Logger.get_logger()
 QUALITY_MAP = {'DVD': QUALITIES.HIGH, 'TS': QUALITIES.MEDIUM, 'CAM': QUALITIES.LOW}
-BASE_URL = 'http://m.primewire.gr'
+BASE_URL = 'http://www.primewire.gr'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -47,7 +49,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return 'PrimeWire'
+        return 'PrimeWire.GR'
 
     def format_source_label(self, item):
         label = super(self.__class__, self).format_source_label(item)

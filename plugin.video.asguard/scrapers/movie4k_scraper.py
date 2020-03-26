@@ -20,13 +20,15 @@ import kodi
 import dom_parser2
 import log_utils  # @UnusedImport
 from asguard_lib import scraper_utils
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 
-BASE_URL = 'https://www2.movie4k.is'
+BASE_URL = 'https://www.movie4k.movie'
 QUALITY_MAP = {None: None, '0': QUALITIES.LOW, '1': QUALITIES.MEDIUM, '2': QUALITIES.HIGH, '3': QUALITIES.HIGH, '4': QUALITIES.HD720, '5': QUALITIES.HD1080}
 
 class Scraper(scraper.Scraper):

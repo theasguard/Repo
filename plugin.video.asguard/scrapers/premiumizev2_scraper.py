@@ -78,9 +78,9 @@ class Scraper(scraper.Scraper):
     def __get_videos(self, source_url, video):
         videos = []
         query = scraper_utils.parse_query(source_url)
-        if 'hash' in query:
+        if 'file' in query:
             url = scraper_utils.urljoin(self.base_url, BROWSE_URL)
-            js_data = self._http_get(url, params={'hash': query['hash']}, cache_limit=1)
+            js_data = self._http_get(url, params={'file': query['file']}, cache_limit=1)
             if 'content' in js_data:
                 videos = self.__get_videos2(js_data['content'], video)
         return videos
@@ -127,13 +127,13 @@ class Scraper(scraper.Scraper):
             if not scraper_utils.force_title(video):
                 for item in self.__get_torrents():
                     if scraper_utils.release_check(video, item['name']):
-                        return 'hash=%s' % (item['hash'])
+                        return 'file=%s' % (item['file'])
                     
         return url
 
     def _get_episode_url(self, season_url, video):
         query = scraper_utils.parse_query(season_url)
-        if 'hash' in query:
+        if 'file' in query:
             for stream in self.__get_videos(season_url, video):
                 if scraper_utils.release_check(video, stream['name']):
                     return season_url
@@ -183,7 +183,7 @@ class Scraper(scraper.Scraper):
             if norm_title in scraper_utils.normalize_title(match_title) and (not year or not match_year or year == match_year):
                 result_title = match_title
                 if extra: result_title += ' [%s]' % (extra)
-                result = {'title': result_title, 'year': match_year, 'url': 'hash=%s' % (item['hash'])}
+                result = {'title': result_title, 'year': match_year, 'url': 'file=%s' % (item['file'])}
                 results.append(result)
         
         return results

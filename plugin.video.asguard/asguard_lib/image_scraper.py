@@ -265,6 +265,30 @@ class TMDBScraper(Scraper):
 
         return self._clean_art(art_dict)
     
+    def get_tmdbshow_images(self, ids, need=None):
+        if need is None: need = ['fanart', 'poster']
+        art_dict = {}
+        any_art = any((BG_ENABLED, POSTER_ENABLED))
+        if 'tmdb' in ids and ids['tmdb'] and any_art and self.__get_image_base():
+            if CACHE_INSTALLED:
+                images = image_cache.get_tmdbshow_images(ids['tmdb'])
+                if images: logger.log('---Using Cached response for series images')
+            else:
+                images = {}
+            
+            if not images:
+                url = '/tv/%s/images' % (ids['tmdb'])
+                params = {'api_key': self.API_KEY, 'include_image_language': 'en,null'}
+                images = self._get_url(url, params, headers=self.headers)
+                
+            if BG_ENABLED and 'fanart' in need:
+                art_dict['fanart'] = self.__get_best_image(images.get('backdrops', []))
+            
+            if POSTER_ENABLED and 'poster' in need:
+                art_dict['poster'] = self.__get_best_image(images.get('posters', []))
+
+        return self._clean_art(art_dict)
+
     def get_person_images(self, ids):
         person_art = {}
         if 'tmdb' in ids and ids['tmdb'] and self.__get_image_base():
@@ -527,6 +551,9 @@ class TVMazeScraper(Scraper):
         elif 'tvrage' in ids and ids['tvrage']:
             key = 'tvrage'
             video_id = ids['tvrage']
+        elif 'tmdb' in ids and ids['tmdb']:
+            key = 'tmdb'
+            video_id = ids['tmdb']
         else:
             return art_dict
         

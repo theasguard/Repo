@@ -19,6 +19,8 @@ import re
 import urlparse
 import kodi
 import log_utils  # @UnusedImport
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
@@ -26,7 +28,7 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'https://www2.watchseriesnet.net'
+BASE_URL = 'http://www5.watchseriesnet.net'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

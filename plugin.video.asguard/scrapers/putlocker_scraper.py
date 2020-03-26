@@ -20,6 +20,8 @@ import kodi
 import log_utils  # @UnusedImport
 from asguard_lib import scraper_utils
 import dom_parser2
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES

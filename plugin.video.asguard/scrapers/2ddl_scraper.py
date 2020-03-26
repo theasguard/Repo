@@ -31,7 +31,7 @@ from asguard_lib import debrid
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'https://yify.yt/'
+BASE_URL = 'https://onceddl.net'
 CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/', VIDEO_TYPES.TVSHOW: '/category/tv-shows/'}
 EXCLUDE_LINKS = ['adf.ly', urlparse.urlparse(BASE_URL).hostname]
 
@@ -48,7 +48,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return '2DDL'
+        return 'ONCEDDL'
 
     def get_sources(self, video):
         hosters = []
@@ -120,7 +120,7 @@ class Scraper(scraper.Scraper):
     
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
-        search_url = '/?s=' + urllib.quote_plus(title)
+        search_url = '/search/%s/feed/rss2/' + urllib.quote_plus(title)
         html = self._http_get(search_url, require_debrid=True, cache_limit=1)
         if video_type == VIDEO_TYPES.TVSHOW:
             seen_urls = {}

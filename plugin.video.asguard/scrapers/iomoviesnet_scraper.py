@@ -24,6 +24,8 @@ import urllib
 import urlparse
 import kodi
 import log_utils  # @UnusedImport
+from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 import dom_parser2
 from asguard_lib import scraper_utils
 from asguard_lib import jsunpack
@@ -34,7 +36,7 @@ from asguard_lib.constants import QUALITIES
 import scraper
 
 logger = log_utils.Logger.get_logger()
-BASE_URL = 'https://iomovies.net'
+BASE_URL = 'http://www.iosmovies.com'
 VID_URL = '/api/get_episode/{data_i}/{data_e}'
 
 class Scraper(scraper.Scraper):
