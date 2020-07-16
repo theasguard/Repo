@@ -22,7 +22,7 @@ import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
 from asguard_lib import scraper_utils
-from asguard_lib import cfscrape
+from asguard_lib import cloudflare
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.utils2 import i18n
@@ -30,7 +30,7 @@ import scraper
 
 BASE_URL = 'http://scene-rls.net'
 MULTI_HOST = 'nfo.scene-rls.net'
-CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/"', VIDEO_TYPES.EPISODE: '/category/tvshows/"'}
+CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/"', VIDEO_TYPES.EPISODE: '/category/tv-shows/"'}
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -95,7 +95,7 @@ class Scraper(scraper.Scraper):
         return settings
 
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
-        search_url = scraper_utils.urljoin(self.base_url, '/search/%s/')
+        search_url = scraper_utils.urljoin(self.base_url, '/?s=%s/')
         search_url = search_url % (urllib.quote_plus(title))
         headers = {'Referer': self.base_url}
         all_html = self._http_get(search_url, headers=headers, require_debrid=True, cache_limit=1)

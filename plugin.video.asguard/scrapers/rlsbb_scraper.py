@@ -40,6 +40,7 @@ class Scraper(scraper.Scraper):
 
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
         self.timeout = timeout
+        self.search_cookie = 'serach_mode=rlsbb'
         self.base_url = kodi.get_setting('%s-base_url' % (self.get_name()))
 
     def __add_host(self, url, host):
@@ -129,7 +130,7 @@ class Scraper(scraper.Scraper):
         referer = scraper_utils.urljoin(BASE_URL, '/search/')
         headers = {'Referer': referer + urllib.quote_plus(title)}
         headers.update(XHR)
-        search_url = scraper_utils.urljoin(SEARCH_BASE_URL, '/?serach_mode=rlsbb&s=%s')
+        search_url = scraper_utils.urljoin(BASE_URL, '/?lib/search526049.php?')
         params = {'phrase': title, 'pindex': 1}
         html = self._http_get(search_url, params=params, headers=headers, require_debrid=True, cache_limit=1)
         js_data = scraper_utils.parse_json(html, search_url)

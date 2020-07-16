@@ -209,7 +209,7 @@
          <setting id="DDLValley-enable" type="bool" label="DDLValley Enabled" default="true" visible="true"/>
          <setting id="DDLValley-base_url" type="text" label="    Base Url" default="https://www.ddlvalley.me" visible="eq(-1,true)"/>
          <setting id="DDLValley-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="DDLValley-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-3,true)"/>
+         <setting id="DDLValley-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-4,true)"/>
          <setting id="Diziay-enable" type="bool" label="Diziay Enabled" default="true" visible="true"/>
          <setting id="Diziay-base_url" type="text" label="    Base Url" default="https://diziay.me" visible="eq(-1,true)"/>
          <setting id="Diziay-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -307,6 +307,9 @@
          <setting id="MovieXK-enable" type="bool" label="MovieXK Enabled" default="true" visible="true"/>
          <setting id="MovieXK-base_url" type="text" label="    Base Url" default="https://moviexk.biz" visible="eq(-1,true)"/>
          <setting id="MovieXK-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="MovieZone-enable" type="bool" label="MovieZone Enabled" default="true" visible="true"/>
+         <setting id="MovieZone-base_url" type="text" label="    Base Url" default="https://www.moviezone.cz" visible="eq(-1,true)"/>
+         <setting id="MovieZone-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="OLMovies-enable" type="bool" label="OLMovies Enabled" default="true" visible="true"/>
          <setting id="OLMovies-base_url" type="text" label="    Base Url" default="https://openloadmovies.uk" visible="eq(-1,true)"/>
          <setting id="OLMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -357,6 +360,9 @@
          <setting id="Putlocker-enable" type="bool" label="Putlocker Enabled" default="true" visible="true"/>
          <setting id="Putlocker-base_url" type="text" label="    Base Url" default="http://putlockers.net" visible="eq(-1,true)"/>
          <setting id="Putlocker-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="PutMV-enable" type="bool" label="PutMV Enabled" default="true" visible="true"/>
+         <setting id="PutMV-base_url" type="text" label="    Base Url" default="https://www.putlockershub.com" visible="eq(-1,true)"/>
+         <setting id="PutMV-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="ReleaseBB-enable" type="bool" label="ReleaseBB Enabled" default="true" visible="true"/>
          <setting id="ReleaseBB-base_url" type="text" label="    Base Url" default="http://rlsbb.ru" visible="eq(-1,true)"/>
          <setting id="ReleaseBB-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
@@ -370,7 +376,7 @@
          <setting id="RLSBB-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
          <setting id="RLSBB-include_comments" type="bool" label="     Include Links from Comments" default="false" visible="eq(-5,true)"/>
          <setting id="RMZ-enable" type="bool" label="RMZ Enabled" default="true" visible="true"/>
-         <setting id="RMZ-base_url" type="text" label="    Base Url" default="http://rmz.cr" visible="eq(-1,true)"/>
+         <setting id="RMZ-base_url" type="text" label="    Base Url" default="https://rmz.cr" visible="eq(-1,true)"/>
          <setting id="RMZ-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
          <setting id="RMZ-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-3,true)"/>
          <setting id="RMZ-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
@@ -379,41 +385,50 @@
          <setting id="scene-rls-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
          <setting id="scene-rls-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="30" visible="eq(-3,true)"/>
          <setting id="scene-rls-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
+    </category>
+
+    <category label="Scrapers 3">
          <setting id="SeriesCoco-enable" type="bool" label="SeriesCoco Enabled" default="true" visible="true"/>
          <setting id="SeriesCoco-base_url" type="text" label="    Base Url" default="http://www5.watchseriesnet.net" visible="eq(-1,true)"/>
          <setting id="SeriesCoco-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SeriesF-enable" type="bool" label="SeriesF Enabled" default="true" visible="true"/>
          <setting id="SeriesF-base_url" type="text" label="    Base Url" default="https://watchtvseries.unblockall.org" visible="eq(-1,true)"/>
          <setting id="SeriesF-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-    </category>
-
-    <category label="Scrapers 3">
          <setting id="SeriesOnline-enable" type="bool" label="SeriesOnline Enabled" default="true" visible="true"/>
-         <setting id="SeriesOnline-base_url" type="text" label="    Base Url" default="https://www2.series9.io" visible="eq(-1,true)"/>
+         <setting id="SeriesOnline-base_url" type="text" label="    Base Url" default="https://www8.series9.to" visible="eq(-1,true)"/>
          <setting id="SeriesOnline-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SnagFilms-enable" type="bool" label="SnagFilms Enabled" default="true" visible="true"/>
          <setting id="SnagFilms-base_url" type="text" label="    Base Url" default="http://www.snagfilms.com" visible="eq(-1,true)"/>
          <setting id="SnagFilms-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="SnagFilms-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
          <setting id="SnagFilms-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
+         <setting id="SolarMovie-enable" type="bool" label="SolarMovie Enabled" default="true" visible="true"/>
+         <setting id="SolarMovie-base_url" type="text" label="    Base Url" default="https://www.solarmovie.fm" visible="eq(-1,true)"/>
+         <setting id="SolarMovie-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="StreamDor-enable" type="bool" label="StreamDor Enabled" default="true" visible="true"/>
          <setting id="StreamDor-base_url" type="text" label="    Base Url" default="https://api.streamdor-test.com" visible="eq(-1,true)"/>
          <setting id="StreamDor-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="StreamLikers-enable" type="bool" label="StreamLikers Enabled" default="true" visible="true"/>
+         <setting id="StreamLikers-base_url" type="text" label="    Base Url" default="http://www.streamlikers.com" visible="eq(-1,true)"/>
+         <setting id="StreamLikers-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="TorrentTest-enable" type="bool" label="TorrentTest Enabled" default="true" visible="true"/>
+         <setting id="TorrentTest-base_url" type="text" label="    Base Url" default="http://moviewatcher.is" visible="eq(-1,true)"/>
+         <setting id="TorrentTest-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Vidics-enable" type="bool" label="Vidics Enabled" default="true" visible="true"/>
          <setting id="Vidics-base_url" type="text" label="    Base Url" default="https://www.vidics.to" visible="eq(-1,true)"/>
          <setting id="Vidics-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="viooz.ac-enable" type="bool" label="viooz.ac Enabled" default="true" visible="true"/>
          <setting id="viooz.ac-base_url" type="text" label="    Base Url" default="https://vioozgo.org" visible="eq(-1,true)"/>
          <setting id="viooz.ac-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="VKFlix-enable" type="bool" label="VKFlix Enabled" default="true" visible="true"/>
-         <setting id="VKFlix-base_url" type="text" label="    Base Url" default="https://vkflix.online" visible="eq(-1,true)"/>
-         <setting id="VKFlix-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="Watch5s-enable" type="bool" label="Watch5s Enabled" default="true" visible="true"/>
+         <setting id="Watch5s-base_url" type="text" label="    Base Url" default="https://5movies.cloud" visible="eq(-1,true)"/>
+         <setting id="Watch5s-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="WatchEpisodes-enable" type="bool" label="WatchEpisodes Enabled" default="true" visible="true"/>
          <setting id="WatchEpisodes-base_url" type="text" label="    Base Url" default="https://www.watchepisodes4.com" visible="eq(-1,true)"/>
          <setting id="WatchEpisodes-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="WatchEpisodeSeries-enable" type="bool" label="WatchEpisodeSeries Enabled" default="true" visible="true"/>
-         <setting id="WatchEpisodeSeries-base_url" type="text" label="    Base Url" default="https://www.watchepisodeseries1.com" visible="eq(-1,true)"/>
-         <setting id="WatchEpisodeSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
+         <setting id="WatchEpisodesSeries-enable" type="bool" label="WatchEpisodesSeries Enabled" default="true" visible="true"/>
+         <setting id="WatchEpisodesSeries-base_url" type="text" label="    Base Url" default="https://www.watchepisodeseries1.com" visible="eq(-1,true)"/>
+         <setting id="WatchEpisodesSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="WatchFree.to-enable" type="bool" label="WatchFree.to Enabled" default="true" visible="true"/>
          <setting id="WatchFree.to-base_url" type="text" label="    Base Url" default="https://watchfree.su" visible="eq(-1,true)"/>
          <setting id="WatchFree.to-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -424,7 +439,7 @@
          <setting id="wso.ch-base_url" type="text" label="    Base Url" default="https://watchseries-online.be" visible="eq(-1,true)"/>
          <setting id="wso.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="xmovies8-enable" type="bool" label="xmovies8 Enabled" default="true" visible="true"/>
-         <setting id="xmovies8-base_url" type="text" label="    Base Url" default="https://watch32hd.co" visible="eq(-1,true)"/>
+         <setting id="xmovies8-base_url" type="text" label="    Base Url" default="https://putlocker.how" visible="eq(-1,true)"/>
          <setting id="xmovies8-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="xmovies8-default_url" type="text" visible="false"/>
          <setting id="xmovies8.v2-enable" type="bool" label="xmovies8.v2 Enabled" default="true" visible="true"/>

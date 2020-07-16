@@ -20,6 +20,7 @@ import re
 import xbmc
 import kodi
 import scraper
+import proxy
 from asguard_lib import scraper_utils
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import QUALITIES
@@ -214,7 +215,7 @@ class Scraper(scraper.Scraper):
 				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster])
 			)
 
-			results = self._cached(results)
+			results = (results)
 			for data in results:
 				try:
 					if self._valid(data):
@@ -254,6 +255,9 @@ class Scraper(scraper.Scraper):
 				except: self._error()
 		except: self._error()
 		return sources
+
+	def resolve_link(self, link):
+		return link
 
 	def search(self, video_type, title, year, season = ''):
 		raise NotImplementedError

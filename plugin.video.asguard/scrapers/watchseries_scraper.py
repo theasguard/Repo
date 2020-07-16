@@ -61,7 +61,7 @@ class Scraper(scraper.Scraper):
         page_url = scraper_utils.urljoin(self.base_url, source_url)
         headers = {'Refer': self.base_url}
         html = self._http_get(page_url, headers=headers, cache_limit=.5)
-        for _attrs, table in dom_parser2.parse_dom(html, 'table', {'class': 'W'}):
+        for _attrs, table in dom_parser2.parse_dom(html, 'div', {'id': 'linktable'}):
             for _attrs, row in dom_parser2.parse_dom(table, 'tr'):
                 td = dom_parser2.parse_dom(row, 'td')
                 stream_url = dom_parser2.parse_dom(row, 'a', req='href')
@@ -81,7 +81,7 @@ class Scraper(scraper.Scraper):
         episode_pattern = 'href="([^"]*s0*%s_e0*%s(?!\d)[^"]*)' % (video.season, video.episode)
         show_url = scraper_utils.urljoin(self.base_url, show_url)
         html = self._http_get(show_url, cache_limit=2)
-        fragment = dom_parser2.parse_dom(html, 'div', {'class': 'seasons-grid'})
+        fragment = dom_parser2.parse_dom(html, 'ul', {'class': 'listings show-listings'})
         return self._default_get_episode_url(fragment, video, episode_pattern)
     
     def search(self, video_type, title, year, season=''):  # @UnusedVariable

@@ -24,7 +24,6 @@ import dom_parser2
 from asguard_lib import cloudflare
 from asguard_lib import cfscrape
 from asguard_lib import scraper_utils
-from asguard_lib import debrid
 from asguard_lib.utils2 import i18n
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
@@ -34,7 +33,7 @@ import scraper
 
 logger = log_utils.Logger.get_logger()
 
-BASE_URL = 'http://rmz.cr'
+BASE_URL = 'https://rmz.cr'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -56,13 +55,13 @@ class Scraper(scraper.Scraper):
         source_url = self.get_url(video)
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
-        html = self._http_get(page_url, require_debrid=False, cache_limit=.5)
+        html = self._http_get(page_url, require_debrid=True, cache_limit=.5)
         if video.video_type == VIDEO_TYPES.MOVIE:
             page_url = self.__get_release(html, video)
             if page_url is None: return hosters
             
             page_url = scraper_utils.urljoin(self.base_url, page_url)
-            html = self._http_get(page_url, require_debrid=False, cache_limit=.5)
+            html = self._http_get(page_url, require_debrid=True, cache_limit=.5)
             
         hevc = False
         for _attrs, content in dom_parser2.parse_dom(html, 'span', {'class': 'releaselabel'}):
@@ -144,14 +143,14 @@ class Scraper(scraper.Scraper):
 
     def _get_episode_url(self, show_url, video):
         show_url = scraper_utils.urljoin(self.base_url, show_url)
-        html = self._http_get(show_url, require_debrid=False, cache_limit=.5)
+        html = self._http_get(show_url, require_debrid=True, cache_limit=.5)
         return self.__get_release(html, video)
     
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search/')
         search_url = scraper_utils.urljoin(search_url, urllib.quote_plus(title))
-        html = self._http_get(search_url, require_debrid=False, cache_limit=8)
+        html = self._http_get(search_url, require_debrid=True, cache_limit=8)
         for _attrs, fragment in dom_parser2.parse_dom(html, 'div', {'class': 'list'}):
             if not dom_parser2.parse_dom(fragment, 'div', {'class': 'lists_titles'}): continue
             for attrs, match_title_year in dom_parser2.parse_dom(fragment, 'a', {'class': 'title'}, req='href'):

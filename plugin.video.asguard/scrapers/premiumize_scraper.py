@@ -100,7 +100,7 @@ class Scraper(scraper.Scraper):
         list_url = scraper_utils.urljoin(self.base_url, LIST_URL)
         js_data = self._json_get(list_url, cache_limit=0)
         for transfer in js_data.get('transfers', []):
-            if transfer['hash'].lower() == file_id:
+            if transfer['list'].lower() == file_id:
                 return True
          
         add_url = scraper_utils.urljoin(self.base_url, ADD_URL)

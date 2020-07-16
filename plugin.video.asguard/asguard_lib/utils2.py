@@ -102,15 +102,15 @@ def sort_list(sort_key, sort_direction, list_data):
     logger.log('Sorting List: %s - %s' % (sort_key, sort_direction), log_utils.LOGDEBUG)
     # logger.log(json.dumps(list_data), log_utils.LOGDEBUG)
     reverse = False if sort_direction == TRAKT_SORT_DIR.ASCENDING else True
-    if sort_key == TRAKT_LIST_SORT.RANK:
-        return sorted(list_data, key=lambda x: x['rank'], reverse=reverse)
-    elif sort_key == TRAKT_LIST_SORT.RECENTLY_ADDED:
-        return sorted(list_data, key=lambda x: x['listed_at'], reverse=reverse)
-    elif sort_key == TRAKT_LIST_SORT.TITLE:
-        return sorted(list_data, key=lambda x: title_key(x[x['type']].get('title')), reverse=reverse)
-    elif sort_key == TRAKT_LIST_SORT.RELEASE_DATE:
-        return sorted(list_data, key=lambda x: _released_key(x[x['type']]), reverse=reverse)
-    elif sort_key == TRAKT_LIST_SORT.RUNTIME:
+    # if sort_key == TRAKT_LIST_SORT.RANK:
+        # return sorted(list_data, key=lambda x: x['rank'], reverse=reverse)
+    # elif sort_key == TRAKT_LIST_SORT.RECENTLY_ADDED:
+        # return sorted(list_data, key=lambda x: x['listed_at'], reverse=reverse)
+    # if sort_key == TRAKT_LIST_SORT.TITLE:
+        # return sorted(list_data, key=lambda x: title_key(x[x['type']].get('title')), reverse=reverse)
+    # elif sort_key == TRAKT_LIST_SORT.RELEASE_DATE:
+        # return sorted(list_data, key=lambda x: _released_key(x[x['type']]), reverse=reverse)
+    if sort_key == TRAKT_LIST_SORT.RUNTIME:
         return sorted(list_data, key=lambda x: x[x['type']].get('runtime', 0), reverse=reverse)
     elif sort_key == TRAKT_LIST_SORT.POPULARITY:
         return sorted(list_data, key=lambda x: x[x['type']].get('votes', 0), reverse=reverse)

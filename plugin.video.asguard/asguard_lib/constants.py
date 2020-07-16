@@ -65,6 +65,7 @@ FORCE_NO_MATCH = '***FORCE_NO_MATCH***'
 SHORT_MONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
 ACTIONS = __enum(ADD='add', REMOVE='remove')
+TRIG_DB_UPG = False
 DELIM = '[._ -]'
 DEFAULT_TIMEOUT = 30
 
@@ -76,7 +77,7 @@ SORT_LIST = ['none', 'source', 'quality', 'views', 'rating', 'direct', 'debrid']
 SORT_SIGNS = {'0': -1, '1': 1}  # 0 = Best to Worst; 1 = Worst to Best
 
 HOURS_LIST = {}
-HOURS_LIST[MODES.UPDATE_SUBS] = [.5, 1] + range(2, 25)
+HOURS_LIST[MODES.UPDATE_SUBS] = [.5, 1] + list(range(2, 25))
 LONG_AGO = '1970-01-01 23:59:00.000000'
 TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
 SRT_SOURCE = 'addic7ed'
@@ -104,9 +105,9 @@ Q_ORDER = {QUALITIES.LOW: 1, QUALITIES.MEDIUM: 2, QUALITIES.HIGH: 3, QUALITIES.H
 IMG_SIZES = ['full', 'medium', 'thumb']
 
 XHR = {'X-Requested-With': 'XMLHttpRequest'}
-USER_AGENT = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
 BR_VERS = [
-    ['%s.0' % i for i in xrange(18, 53)],
+    ['%s.0' % i for i in range(18, 53)],
     ['37.0.2062.103', '37.0.2062.120', '37.0.2062.124', '38.0.2125.101', '38.0.2125.104', '38.0.2125.111', '39.0.2171.71', '39.0.2171.95', '39.0.2171.99', '40.0.2214.93', '40.0.2214.111',
      '40.0.2214.115', '42.0.2311.90', '42.0.2311.135', '42.0.2311.152', '43.0.2357.81', '43.0.2357.124', '44.0.2403.155', '44.0.2403.157', '45.0.2454.101', '45.0.2454.85', '46.0.2490.71',
      '46.0.2490.80', '46.0.2490.86', '47.0.2526.73', '47.0.2526.80', '48.0.2564.116', '49.0.2623.112', '50.0.2661.86', '51.0.2704.103', '52.0.2743.116', '53.0.2785.143', '54.0.2840.71',

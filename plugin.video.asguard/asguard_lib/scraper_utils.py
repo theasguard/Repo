@@ -35,6 +35,8 @@ from asguard_lib import directstream
 from asguard_lib import pyaes
 from asguard_lib import utils2
 from asguard_lib.constants import *  # @UnusedWildImport
+import openscrapers
+from openscrapers import sources
 
 logger = log_utils.Logger.get_logger(__name__)
 # logger.disable()
@@ -334,7 +336,7 @@ def is_host_valid(url, domains):
 
         if hosts and '.' not in host:
             host = hosts[0]
-        if hosts and any([h for h in ['google', 'picasa', 'blogspot'] if h in host]):
+        if hosts and any([h for h in ['google', 'orion', 'blogspot'] if h in host]):
             host = 'gvideo'
         if hosts and any([h for h in ['akamaized','ocloud'] if h in host]):
             host = 'CDN'

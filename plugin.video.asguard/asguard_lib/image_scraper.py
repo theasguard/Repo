@@ -15,17 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import urllib
-import urllib2
-import urlparse
-import os
-import ssl
-import socket
-import json
-import zipfile
-import StringIO
-import time
-import utils
+import urllib,urllib2,urlparse,os,ssl,socket,json,zipfile,StringIO,time,utils
 import log_utils
 import kodi
 import utils2

@@ -16,17 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from StringIO import StringIO
-import abc
-import cookielib
-import datetime
-import gzip
-import os
-import re
-import urllib
-import urllib2
-import urlparse
+import abc,cookielib,datetime,gzip,os,re,urllib,urllib2,urlparse
 from asguard_lib import cloudflare
-from asguard_lib import cfscrape
 from asguard_lib import cf_captcha
 import kodi
 import log_utils  # @UnusedImport
@@ -39,6 +30,8 @@ from asguard_lib.constants import DEFAULT_TIMEOUT
 from asguard_lib.db_utils import DB_Connection
 from asguard_lib.utils2 import i18n
 from asguard_lib.utils2 import ungz
+import openscrapers
+from openscrapers import sources
 
 try:
     import resolveurl
@@ -114,6 +107,10 @@ class Scraper(object):
         * This method is called for the user selected source before calling resolveurl on it.
         """
         if link.startswith('magnet:'):
+            return link
+        if link.startswith('http'):
+            return link
+        if link.startswith('https:'):
             return link
         elif not link.startswith('http'):
             return scraper_utils.urljoin(self.base_url, link)
@@ -609,7 +606,7 @@ class Scraper(object):
 
     def _get_direct_hostname(self, link):
         host = urlparse.urlparse(link).hostname
-        if host and any([h for h in ['google', 'picasa', 'blogspot'] if h in host]):
+        if host and any([h for h in ['google', 'orion', 'blogspot'] if h in host]):
             return 'gvideo'
         else:
             return self.get_name()

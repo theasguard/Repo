@@ -68,6 +68,9 @@ class Scraper(scraper.Scraper):
             hosters.append(hoster)
         return hosters
 
+    def resolve_link(self, link):
+        return link
+
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search')

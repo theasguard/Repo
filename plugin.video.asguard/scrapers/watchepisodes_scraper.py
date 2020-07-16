@@ -108,6 +108,9 @@ class Scraper(scraper.Scraper):
                     if ep_url and ep_title and norm_title == scraper_utils.normalize_title(ep_title[0].content):
                         return scraper_utils.pathify_url(ep_url[0].attrs['href'])
 
+    def resolve_link(self, link):
+        return link
+
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search/ajax_search')

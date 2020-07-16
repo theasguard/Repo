@@ -42,7 +42,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return 'WatchEpisodeSeries'
+        return 'WatchEpisodesSeries'
 
     def get_sources(self, video):
         hosters = []
@@ -50,11 +50,11 @@ class Scraper(scraper.Scraper):
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
         html = self._http_get(page_url, cache_limit=.5)
-        for _attrs, link in dom_parser2.parse_dom(html, 'div', {'class': 'ldr-item'}):
-            stream_url = dom_parser2.parse_dom(link, 'a', req='data-actuallink')
+        for _attrs, link in dom_parser2.parse_dom(html, 'div', {'class': 'll-item'}):
+            stream_url = dom_parser2.parse_dom(link, 'a', req='href')
             
             try:
-                watched = dom_parser2.parse_dom(link, 'div', {'class': 'click-count'})
+                watched = dom_parser2.parse_dom(link, 'div', {'class': 'val'})
                 match = re.search(' (\d+) ', watched[0].content)
                 views = match.group(1)
             except:
@@ -68,7 +68,7 @@ class Scraper(scraper.Scraper):
                 rating = None
             
             if stream_url:
-                stream_url = stream_url[0].attrs['data-actuallink'].strip()
+                stream_url = stream_url[0].attrs['href'].strip()
                 host = urlparse.urlparse(stream_url).hostname
                 quality = scraper_utils.get_quality(video, host, QUALITIES.HIGH)
                 hoster = {'multi-part': False, 'host': host, 'class': self, 'quality': quality, 'views': views, 'rating': rating, 'url': stream_url, 'direct': False}
@@ -104,7 +104,7 @@ class Scraper(scraper.Scraper):
                 for episode in episodes:
                     episode = episode.content
                     ep_url = dom_parser2.parse_dom(episode, 'a', req='href')
-                    ep_title = dom_parser2.parse_dom(episode, 'div', {'class': 'e-name'})
+                    ep_title = dom_parser2.parse_dom(episode, 'div', {'class': 'name'})
                     if ep_url and ep_title and norm_title == scraper_utils.normalize_title(ep_title[0].content):
                         return scraper_utils.pathify_url(ep_url[0].attrs['href'])
 
