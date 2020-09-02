@@ -26,7 +26,7 @@ from asguard_lib.constants import XHR
 import scraper
 
 
-BASE_URL = 'https://www0.fmovies.ac/'
+BASE_URL = 'https://cmovieshd.net'
 INFO_URL = BASE_URL + '/video_info/iframe'
 
 class Scraper(scraper.Scraper):
@@ -76,8 +76,8 @@ class Scraper(scraper.Scraper):
 
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
-        search_url = scraper_utils.urljoin(self.base_url, '/search/%s.html')
-        html = self._http_get(search_url, title={'%s': title}, cache_limit=1)
+        search_url = scraper_utils.urljoin(self.base_url, '/search/?q=')
+        html = self._http_get(search_url, params={'q': title}, cache_limit=1)
         pattern = 'class="video_title".*?href="([^"]+)">([^<]+).*?Year</b>:\s*(\d*)'
         for match in re.finditer(pattern, html, re.DOTALL):
             url, match_title, match_year = match.groups()
