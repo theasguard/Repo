@@ -27,6 +27,7 @@ import urllib2
 import urlparse
 import util
 import xbmc
+from constants import USER_AGENT
 
 MAX_TRIES = 3
 COMPONENT = __name__
@@ -52,9 +53,9 @@ def solve_equation(equation):
         pass
 
 
-def solve(url, cj, user_agent=None, wait=True):
-    if user_agent is None:
-        user_agent = util.UA
+def solve(url, cj, user_agent=None, wait=True, extra_headers=None):
+    if extra_headers is None: extra_headers = {}
+    if user_agent is None: user_agent = USER_AGENT
     headers = {'User-Agent': user_agent, 'Referer': url}
     if cj is not None:
         try:
@@ -162,6 +163,7 @@ def solve(url, cj, user_agent=None, wait=True):
                     redir_url = urlparse.urljoin(base_url, redir_url)
 
                 request = urllib2.Request(redir_url)
+                headers.update(extra_headers)
                 for key in headers:
                     request.add_header(key, headers[key])
                 if cj is not None:

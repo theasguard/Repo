@@ -30,8 +30,6 @@ from asguard_lib.constants import DEFAULT_TIMEOUT
 from asguard_lib.db_utils import DB_Connection
 from asguard_lib.utils2 import i18n
 from asguard_lib.utils2 import ungz
-import openscrapers
-from openscrapers import sources
 
 try:
     import resolveurl
@@ -106,13 +104,9 @@ class Scraper(object):
         on the video page.
         * This method is called for the user selected source before calling resolveurl on it.
         """
-        if link.startswith('magnet:'):
+        if link.startswith('magnet:') or link.endswith('.torrent') or link.endswith('magnet://') or link.startswith('http') or link.startswith('https') or link.startswith('ftp'):
             return link
-        if link.startswith('http'):
-            return link
-        if link.startswith('https:'):
-            return link
-        elif not link.startswith('http'):
+        elif not link.startswith('http')or link.endswith('.torrent') or link.endswith('.nzb') or link.startswith('magnet:') or link.startswith('https') or link.startswith('ftp'):
             return scraper_utils.urljoin(self.base_url, link)
         else:
             return link
@@ -392,7 +386,7 @@ class Scraper(object):
                 if not html:
                     return ''
             elif e.code == 503 and 'cf-browser-verification' in html:
-                html = cloudflare.solve(url, self.cj, scraper_utils.get_ua())
+                html = cloudflare.solve(url, self.cj, scraper_utils.get_ua(), extra_headers=headers)
                 if not html:
                     return ''
             else:

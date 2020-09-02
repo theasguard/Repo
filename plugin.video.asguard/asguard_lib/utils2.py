@@ -16,18 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from StringIO import StringIO
-import gzip
-import datetime
+import gzip,datetime,time,re,os,urllib2,urllib,hashlib,htmlentitydefs,json
 import _strptime  # @UnusedImport
-import time
-import re
-import os
-import urllib2
-import urllib
-import hashlib
 import xml.etree.ElementTree as ET
-import htmlentitydefs
-import json
 import log_utils
 import utils
 import xbmc

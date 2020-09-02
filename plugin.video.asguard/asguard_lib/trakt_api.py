@@ -15,13 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import json
-import socket
-import ssl
-import threading
-import time
-import urllib
-import urllib2
+import json,socket,ssl,threading,time,urllib,urllib2
 
 import kodi
 import log_utils
@@ -53,7 +47,7 @@ RESULTS_LIMIT = 100
 HIDDEN_SIZE = 100
 
 class Trakt_API():
-    def __init__(self, token=None, use_https=False, list_size=RESULTS_LIMIT, timeout=10, offline=False):
+    def __init__(self, token=None, use_https=False, list_size=RESULTS_LIMIT, timeout=100, offline=False):
         self.token = token
         self.protocol = 'https://' if use_https else 'http://'
         self.timeout = None if timeout == 0 else timeout

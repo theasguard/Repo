@@ -83,8 +83,8 @@
         <setting id="get_pin" label="30547" type="action" action="RunPlugin(plugin://plugin.video.asguard/?mode=auth_trakt)" option="close" enable="eq(-1,false)" visible="eq(1,)"/>
         <setting id="trakt_user" label="30501" type="action" action="RunPlugin(plugin://plugin.video.asguard/?mode=auth_trakt)" option="close" enable="eq(-2,false)"  visible="!eq(0,)"/>
         <setting id="use_https" type="bool" label="30548" enable="eq(-3,false)" default="false"/>
-        <setting id="trakt_timeout" type="slider" label="30549" default="30" range="0,120" option="int" enable="eq(-4,false)"/>
-        <setting id="list_size" type="slider" label="30550" default="30" range="1,100" option="int" enable="eq(-5,false)"/>
+        <setting id="trakt_timeout" type="slider" label="30549" default="50" range="0,1000" option="int" enable="eq(-4,false)"/>
+        <setting id="list_size" type="slider" label="30550" default="50" range="1,1000" option="int" enable="eq(-5,false)"/>
         <setting id="trakt_bookmark" type="bool" label="30552" default="false" enable="eq(-6,false)"/>
         <setting id="include_people" type="bool" label="30555" default="false" enable="eq(-7,false)"/>
         <setting id="TV_sub_slug" type="text" visible="false"/>
@@ -94,7 +94,7 @@
         <setting id="Movies_fav_slug" type="text" visible="false"/>
         <setting id="trakt_oauth_token" type="text" default="" visible="false"/>
         <setting id="trakt_refresh_token" type="text" default="" visible="true"/>
-        <setting id="last_reminder" type="number" default="0" visible="false"/>
+        <setting id="last_reminder" type="number" default="0" visible="true"/>
     </category>
 
     <category label="30723">
@@ -147,15 +147,15 @@
                  default="" enable="eq(-2,true)"/>
         <setting id="movie-download-folder" type="folder" label="30577"
                  default="" enable="eq(-3,true)"/>
-        <setting id="source_timeout" type="slider" label="30578" default="25" range="0,120" option="int"/>
+        <setting id="source_timeout" type="slider" label="30578" default="30" range="0,300" option="int"/>
         <setting id="source_results" type="number" label="30579" default="0"/>
-        <setting id="filter_unusable" type="bool" label="30580" default="true"/>
+        <setting id="filter_unusable" type="bool" label="30580" default="false"/>
         <setting id="show_debrid" type="bool" label="30652" default="true"/>
-        <setting id="debrid_color" type="text" label="30729" default="green" visible="eq(-1,true)"/>
+        <setting id="debrid_color" type="text" label="30729" default="blue" visible="eq(-1,true)"/>
         <setting id="show_orion" type="bool" label="30735" default="true"/>
-        <setting id="orion_color" type="text" label="30734" default="red" visible="eq(-1,true)"/>
-        <setting id="filter_direct" type="bool" label="30551" default="true"/>
-        <setting id="cf_captcha" type="bool" label="30690" visible="true" default="false"/>
+        <setting id="orion_color" type="text" label="30734" default="gold" visible="eq(-1,true)"/>
+        <setting id="filter_direct" type="bool" label="30551" default="false"/>
+        <setting id="cf_captcha" type="bool" label="30690" visible="true" default="true"/>
         <setting id="excl_list" type="text" label="30581" default=""/>
         <setting id="Episode_quality" type="enum" label="30582" lvalues="30733|30660|30661|30662|30663|30664" default="0" visible="true"/>
         <setting id="Movie_quality" type="enum" label="30583" lvalues="30733|30660|30661|30662|30663|30664" default="0" visible="true"/>
@@ -167,7 +167,7 @@
         <setting id="scraper_url" type="text" label="30211" default="" visible="eq(-1,true)"/>
         <setting id="scraper_password" type="text" label="30212" option="hidden" default="" visible="eq(-2,true)"/>
         <setting id="scraper_last_update" type="text" label="30673" default="" visible="eq(-3,true)"/>
-        <settind id="last_list_check" type="number" default="0" visible="false"/>
+        <settind id="last_list_check" type="number" default="0" visible="true"/>
         <setting id="random_sso" type="bool" visible="true" default="true"/>
         <setting id="scraper_failures" type="text" default="{}" visible="false"/>
     </category>
@@ -439,7 +439,7 @@
          <setting id="wso.ch-base_url" type="text" label="    Base Url" default="https://watchseries-online.be" visible="eq(-1,true)"/>
          <setting id="wso.ch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="xmovies8-enable" type="bool" label="xmovies8 Enabled" default="true" visible="true"/>
-         <setting id="xmovies8-base_url" type="text" label="    Base Url" default="https://putlocker.how" visible="eq(-1,true)"/>
+         <setting id="xmovies8-base_url" type="text" label="    Base Url" default="https://xmovies8.yt" visible="eq(-1,true)"/>
          <setting id="xmovies8-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="xmovies8-default_url" type="text" visible="false"/>
          <setting id="xmovies8.v2-enable" type="bool" label="xmovies8.v2 Enabled" default="true" visible="true"/>

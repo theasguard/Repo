@@ -16,13 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import urllib2
-import urlparse
-import random
-import threading
-import os
-import json
-import urllib
+import urllib2,urlparse,random,threading,os,json,urllib
 import kodi
 import log_utils
 import image_scraper

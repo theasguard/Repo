@@ -22,6 +22,7 @@ import kodi
 import scraper
 import proxy
 from asguard_lib import scraper_utils
+from asguard_lib.trakt_api import Trakt_API
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import HOST_Q
@@ -69,7 +70,7 @@ class Scraper(scraper.Scraper):
 	def _link(self, data, orion = False):
 		links = data['links']
 		for link in links:
-			if link.lower().startswith('magnet:'):
+			if link.lower().startswith('magnet:') or link.lower().startswith('http'):
 				return link
 		if orion:
 			for link in links:
@@ -137,6 +138,14 @@ class Scraper(scraper.Scraper):
 	def _valid(self, data):
 		if data['access']['direct']:
 			return True
+		elif data['stream']['type'] == Orion.StreamTorrent:
+			return True
+		elif data['stream']['type'] == Orion.StreamUsenet:
+			return True
+		elif data['stream']['type'] == Orion.StreamHoster:
+			return True
+		elif data['stream']['type'] == Orion.streamOrigin:
+			return True
 		else:
 			domain = self._domain(data)
 			for host in self.hosts:
@@ -200,19 +209,46 @@ class Scraper(scraper.Scraper):
 			orion = Orion(base64.b64decode(base64.b64decode(base64.b64decode(self.key))).replace(' ', ''))
 			if not orion.userEnabled() or not orion.userValid(): raise Exception()
 
-			query = ''
-			type = None
-			if video.video_type == VIDEO_TYPES.MOVIE:
-				type = Orion.TypeMovie
-				query = '%s %s' % (str(video.title), str(video.year))
+			type = Orion.TypeMovie if video.video_type == VIDEO_TYPES.MOVIE else Orion.TypeShow
+			idTrakt = video.trakt_id
+			idImdb = None
+			idTmdb = None
+			idTvdb = None
+			numberSeason = None
+			numberEpisode = None
+			query = None
+
+			if type == Orion.TypeMovie:
+				details = Trakt_API().get_movie_details(idTrakt)
 			else:
-				type = Orion.TypeShow
+				details = Trakt_API().get_show_details(idTrakt)
+				numberSeason = video.season
+				numberEpisode = video.episode
+			try: idImdb = details['ids']['imdb']
+			except: pass
+			try: idTmdb = details['ids']['tmdb']
+			except: pass
+			try: idTvdb = details['ids']['tvdb']
+			except: pass
+
+			if type == Orion.TypeMovie and not idTrakt and not idImdb and not idTmdb:
+				query = '%s %s' % (str(video.title), str(video.year))
+			elif type == Orion.TypeShow and not idTrakt and not idImdb and not idTvdb:
 				query = '%s S%sE%s' % (str(video.title), str(video.season), str(video.episode))
 
 			results = orion.streams(
 				type = type,
-				query = query,
-				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster])
+
+				idTrakt = idTrakt,
+				idImdb = idImdb,
+				idTmdb = idTmdb,
+				idTvdb = idTvdb,
+
+				numberSeason = numberSeason,
+				numberEpisode = numberEpisode,
+
+				query = query, # Just as a fallback if the IDs can't be retrieved.
+				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster]),
 			)
 
 			results = (results)
@@ -237,7 +273,6 @@ class Scraper(scraper.Scraper):
 							'rating' : int(self._popularity(data, True)),
 							'direct' : data['access']['direct'],
 						}
-
 
 						if data['video']['codec']:
 							stream['format'] = data['video']['codec']

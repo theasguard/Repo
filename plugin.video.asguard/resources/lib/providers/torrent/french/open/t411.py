@@ -43,7 +43,7 @@ class source(provider.ProviderBase):
 			html = html.find_all('div', class_ = 'details')[0]
 			links = html.find_all('a')
 			for link in links:
-				if link['href'].startswith('magnet:'):
+				if link['href'].startswith('magnet:') or link.endswith('.torrent') or link.endswith('.nzb') or link.startswith('http') or link.startswith('https') or link.startswith('ftp'):
 					self.tLock.acquire()
 					self.tLinks[index] = link['href']
 					break

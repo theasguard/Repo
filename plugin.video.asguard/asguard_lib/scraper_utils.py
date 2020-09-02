@@ -15,22 +15,13 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import base64
-import urllib
-import urlparse
-import hashlib
-import re
-import random
-import sys
-import time
-import json
+import base64,urllib,urlparse,hashlib,re,random,sys,time,json
 import os.path
 import string
 import kodi
 import log_utils
 import dom_parser2
 import xbmcgui
-import client
 from asguard_lib import directstream
 from asguard_lib import pyaes
 from asguard_lib import utils2
