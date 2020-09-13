@@ -20,7 +20,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.asguard" version="0.1.4" name="Asguard" provider-name="Thor">
+<addon id="plugin.video.asguard" version="0.1.5" name="Asguard" provider-name="Thor">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
         <import addon="script.module.pyxbmct"/>
