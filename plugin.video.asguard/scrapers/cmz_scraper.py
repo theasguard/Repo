@@ -25,7 +25,8 @@ from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
-BASE_URL = 'https://coolmoviezone.live'
+BASE_URL = 'https://coolmoviezone.space'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -47,6 +48,7 @@ class Scraper(scraper.Scraper):
         hosters = []
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         url = scraper_utils.urljoin(self.base_url, source_url)
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(url, cache_limit=.5)
         
         match = re.search('Views?\s*:\s*(\d+)', html, re.I)
@@ -67,6 +69,7 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/index.php')
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(search_url, params={'s': title}, cache_limit=1)
         pattern = 'href="([^"]+)"\s+rel="bookmark">([^<]+)\s+\((\d{4})\)'
         for match in re.finditer(pattern, html, re.DOTALL):

@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
 
-CACHE_INSTALLED = kodi.has_addon('script.module.image_cache')
+CACHE_INSTALLED = kodi.has_addon('plugin.video.asguard')
 if CACHE_INSTALLED:
     import image_cache
     

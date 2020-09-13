@@ -26,7 +26,7 @@ from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import QUALITIES
 
-BASE_URL = 'http://cinemamkv.net'
+BASE_URL = 'http://cinema-mkv.com'
 QUALITY_MAP = {'HD 720P': QUALITIES.HD720, 'HD 1080P': QUALITIES.HD1080}
 
 class Scraper(scraper.Scraper):

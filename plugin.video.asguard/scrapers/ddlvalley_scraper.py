@@ -109,7 +109,8 @@ class Scraper(scraper.Scraper):
         if video_type == VIDEO_TYPES.TVSHOW and title:
             test_url = '/show/%s/' % (self.__to_slug(title))
             test_url = urlparse.urljoin(self.base_url, test_url)
-            html = self._http_get(test_url, require_debrid=True, cache_limit=24)
+            headers = {'User-Agent': LOCAL_UA}
+            html = self._http_get(test_url, require_debrid=True, headers=headers, cache_limit=24)
             posts = dom_parser.parse_dom(html, 'div', {'id': 'post-\d+'})
             if posts and CATEGORIES[video_type] in posts[0]:
                 match = re.search('<div[^>]*>\s*show\s+name:.*?<a\s+href="([^"]+)[^>]+>(?!Season\s+\d+)([^<]+)', posts[0], re.I)

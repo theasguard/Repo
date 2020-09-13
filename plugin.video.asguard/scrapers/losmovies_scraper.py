@@ -26,7 +26,7 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 
-BASE_URL = 'http://losmovies.fun'
+BASE_URL = 'http://losmovies.to'
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL

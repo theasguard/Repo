@@ -22,7 +22,7 @@ import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
 from asguard_lib import scraper_utils
-from asguard_lib import debrid
+from asguard_lib import cloudflare
 from asguard_lib.utils2 import i18n
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
@@ -33,6 +33,7 @@ import scraper
 logger = log_utils.Logger.get_logger()
 
 BASE_URL = 'http://rmz.cr'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -54,6 +55,7 @@ class Scraper(scraper.Scraper):
         source_url = self.get_url(video)
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(page_url, require_debrid=True, cache_limit=.5)
         if video.video_type == VIDEO_TYPES.MOVIE:
             page_url = self.__get_release(html, video)
@@ -149,6 +151,7 @@ class Scraper(scraper.Scraper):
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search/')
         search_url = scraper_utils.urljoin(search_url, urllib.quote_plus(title))
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(search_url, require_debrid=True, cache_limit=.8)
         for _attrs, fragment in dom_parser2.parse_dom(html, 'div', {'class': 'list'}):
             if not dom_parser2.parse_dom(fragment, 'div', {'class': 'lists_titles'}): continue

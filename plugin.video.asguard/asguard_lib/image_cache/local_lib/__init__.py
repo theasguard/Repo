@@ -24,7 +24,7 @@ import utils
 import strings
 import xbmcaddon
 
-addon = xbmcaddon.Addon('script.module.image_cache')
+addon = xbmcaddon.Addon('plugin.video.asguard')
 def get_profile():
     return addon.getAddonInfo('profile').decode('utf-8')
 
@@ -36,7 +36,7 @@ DB_NAME = CACHE_NAME + '.db'
 ZIP_NAME = CACHE_NAME + '.zip'
 DB_FOLDER = kodi.translate_path(get_profile())
 DB_PATH = os.path.join(DB_FOLDER, DB_NAME)
-ZIP_SOURCE = os.path.join('https://revelationmedia.tk/csb/zips/', ZIP_NAME)
+ZIP_SOURCE = os.path.join('http://hazmatcorner.com/csb/zips/', ZIP_NAME)
 
 def _update_db():
     db_ver = None

@@ -3100,10 +3100,7 @@ def unpackjs(texto):
 
     # Substitute the words of the conversion table
     # Retrieved from http://rc98.net/multiple_replace
-	
-        
-if os.path.isfile(db_dir)==False:
-     initDatabase()
+
 	 
 if __name__ == '__main__':
     sys.exit(main())

@@ -26,8 +26,6 @@ from asguard_lib import directstream
 from asguard_lib import pyaes
 from asguard_lib import utils2
 from asguard_lib.constants import *  # @UnusedWildImport
-import openscrapers
-from openscrapers import sources
 
 logger = log_utils.Logger.get_logger(__name__)
 # logger.disable()
