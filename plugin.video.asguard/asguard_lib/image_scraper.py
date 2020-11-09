@@ -189,10 +189,10 @@ class FanartTVScraper(Scraper):
     
     def get_season_images(self, ids):
         season_art = {}
-        video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
+        video_id = ids.get('tvdb') or ids.get('trakt')
         any_art = any((BANNER_ENABLED, POSTER_ENABLED, THUMB_ENABLED))
-        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and any_art and video_id:
-            url = '/tv/%s'
+        if FANARTTV_ENABLED and self.API_KEY and any_art and video_id:
+            url = '/tv/%s' % (video_id)
             images = self._get_url(url, headers=self.headers)
             seasons = set()
             for name in ['seasonposter', 'seasonthumb', 'seasonbanner']:
