@@ -26,10 +26,12 @@ from asguard_lib import cloudflare
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.utils2 import i18n
+from asguard_lib.constants import XHR
 import scraper
 
 BASE_URL = 'http://scene-rls.net'
 MULTI_HOST = 'nfo.scene-rls.net'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/"', VIDEO_TYPES.EPISODE: '/category/tv-shows/"'}
 
 class Scraper(scraper.Scraper):
@@ -52,6 +54,7 @@ class Scraper(scraper.Scraper):
         hosters = []
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         url = scraper_utils.urljoin(self.base_url, source_url)
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(url, require_debrid=True, cache_limit=.5)
         sources = self.__get_post_links(html)
         for source, value in sources.iteritems():
@@ -97,8 +100,9 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         search_url = scraper_utils.urljoin(self.base_url, '/?s=%s/')
         search_url = search_url % (urllib.quote_plus(title))
-        headers = {'Referer': self.base_url}
-        all_html = self._http_get(search_url, headers=headers, require_debrid=True, cache_limit=1)
+        headers = {'User-Agent': LOCAL_UA}
+        headers.update(XHR)
+        all_html = self._http_get(search_url, require_debrid=True, cache_limit=.5)
         
         html = ''
         for _attrs, post in dom_parser2.parse_dom(all_html, 'div', {'class': 'post'}):

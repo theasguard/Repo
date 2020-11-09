@@ -28,8 +28,10 @@ from asguard_lib.constants import VIDEO_TYPES
 import scraper
 
 
-BASE_URL = 'https://www.movie4k.movie'
+BASE_URL = 'https://www.movie4k.dev/'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 QUALITY_MAP = {None: None, '0': QUALITIES.LOW, '1': QUALITIES.MEDIUM, '2': QUALITIES.HIGH, '3': QUALITIES.HIGH, '4': QUALITIES.HD720, '5': QUALITIES.HD1080}
+
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -58,6 +60,7 @@ class Scraper(scraper.Scraper):
         source_url = self.get_url(video)
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         url = scraper_utils.urljoin(self.base_url, source_url)
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(url, cache_limit=.5)
         pattern = '''tablemoviesindex2.*?href\s*=\s*['"]([^'"]+).*?&nbsp;([^<]+)'''
         for match in re.finditer(pattern, html):
@@ -73,6 +76,7 @@ class Scraper(scraper.Scraper):
         search_url = scraper_utils.urljoin(self.base_url, '/movies.php')
         cookies = {'onlylanguage': 'en', 'lang': 'en'}
         params = {'list': 'search', 'search': title}
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(search_url, params=params, cookies=cookies, cache_limit=8)
         for _attrs, content in dom_parser2.parse_dom(html, 'TR', {'id': re.compile('coverPreview\d+')}):
             match = dom_parser2.parse_dom(content, 'a', req='href')
@@ -100,6 +104,7 @@ class Scraper(scraper.Scraper):
     def _get_episode_url(self, show_url, video):
         if not scraper_utils.force_title(video):
             url = scraper_utils.urljoin(self.base_url, show_url)
+            headers = {'User-Agent': LOCAL_UA}
             html = self._http_get(url, cache_limit=2)
             season_div = 'episodediv%s' % (video.season)
             fragment = dom_parser2.parse_dom(html, 'div', {'id': season_div})

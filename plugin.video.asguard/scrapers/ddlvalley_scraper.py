@@ -20,7 +20,6 @@ import re
 import sys
 import urllib
 import urlparse
-from asguard_lib import cloudflare
 import dom_parser
 import dom_parser2
 import kodi
@@ -30,11 +29,12 @@ from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.utils2 import SHORT_MONS
 from asguard_lib.utils2 import VIDEO_TYPES
 from asguard_lib.utils2 import i18n
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 
 BASE_URL = 'https://www.ddlvalley.me'
-CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/', VIDEO_TYPES.TVSHOW: '/category/tv-shows/'}
 LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
+CATEGORIES = {VIDEO_TYPES.MOVIE: '/category/movies/', VIDEO_TYPES.TVSHOW: '/category/tv-shows/'}
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -57,7 +57,7 @@ class Scraper(scraper.Scraper):
         if source_url and source_url != FORCE_NO_MATCH:
             url = urlparse.urljoin(self.base_url, source_url)
             headers = {'User-Agent': LOCAL_UA}
-            html = self._http_get(url, require_debrid=True, headers=headers, cache_limit=.5)
+            html = self._http_get(url, require_debrid=True, cache_limit=.5)
             for match in re.finditer("<span\s+class='info1'(.*?)(<span\s+class='info2|<hr\s*/>)", html, re.DOTALL):
                 for match2 in re.finditer('href="([^"]+)', match.group(1)):
                     stream_url = match2.group(1)
@@ -84,7 +84,8 @@ class Scraper(scraper.Scraper):
         too_old = False
         while page_url and not too_old:
             url = urlparse.urljoin(self.base_url, page_url[0])
-            html = self._http_get(url, require_debrid=True, cache_limit=1)
+            headers = {'User-Agent': LOCAL_UA}
+            html = self._http_get(url, require_debrid=True, cache_limit=.1)
             headings = re.findall('<h2>\s*<a\s+href="([^"]+)[^>]+>(.*?)</a>', html)
             posts = dom_parser.parse_dom(html, 'div', {'id': 'post-\d+'})
             for heading, post in zip(headings, posts):
@@ -110,7 +111,7 @@ class Scraper(scraper.Scraper):
             test_url = '/show/%s/' % (self.__to_slug(title))
             test_url = urlparse.urljoin(self.base_url, test_url)
             headers = {'User-Agent': LOCAL_UA}
-            html = self._http_get(test_url, require_debrid=True, headers=headers, cache_limit=24)
+            html = self._http_get(test_url, require_debrid=True, cache_limit=.4)
             posts = dom_parser.parse_dom(html, 'div', {'id': 'post-\d+'})
             if posts and CATEGORIES[video_type] in posts[0]:
                 match = re.search('<div[^>]*>\s*show\s+name:.*?<a\s+href="([^"]+)[^>]+>(?!Season\s+\d+)([^<]+)', posts[0], re.I)
@@ -123,7 +124,7 @@ class Scraper(scraper.Scraper):
             search_title = re.sub('[^A-Za-z0-9 ]', '', title.lower())
             search_url = search_url % (urllib.quote_plus(search_title))
             headers = {'User-Agent': LOCAL_UA}
-            html = self._http_get(search_url, headers=headers, require_debrid=True, cache_limit=1)
+            html = self._http_get(search_url, require_debrid=True, cache_limit=.1)
             headings = re.findall('<h2>\s*<a\s+href="([^"]+).*?">(.*?)</a>', html)
             posts = dom_parser.parse_dom(html, 'div', {'id': 'post-\d+'})
             norm_title = scraper_utils.normalize_title(title)

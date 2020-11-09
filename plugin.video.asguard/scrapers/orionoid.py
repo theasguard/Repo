@@ -268,7 +268,7 @@ class Scraper(scraper.Scraper):
 							'host' : self._source(data, True),
 							'quality' : self._quality(data),
 							'language' : self._language(data),
-							'url' : self._link(data),
+							'url' : self._link(data, orion = True),
 							'views' : self._popularity(data, False),
 							'rating' : int(self._popularity(data, True)),
 							'direct' : data['access']['direct'],

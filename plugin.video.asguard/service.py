@@ -44,14 +44,14 @@ class Service(xbmc.Player):
 
     def reset(self):
         logger.log('Service: Resetting...', log_utils.LOGDEBUG)
-        self.win.clearProperty('blamo.playing')
-        self.win.clearProperty('blamo.playing.trakt_id')
-        self.win.clearProperty('blamo.playing.season')
-        self.win.clearProperty('blamo.playing.episode')
-        self.win.clearProperty('blamo.playing.srt')
-        self.win.clearProperty('blamo.playing.trakt_resume')
-        self.win.clearProperty('blamo.playing.salts_resume')
-        self.win.clearProperty('blamo.playing.library')
+        self.win.clearProperty('asguard.playing')
+        self.win.clearProperty('asguard.playing.trakt_id')
+        self.win.clearProperty('asguard.playing.season')
+        self.win.clearProperty('asguard.playing.episode')
+        self.win.clearProperty('asguard.playing.srt')
+        self.win.clearProperty('asguard.playing.trakt_resume')
+        self.win.clearProperty('asguard.playing.salts_resume')
+        self.win.clearProperty('asguard.playing.library')
         self._from_library = False
         self.tracked = False
         self._totalTime = 999999
@@ -62,14 +62,14 @@ class Service(xbmc.Player):
 
     def onPlayBackStarted(self):
         logger.log('Service: Playback started', log_utils.LOGNOTICE)
-        playing = self.win.getProperty('blamo.playing') == 'True'
-        self.trakt_id = self.win.getProperty('blamo.playing.trakt_id')
-        self.season = self.win.getProperty('blamo.playing.season')
-        self.episode = self.win.getProperty('blamo.playing.episode')
-        srt_path = self.win.getProperty('blamo.playing.srt')
-        trakt_resume = self.win.getProperty('blamo.playing.trakt_resume')
-        salts_resume = self.win.getProperty('blamo.playing.salts_resume')
-        self._from_library = self.win.getProperty('blamo.playing.library') == 'True'
+        playing = self.win.getProperty('asguard.playing') == 'True'
+        self.trakt_id = self.win.getProperty('asguard.playing.trakt_id')
+        self.season = self.win.getProperty('asguard.playing.season')
+        self.episode = self.win.getProperty('asguard.playing.episode')
+        srt_path = self.win.getProperty('asguard.playing.srt')
+        trakt_resume = self.win.getProperty('asguard.playing.trakt_resume')
+        salts_resume = self.win.getProperty('asguard.playing.salts_resume')
+        self._from_library = self.win.getProperty('asguard.playing.library') == 'True'
         if playing:   # Playback is ours
             logger.log('Service: tracking progress...', log_utils.LOGNOTICE)
             self.tracked = True
@@ -89,11 +89,11 @@ class Service(xbmc.Player):
             kodi.sleep(1000)
 
         if salts_resume:
-            logger.log("Salts Local Resume: Resume Time: %s Total Time: %s" % (salts_resume, self._totalTime), log_utils.LOGDEBUG)
+            logger.log("Asgard Local Resume: Resume Time: %s Total Time: %s" % (salts_resume, self._totalTime), log_utils.LOGDEBUG)
             self.seekTime(float(salts_resume))
         elif trakt_resume:
             resume_time = float(trakt_resume) * self._totalTime / 100
-            logger.log("Salts Trakt Resume: Percent: %s, Resume Time: %s Total Time: %s" % (trakt_resume, resume_time, self._totalTime), log_utils.LOGDEBUG)
+            logger.log("Asgard Trakt Resume: Percent: %s, Resume Time: %s Total Time: %s" % (trakt_resume, resume_time, self._totalTime), log_utils.LOGDEBUG)
             self.seekTime(resume_time)
 
     def onPlayBackStopped(self):

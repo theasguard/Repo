@@ -162,9 +162,10 @@ class FanartTVScraper(Scraper):
     
     def get_tvshow_images(self, ids):
         art_dict = {}
+        video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
         any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED, THUMB_ENABLED))
-        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and any_art:
-            url = '/tv/%s' % (ids['tvdb'])
+        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
+            url = '/tv/%s' % (video_id)
             images = self._get_url(url, headers=self.headers)
             if BG_ENABLED:
                 art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
@@ -188,9 +189,10 @@ class FanartTVScraper(Scraper):
     
     def get_season_images(self, ids):
         season_art = {}
+        video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
         any_art = any((BANNER_ENABLED, POSTER_ENABLED, THUMB_ENABLED))
-        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and any_art:
-            url = '/tv/%s' % (ids['tvdb'])
+        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and any_art and video_id:
+            url = '/tv/%s'
             images = self._get_url(url, headers=self.headers)
             seasons = set()
             for name in ['seasonposter', 'seasonthumb', 'seasonbanner']:
@@ -407,7 +409,7 @@ class TVDBScraper(Scraper):
         if need is None: need = ['poster', 'banner']
         any_art = any((BANNER_ENABLED, POSTER_ENABLED))
         if 'tvdb' in ids and ids['tvdb'] and any_art and self.__get_token():
-            url = '/series/%s/images/query' % (ids['tvdb'])
+            url = '/series/%s/images/query'
             images = {}
             seasons = set()
             if POSTER_ENABLED and 'poster' in need:

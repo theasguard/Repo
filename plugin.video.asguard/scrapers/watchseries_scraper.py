@@ -28,6 +28,7 @@ from asguard_lib.constants import XHR
 import scraper
 
 BASE_URL = 'https://www1.swatchseries.to'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -59,7 +60,7 @@ class Scraper(scraper.Scraper):
         hosters = []
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
-        headers = {'Refer': self.base_url}
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(page_url, headers=headers, cache_limit=.5)
         for _attrs, table in dom_parser2.parse_dom(html, 'div', {'id': 'linktable'}):
             for _attrs, row in dom_parser2.parse_dom(table, 'tr'):
@@ -87,7 +88,7 @@ class Scraper(scraper.Scraper):
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
         search_url = scraper_utils.urljoin(self.base_url, '/search/')
-        headers = {'Referer': self.base_url}
+        headers = {'User-Agent': LOCAL_UA}
         headers.update(XHR)
         params = {'ajax': 1, 's': title, 'type': 'TVShows'}
         html = self._http_get(search_url, params=params, cache_limit=8)

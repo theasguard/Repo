@@ -20,6 +20,7 @@ import urlparse
 import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
@@ -27,7 +28,8 @@ from asguard_lib.constants import QUALITIES
 import scraper
 
 logger = log_utils.Logger.get_logger(__name__)
-BASE_URL = 'https://www8.series9.to'
+BASE_URL = 'https://www4.series9.ac'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 Q_MAP = {'TS': QUALITIES.LOW, 'CAM': QUALITIES.LOW, 'HDTS': QUALITIES.LOW, 'HD-720P': QUALITIES.HD720}
 
 class Scraper(scraper.Scraper):
@@ -51,6 +53,7 @@ class Scraper(scraper.Scraper):
         source_url = self.get_url(video)
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(page_url, cache_limit=.5)
         for match in re.finditer('player-data="([^"]+)[^>]+episode-data="([^"]+)[^>]*>(.*?)</a>', html, re.DOTALL):
             player_url, ep_id, label = match.groups()
@@ -96,6 +99,7 @@ class Scraper(scraper.Scraper):
     
     def _get_episode_url(self, season_url, video):
         season_url = scraper_utils.urljoin(self.base_url, season_url)
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(season_url, cache_limit=.5)
         for match in re.finditer('episode-data="([^"]+)', html):
             if self.__episode_match(video, match.group(1)):
@@ -107,6 +111,7 @@ class Scraper(scraper.Scraper):
         title = re.sub('[^A-Za-z0-9 ]', '', title)
         title = re.sub('\s+', '-', title)
         search_url += title
+        headers = {'User-Agent': LOCAL_UA}
         html = self._http_get(search_url, cache_limit=8)
         for _attrs, item in dom_parser2.parse_dom(html, 'div', {'class': 'ml-item'}):
             match_title = dom_parser2.parse_dom(item, 'span', {'class': 'mli-info'})

@@ -1,3 +1,16 @@
+[B]New Version 0.1.7[/B]]
+- Updated Image scraper
+- Tweaks to a couple things
+- Scraper fixed removed dead
+- Tweaks to orion scraper to support .torrent
+- Overall code work up
+- Sorted an issue todo with speed
+- Sorted tvdb image bug
+- rewrote the services properly
+
+
+
+
 [B]Version 2.6.2[/B]]
 - Updated 20 Cents code lol
 - Tweaks to some things
