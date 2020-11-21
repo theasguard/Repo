@@ -67,7 +67,7 @@ class Scraper(object):
                 new_dict[key] = urlparse.urlunparse((scheme, netloc, urllib.quote(path), params, query, fragment))
         return new_dict
     
-    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=1):
+    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=.01):
         if headers is None: headers = {}
         if data is not None:
             if isinstance(data, basestring):
@@ -189,9 +189,9 @@ class FanartTVScraper(Scraper):
     
     def get_season_images(self, ids):
         season_art = {}
-        video_id = ids.get('tvdb') or ids.get('trakt')
+        video_id = ids.get('tvdb') or ids.get('tmdb')
         any_art = any((BANNER_ENABLED, POSTER_ENABLED, THUMB_ENABLED))
-        if FANARTTV_ENABLED and self.API_KEY and any_art and video_id:
+        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
             url = '/tv/%s' % (video_id)
             images = self._get_url(url, headers=self.headers)
             seasons = set()

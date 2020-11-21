@@ -79,7 +79,7 @@ class ImageProxy(object):
 
 class MyHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
-        self._wp = worker_pool.WorkerPool(max_workers=25)
+        self._wp = worker_pool.WorkerPool(max_workers=90)
         HTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
         
     def process_request(self, request, client_address):
