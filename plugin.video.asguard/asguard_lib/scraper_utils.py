@@ -189,7 +189,7 @@ def gv_get_quality(stream_url):
     elif 'itag=37' in stream_url or '=m37' in stream_url or '/m37' in stream_url:
         return QUALITIES.HD4K
     elif 'itag=46' in stream_url or '=m46' in stream_url or '/m46' in stream_url:
-        return QUALITIES.HD54K
+        return QUALITIES.HD4K
     elif 'itag=96' in stream_url or '=m96' in stream_url or '/m96' in stream_url:
         return QUALITIES.HD4K
     elif 'itag=43' in stream_url or '=m43' in stream_url or '/m43' in stream_url:

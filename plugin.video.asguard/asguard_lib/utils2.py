@@ -178,7 +178,7 @@ def make_air_date(first_aired):
     except ValueError:  # windows throws a ValueError on negative values to localtime
         d = datetime.datetime.fromtimestamp(0) + datetime.timedelta(seconds=utc_air_time)
         air_date = d.strftime('%Y-%m-%d')
-    return air_date
+    return str(air_date)
 
 def get_section_params(section):
     section_params = {}

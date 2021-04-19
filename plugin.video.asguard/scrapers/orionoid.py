@@ -247,8 +247,7 @@ class Scraper(scraper.Scraper):
 				numberSeason = numberSeason,
 				numberEpisode = numberEpisode,
 
-				query = query, # Just as a fallback if the IDs can't be retrieved.
-				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeUsenet, OrionStream.TypeHoster]),
+				query = query,
 			)
 
 			results = (results)

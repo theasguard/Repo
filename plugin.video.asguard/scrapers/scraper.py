@@ -104,12 +104,12 @@ class Scraper(object):
         on the video page.
         * This method is called for the user selected source before calling resolveurl on it.
         """
-        if link.startswith('magnet:') or link.endswith('.torrent')  or link.startswith('http') or link.startswith('https') or link.startswith('ftp'):
+        if link.startswith('magnet:') or link.endswith('.torrent') or link.startswith('http') or link.startswith('https') or link.startswith('ftp'):
             return link
-        elif not link.startswith('http')or link.endswith('.torrent') or link.endswith('.nzb') or link.startswith('magnet:') or link.startswith('https') or link.startswith('ftp'):
+        elif not link.startswith('http') or link.endswith('.torrent') or link.startswith('magnet:') or link.startswith('ftp'):
             return scraper_utils.urljoin(self.base_url, link)
-        elif link.endswith('.torrent'):
-            return
+        elif link.startswith('http'):
+            return link
         else:
             return link
 

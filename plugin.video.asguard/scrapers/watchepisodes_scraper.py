@@ -70,7 +70,7 @@ class Scraper(scraper.Scraper):
             if stream_url:
                 stream_url = stream_url[0].attrs['data-actuallink'].strip()
                 host = urlparse.urlparse(stream_url).hostname
-                quality = scraper_utils.get_quality(video, host, QUALITIES.HIGH)
+                quality = scraper_utils.blog_get_quality(video, stream_url, host)
                 hoster = {'multi-part': False, 'host': host, 'class': self, 'quality': quality, 'views': views, 'rating': rating, 'url': stream_url, 'direct': False}
                 hosters.append(hoster)
 

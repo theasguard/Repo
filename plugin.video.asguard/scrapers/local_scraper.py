@@ -23,6 +23,7 @@ from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import SORT_KEYS
 from asguard_lib.constants import VIDEO_TYPES
+from asguard_lib.constants import QUALITIES
 import scraper
 
 logger = log_utils.Logger.get_logger()
