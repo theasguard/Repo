@@ -647,7 +647,7 @@ def add_other_list_item(mode, section, other_list, total_items=0):
         if len(other_list) >= 3 and other_list[2]:
             name = other_list[2]
         else:
-            name = header['name']
+            name = ['name']
     else:
         name = other_list[1]
 
