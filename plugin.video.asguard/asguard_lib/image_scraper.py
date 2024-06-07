@@ -492,7 +492,7 @@ class TVDBScraper(Scraper):
             zip_data = self._get_url(url, cache_limit=ZIP_CACHE)
             if zip_data:
                 try:
-                    zip_file = zipfile.ZipFile(StringIO.StringIO(zip_data))
+                    zip_file = zipfile.ZipFile(io.BytesIO(zip_data))
                     xml = zip_file.read(file_name)
                 except Exception as e:
                     logger.log('TVDB Zip Error (%s): %s' % (e, url), log_utils.LOGWARNING)
