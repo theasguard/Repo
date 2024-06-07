@@ -16,22 +16,21 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import urllib2
-import urlparse
+import socket
 import random
 import threading
 import os
 import json
-import urllib
+import urllib.request
+import urllib.parse
 import kodi
 import log_utils
 import image_scraper
 import worker_pool
-from SimpleHTTPServer import SimpleHTTPRequestHandler
-from BaseHTTPServer import HTTPServer
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+import logging
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
 
 class ValidationError(Exception):
     pass
@@ -45,9 +44,12 @@ class ImageProxy(object):
     
     @property
     def running(self):
-        try: res = urllib2.urlopen('http://%s:%s/ping' % (self.host, self.port)).read()
-        except: res = ''
-        return res == 'OK'
+        try:
+            res = urllib.request.urlopen(f'http://{self.host}:{self.port}/ping').read()
+        except Exception as e:
+            logger.error(f"Error checking if proxy is running: {e}")
+            res = ''
+        return res == b'OK'
     
     def start_proxy(self):
         self.svr_thread = threading.Thread(target=self.__run)
@@ -59,22 +61,29 @@ class ImageProxy(object):
             self.httpd.shutdown()
         
         if self.svr_thread is not None:
-            logger.log('Reaping proxy thread: %s' % (self.svr_thread))
+            logger.log(f'Reaping proxy thread: {self.svr_thread}')
             self.svr_thread.join()
             self.svr_thread = None
 
     def __run(self):
         server_address = (self.host, self.port)
-        logger.log('Starting Image Proxy: %s:%s' % (server_address), log_utils.LOGNOTICE)
+        logger.log(f'Starting Image Proxy: {server_address}', log_utils.LOGNOTICE)
         self.httpd = MyHTTPServer(server_address, MyRequestHandler)
-        self.httpd.serve_forever(.5)
-        logger.log('Image Proxy Exitting: %s:%s' % (server_address), log_utils.LOGNOTICE)
+        self.httpd.serve_forever()
+        logger.log(f'Image Proxy Exiting: {server_address}', log_utils.LOGNOTICE)
         self.httpd.server_close()
 
     @staticmethod
     def _get_port():
+        def is_port_available(port):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                return s.connect_ex(('127.0.0.1', port)) != 0
+
         port = random.randint(10000, 65535)
-        kodi.set_setting('proxy_port', port)
+        while not is_port_available(port):
+            port = random.randint(10000, 65535)
+        
+        kodi.set_setting('proxy_port', str(port))
         return port
 
 class MyHTTPServer(HTTPServer):
@@ -104,8 +113,10 @@ class MyHTTPServer(HTTPServer):
 class MyRequestHandler(SimpleHTTPRequestHandler):
     proxy_cache = {}
     LOG_FILE = kodi.translate_path(os.path.join(kodi.get_profile(), 'proxy.log'))
-    try: log_fd = open(LOG_FILE, 'w')
-    except: log_fd = None
+    try:
+        log_fd = open(LOG_FILE, 'w')
+    except:
+        log_fd = None
     lock = threading.Lock()
     ping_required = {}
 
@@ -135,7 +146,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
         
     def log_message(self, format, *args):
         if self.log_fd is not None:
-            self.log_fd.write('[%s] (%s) %s\n' % (self.log_date_time_string(), threading.current_thread().getName(), format % (args)))
+            self.log_fd.write(f'[{self.log_date_time_string()}] ({threading.current_thread().getName()}) {format % args}\n')
         
     def do_HEAD(self):
         return self.do_GET()
@@ -148,7 +159,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
             action, fields = self.__validate(self.path)
             if action == '/ping':
                 self._set_headers()
-                self.wfile.write('OK')
+                self.wfile.write(b'OK')
                 return
             else:
                 key = (fields['video_type'], fields['trakt_id'], fields.get('season'), fields.get('episode'))
@@ -157,7 +168,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
                         if key in self.proxy_cache:
                             del self.proxy_cache[key]
                         self._set_headers()
-                        self.wfile.write('OK')
+                        self.wfile.write(b'OK')
                         return
                 else:
                     with self.lock:
@@ -181,7 +192,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
                     else:
                         self._set_headers()
                         if self.command == 'GET':
-                            with open(image_url) as f:
+                            with open(image_url, 'rb') as f:
                                 self.wfile.write(f.read())
         except ValidationError as e:
             self.__send_error(e)
@@ -191,25 +202,27 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
         params = self.parse_query(path)
 
         if action not in self.required:
-            raise ValidationError('Unrecognized Action: %s' % (action))
+            raise ValidationError(f'Unrecognized Action: {action}')
         
         if '' in self.required[action]:
             required = self.required[action][''][:]
             for key in self.required[action]['']:
-                if key in params: required.remove(key)
+                if key in params:
+                    required.remove(key)
         
             if required:
-                raise ValidationError('Missing Base Parameters: %s' % (', '.join(required)))
+                raise ValidationError(f'Missing Base Parameters: {", ".join(required)}')
         
         if 'video_type' in params:
             video_type = params['video_type']
             if video_type in self.required[action]:
                 required = self.required[action][video_type][:]
                 for key in self.required[action][video_type]:
-                    if key in params: required.remove(key)
+                    if key in params:
+                        required.remove(key)
         
                 if required:
-                    raise ValidationError('Missing Sub Parameters: %s' % (', '.join(required)))
+                    raise ValidationError(f'Missing Sub Parameters: {", ".join(required)}')
         
         return action, params
     
@@ -219,12 +232,13 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
     @staticmethod
     def parse_query(path):
         q = {}
-        query = urlparse.urlparse(path).query
-        if query.startswith('?'): query = query[1:]
-        queries = urlparse.parse_qs(query)
+        query = urllib.parse.urlparse(path).query
+        if query.startswith('?'):
+            query = query[1:]
+        queries = urllib.parse.parse_qs(query)
         for key in queries:
             if len(queries[key]) == 1:
-                q[key] = urllib.unquote(queries[key][0])
+                q[key] = urllib.parse.unquote(queries[key][0])
             else:
                 q[key] = queries[key]
         return q
