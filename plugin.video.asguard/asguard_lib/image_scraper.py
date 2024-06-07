@@ -15,30 +15,36 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import urllib
-import urllib2
-import urlparse
+import io
+import urllib.parse
+import urllib.request
+import urllib.error
+import xbmcaddon
 import os
 import ssl
 import socket
 import json
 import zipfile
-import StringIO
 import time
+
+from bs4 import BeautifulSoup
 import utils
 import log_utils
 import kodi
-import utils2
-from db_utils import DB_Connection
-from constants import VIDEO_TYPES
+from asguard_lib import utils2
+
+from .db_utils import DB_Connection
+from .constants import VIDEO_TYPES
 import xml.etree.ElementTree as ET
-
+import logging
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
 
-CACHE_INSTALLED = kodi.has_addon('script.module.image_cache')
-if CACHE_INSTALLED:
-    import image_cache
+# Since the image_cache module is now local, we can directly import it
+from . import image_cache
+
+logging.basicConfig(level=logging.DEBUG)
+# Add this at the top of the file, after the imports
+CACHE_INSTALLED = 'image_cache' in globals()
     
 db_connection = DB_Connection()
 PLACE_POSTER = os.path.join(kodi.get_path(), 'resources', 'place_poster.png')
@@ -63,21 +69,21 @@ class Scraper(object):
         new_dict = {}
         for key in art_dict:
             if art_dict[key]:
-                scheme, netloc, path, params, query, fragment = urlparse.urlparse(art_dict[key])
-                new_dict[key] = urlparse.urlunparse((scheme, netloc, urllib.quote(path), params, query, fragment))
+                scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(art_dict[key])
+                new_dict[key] = urllib.parse.urlunparse((scheme, netloc, urllib.parse.quote(path), params, query, fragment))
         return new_dict
     
     def _get_url(self, url, params=None, data=None, headers=None, cache_limit=.1):
         if headers is None: headers = {}
         if data is not None:
-            if isinstance(data, basestring):
-                data = data
+            if isinstance(data, str):
+                data = data.encode('utf-8')
             else:
-                data = urllib.urlencode(data, True)
+                data = urllib.parse.urlencode(data, True).encode('utf-8')
         
         if not url.startswith('http'):
             url = '%s%s%s' % (self.protocol, self.BASE_URL, url)
-        if params: url += '?' + urllib.urlencode(params)
+        if params: url += '?' + urllib.parse.urlencode(params)
         _created, cached_headers, html = db_connection.get_cached_url(url, data, cache_limit=cache_limit)
         if html:
             logger.log('Using Cached result for: %s' % (url))
@@ -87,13 +93,9 @@ class Scraper(object):
             try:
                 headers['Accept-Encoding'] = 'gzip'
                 logger.log('+++Image Scraper Call: %s, header: %s, data: %s cache_limit: %s' % (url, headers, data, cache_limit), log_utils.LOGDEBUG)
-                request = urllib2.Request(url, data=data, headers=headers)
-                response = urllib2.urlopen(request)
-                result = ''
-                while True:
-                    data = response.read()
-                    if not data: break
-                    result += data
+                request = urllib.request.Request(url, data=data, headers=headers)
+                response = urllib.request.urlopen(request)
+                result = response.read()
                 res_headers = dict(response.info().items())
                 if res_headers.get('content-encoding') == 'gzip':
                     result = utils2.ungz(result)
@@ -101,7 +103,7 @@ class Scraper(object):
             except (ssl.SSLError, socket.timeout) as e:
                 logger.log('Image Scraper Timeout: %s' % (url))
                 return {}
-            except urllib2.HTTPError as e:
+            except urllib.error.HTTPError as e:
                 if e.code != 404:
                     logger.log('HTTP Error (%s) during image scraper http get: %s' % (e, url), log_utils.LOGWARNING)
                 return {}
