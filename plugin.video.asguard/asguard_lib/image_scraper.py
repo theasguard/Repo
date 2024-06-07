@@ -182,6 +182,32 @@ class FanartTVScraper(Scraper):
                 art_dict['poster'] = self.__get_best_image(images.get('tvposter', []))
             
             if CLEARART_ENABLED:
+                art_dict['clearlogo'] = self.__get_best_image(images.get('hdmovielogo', []))
+                if not art_dict['clearlogo']: art_dict['clearlogo'] = self.__get_best_image(images.get('movielogo', []))
+                art_dict['clearart'] = self.__get_best_image(images.get('hdmovieclearart', []))
+        
+        return self._clean_art(art_dict)
+    
+    def get_tvshow_images(self, ids):
+        art_dict = {}
+        video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
+        any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED, THUMB_ENABLED))
+        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
+            url = '/tv/%s' % (video_id)
+            images = self._get_url(url, headers=self.headers)
+            if BG_ENABLED:
+                art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
+            
+            if THUMB_ENABLED:
+                art_dict['thumb'] = self.__get_best_image(images.get('tvthumb', []))
+                
+            if BANNER_ENABLED:
+                art_dict['banner'] = self.__get_best_image(images.get('tvbanner', []))
+            
+            if POSTER_ENABLED:
+                art_dict['poster'] = self.__get_best_image(images.get('tvposter', []))
+            
+            if CLEARART_ENABLED:
                 art_dict['clearlogo'] = self.__get_best_image(images.get('hdtvlogo', []))
                 if not art_dict['clearlogo']: art_dict['clearlogo'] = self.__get_best_image(images.get('clearlogo', []))
                 art_dict['clearart'] = self.__get_best_image(images.get('hdclearart', []))
