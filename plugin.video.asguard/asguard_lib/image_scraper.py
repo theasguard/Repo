@@ -162,31 +162,6 @@ class FanartTVScraper(Scraper):
         
         return self._clean_art(art_dict)
     
-    def get_tvshow_images(self, ids):
-        art_dict = {}
-        video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
-        any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED, THUMB_ENABLED))
-        if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
-            url = '/tv/%s' % (video_id)
-            images = self._get_url(url, headers=self.headers)
-            if BG_ENABLED:
-                art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
-            
-            if THUMB_ENABLED:
-                art_dict['thumb'] = self.__get_best_image(images.get('tvthumb', []))
-                
-            if BANNER_ENABLED:
-                art_dict['banner'] = self.__get_best_image(images.get('tvbanner', []))
-            
-            if POSTER_ENABLED:
-                art_dict['poster'] = self.__get_best_image(images.get('tvposter', []))
-            
-            if CLEARART_ENABLED:
-                art_dict['clearlogo'] = self.__get_best_image(images.get('hdmovielogo', []))
-                if not art_dict['clearlogo']: art_dict['clearlogo'] = self.__get_best_image(images.get('movielogo', []))
-                art_dict['clearart'] = self.__get_best_image(images.get('hdmovieclearart', []))
-        
-        return self._clean_art(art_dict)
     
     def get_tvshow_images(self, ids):
         art_dict = {}
@@ -310,7 +285,7 @@ class TMDBScraper(Scraper):
                 url = '/tv/%s/images' % (ids['tmdb'])
                 params = {'api_key': self.API_KEY, 'include_image_language': 'en,null'}
                 images = self._get_url(url, params, headers=self.headers)
-                 
+                
             if BG_ENABLED and 'fanart' in need:
                 art_dict['fanart'] = self.__get_best_image(images.get('backdrops', []))
             
@@ -517,7 +492,7 @@ class TVDBScraper(Scraper):
             zip_data = self._get_url(url, cache_limit=ZIP_CACHE)
             if zip_data:
                 try:
-                    zip_file = zipfile.ZipFile(io.BytesIO(zip_data))
+                    zip_file = zipfile.ZipFile(StringIO.StringIO(zip_data))
                     xml = zip_file.read(file_name)
                 except Exception as e:
                     logger.log('TVDB Zip Error (%s): %s' % (e, url), log_utils.LOGWARNING)
@@ -765,25 +740,9 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
             art_dict.update(fanart_scraper.get_tvshow_images(video_ids))
              
             need = []
-            if art_dict['fanart'] == DEFAULT_FANART:
-                need.append('fanart')
-            if art_dict['poster'] == PLACE_POSTER:
-                need.append('poster')
-            if need:
-                art_dict.update(tmdb_scraper.get_movie_images(video_ids, need))
-                
-            if art_dict['poster'] == PLACE_POSTER:
-                art_dict.update(omdb_scraper.get_images(video_ids))
-        elif video_type == VIDEO_TYPES.TVSHOW:
-            art_dict.update(fanart_scraper.get_tvshow_images(video_ids))
-             
-            need = []
-            if art_dict['fanart'] == DEFAULT_FANART:
-                need.append('fanart')
-            if art_dict['poster'] == PLACE_POSTER:
-                need.append('poster')
-            if not art_dict['banner']:
-                need.append('banner')
+            if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
+            if art_dict['poster'] == PLACE_POSTER: need.append('poster')
+            if not art_dict['banner']: need.append('banner')
             if need:
                 art_dict.update(tvdb_scraper.get_tvshow_images(video_ids, need))
             
@@ -821,19 +780,13 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
         if not art_dict['thumb']:
             logger.log('Doing %s thumb fallback |%s|' % (video_type, art_dict))
             if video_type == VIDEO_TYPES.MOVIE:
-                if art_dict['poster'] != PLACE_POSTER:
-                    art_dict['thumb'] = art_dict['poster']
-                elif art_dict['fanart'] != DEFAULT_FANART:
-                    art_dict['thumb'] = art_dict['fanart']
-                else:
-                    art_dict['thumb'] = art_dict['poster']
+                if art_dict['poster'] != PLACE_POSTER: art_dict['thumb'] = art_dict['poster']
+                elif art_dict['fanart'] != DEFAULT_FANART: art_dict['thumb'] = art_dict['fanart']
+                else: art_dict['thumb'] = art_dict['poster']
             else:
-                if art_dict['fanart'] != DEFAULT_FANART:
-                    art_dict['thumb'] = art_dict['fanart']
-                elif art_dict['poster'] != PLACE_POSTER:
-                    art_dict['thumb'] = art_dict['poster']
-                else:
-                    art_dict['thumb'] = art_dict['fanart']
+                if art_dict['fanart'] != DEFAULT_FANART: art_dict['thumb'] = art_dict['fanart']
+                elif art_dict['poster'] != PLACE_POSTER: art_dict['thumb'] = art_dict['poster']
+                else: art_dict['thumb'] = art_dict['fanart']
         elif art_dict['fanart'] == DEFAULT_FANART:
             logger.log('Doing %s fanart fallback |%s|' % (video_type, art_dict))
             art_dict['fanart'] = art_dict['thumb']
