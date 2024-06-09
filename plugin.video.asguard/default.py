@@ -17,29 +17,28 @@
 """
 
 import random, sys, os, re, datetime, time, json, gzip
-import xbmc, xbmcgui, xbmcaddon, xbmcplugin, xbmcvfs, xbmcaddon
-from scrapers import local_scraper
-from asguard_lib.net import Net
-from asguard_lib import tmdb_api
 import js2py
 import shutil
+import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
 
-
+from scrapers import local_scraper
 import log_utils
 import utils
 import kodi
 import six
 from six.moves import urllib_request, urllib_parse
-
 from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
 from asguard_lib.srt_scraper import SRT_Scraper
 from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
-from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper, control, imageproxy
-
+from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper
+from asguard_lib import tmdb_api
+from asguard_lib import control
 from asguard_lib import worker_pool
+from asguard_lib import image_scraper
 from asguard_lib.constants import *  # @UnusedWildImport
 from asguard_lib.utils2 import i18n
+from asguard_lib.image_proxy import ImageProxy
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 from scrapers import ScraperVideo
 
@@ -2454,8 +2453,10 @@ def make_dir_from_cal(mode, start_date, days):
         utc_secs = utils.iso_2_utc(episode['first_aired'])
         show_date = datetime.date.fromtimestamp(utc_secs)
 
-        try: episode['watched'] = watched[show['ids']['trakt']][episode['season']][episode['number']]
-        except: episode['watched'] = False
+        try: 
+            episode['watched'] = watched[show['ids']['trakt']][episode['season']][episode['number']]
+        except: 
+            episode['watched'] = False
 
         if show_date < start_date.date():
             logger.log('Skipping show date |%s| before start: |%s|' % (show_date, start_date.date()), log_utils.LOGDEBUG)
@@ -2636,67 +2637,6 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
     liz.addContextMenuItems(menu_items, replaceItems=True)
     return liz, liz_url
 
-def make_tmdb_episode_item(show, episode):
-    """
-    Create a list item for an episode from TMDB data, including context menus for source selection and downloading.
-    
-    :param show: The show details.
-    :param episode: The episode details.
-    :return: A tuple containing the list item and its URL.
-    """
-    episode_title = episode.get('name', 'N/A')  # TMDB uses 'name' for episode title
-    season = episode.get('season_number', 'N/A')  # TMDB uses 'season_number'
-    episode_number = episode.get('episode_number', 'N/A')
-    
-    label = '%sx%s %s' % (season, episode_number, episode_title)
-    
-    # Create the list item
-    liz = xbmcgui.ListItem(label=label)
-    liz.setInfo('video', {
-        'title': episode_title,
-        'season': season,
-        'episode': episode_number,
-        'aired': episode.get('air_date')
-    })
-
-    # Set art
-    liz.setArt({
-        'thumb': episode.get('still_path'),
-        'fanart': show.get('backdrop_path')
-    })
-
-    # Context menu items
-    menu_items = []
-    queries = {
-        'mode': MODES.GET_SOURCES,
-        'video_type': VIDEO_TYPES.EPISODE,
-        'title': show['name'],
-        'year': show.get('first_air_date', '')[:4],
-        'season': season,
-        'episode': episode_number,
-        'tmdb_id': episode['id']
-    }
-    url = kodi.get_plugin_url(queries)
-
-    # Auto-play setting
-    if kodi.get_setting('auto-play') == 'true':
-        runstring = 'RunPlugin(%s)' % url
-        menu_items.append((i18n('auto-play'), runstring))
-    else:
-        runstring = 'Container.Update(%s)' % url
-        menu_items.append((i18n('select_source'), runstring))
-
-    # Download option
-    if kodi.get_setting('show_download') == 'true':
-        download_queries = queries.copy()
-        download_queries['mode'] = MODES.DOWNLOAD_SOURCE
-        download_url = kodi.get_plugin_url(download_queries)
-        menu_items.append((i18n('download_source'), 'RunPlugin(%s)' % download_url))
-
-    liz.addContextMenuItems(menu_items, replaceItems=True)
-
-    return liz, url
-
 def make_item(section_params, show, menu_items=None):
     if menu_items is None: menu_items = []
     if not isinstance(show['title'], str): show['title'] = ''
@@ -2704,10 +2644,7 @@ def make_item(section_params, show, menu_items=None):
     label = '%s (%s)' % (show['title'], show['year'])
     trakt_id = show['ids']['trakt']
     art = image_scraper.get_images(section_params['video_type'], show['ids'])
-        # Check if essential art pieces are missing
-    if not art.get('poster') or not art.get('fanart')or not art.get('banner'):
-        fallback_art = image_scraper.tvdb_scraper.get_tvshow_images_v2(section_params['video_type'], show['ids'])
-        art.update(fallback_art)
+
     if kodi.get_setting('include_people') == 'true':
         people = trakt_api.get_people(section_params['section'], trakt_id)
         cast = salts_utils.make_cast(show['ids'], people)
@@ -2925,7 +2862,7 @@ def make_tv_show_item(show):
     return liz, liz_url
 
 @url_dispatcher.register(MODES.TMDB_SEASONS, ['tv_id'])
-def browse_seasons(tv_id):
+def browse_tmdb_seasons(tv_id):
     show = tmdb_api.get_tv_details(tv_id)
     
     if not isinstance(show, dict):
@@ -2955,7 +2892,7 @@ def make_tmdb_season_item(season, show, tv_id):
     return liz, liz_url
 
 @url_dispatcher.register(MODES.TMDB_EPISODES, ['tv_id', 'season'])
-def browse_episodes(tv_id, season):
+def browse_tmdb_episodes(tv_id, season):
     show = tmdb_api.get_tv_details(tv_id)
     
     if not isinstance(show, dict):
@@ -2974,6 +2911,67 @@ def browse_episodes(tv_id, season):
                     xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=False, totalItems=totalItems)
     kodi.set_view(CONTENT_TYPES.EPISODES, True)
     kodi.end_of_directory()
+
+def make_tmdb_episode_item(show, episode):
+    """
+    Create a list item for an episode from TMDB data, including context menus for source selection and downloading.
+    
+    :param show: The show details.
+    :param episode: The episode details.
+    :return: A tuple containing the list item and its URL.
+    """
+    episode_title = episode.get('name', 'N/A')  # TMDB uses 'name' for episode title
+    season = episode.get('season_number', 'N/A')  # TMDB uses 'season_number'
+    episode_number = episode.get('episode_number', 'N/A')
+    
+    label = '%sx%s %s' % (season, episode_number, episode_title)
+    
+    # Create the list item
+    liz = xbmcgui.ListItem(label=label)
+    liz.setInfo('video', {
+        'title': episode_title,
+        'season': season,
+        'episode': episode_number,
+        'aired': episode.get('air_date')
+    })
+
+    # Set art
+    liz.setArt({
+        'thumb': episode.get('still_path'),
+        'fanart': show.get('backdrop_path')
+    })
+
+    # Context menu items
+    menu_items = []
+    queries = {
+        'mode': MODES.GET_SOURCES,
+        'video_type': VIDEO_TYPES.EPISODE,
+        'title': show['name'],
+        'year': show.get('first_air_date', '')[:4],
+        'season': season,
+        'episode': episode_number,
+        'tmdb_id': episode['id']
+    }
+    url = kodi.get_plugin_url(queries)
+
+    # Auto-play setting
+    if kodi.get_setting('auto-play') == 'true':
+        runstring = 'RunPlugin(%s)' % url
+        menu_items.append((i18n('auto-play'), runstring))
+    else:
+        runstring = 'Container.Update(%s)' % url
+        menu_items.append((i18n('select_source'), runstring))
+
+    # Download option
+    if kodi.get_setting('show_download') == 'true':
+        download_queries = queries.copy()
+        download_queries['mode'] = MODES.DOWNLOAD_SOURCE
+        download_url = kodi.get_plugin_url(download_queries)
+        menu_items.append((i18n('download_source'), 'RunPlugin(%s)' % download_url))
+
+    liz.addContextMenuItems(menu_items, replaceItems=True)
+
+    return liz, url
 
 def main(argv=None):
     if sys.argv:

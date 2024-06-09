@@ -15,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import re
 import sys
 import xbmc
 import xbmcgui
@@ -23,6 +24,7 @@ import time
 import kodi
 import log_utils
 import utils
+import os
 from asguard_lib import salts_utils
 from asguard_lib import image_proxy
 from asguard_lib import utils2
@@ -32,7 +34,6 @@ from asguard_lib.db_utils import DB_Connection
 from asguard_lib.trakt_api import Trakt_API
 
 logger = log_utils.Logger.get_logger()
-logger.disable()
 
 class Service(xbmc.Player):
     def __init__(self, *args, **kwargs):
@@ -44,14 +45,14 @@ class Service(xbmc.Player):
 
     def reset(self):
         logger.log('Service: Resetting...', log_utils.LOGDEBUG)
-        self.win.clearProperty('blamo.playing')
-        self.win.clearProperty('blamo.playing.trakt_id')
-        self.win.clearProperty('blamo.playing.season')
-        self.win.clearProperty('blamo.playing.episode')
-        self.win.clearProperty('blamo.playing.srt')
-        self.win.clearProperty('blamo.playing.trakt_resume')
-        self.win.clearProperty('blamo.playing.salts_resume')
-        self.win.clearProperty('blamo.playing.library')
+        self.win.clearProperty('asguard.playing')
+        self.win.clearProperty('asguard.playing.trakt_id')
+        self.win.clearProperty('asguard.playing.season')
+        self.win.clearProperty('asguard.playing.episode')
+        self.win.clearProperty('asguard.playing.srt')
+        self.win.clearProperty('asguard.playing.trakt_resume')
+        self.win.clearProperty('asguard.playing.salts_resume')
+        self.win.clearProperty('asguard.playing.library')
         self._from_library = False
         self.tracked = False
         self._totalTime = 999999
@@ -62,14 +63,14 @@ class Service(xbmc.Player):
 
     def onPlayBackStarted(self):
         logger.log('Service: Playback started', log_utils.LOGNOTICE)
-        playing = self.win.getProperty('blamo.playing') == 'True'
-        self.trakt_id = self.win.getProperty('blamo.playing.trakt_id')
-        self.season = self.win.getProperty('blamo.playing.season')
-        self.episode = self.win.getProperty('blamo.playing.episode')
-        srt_path = self.win.getProperty('blamo.playing.srt')
-        trakt_resume = self.win.getProperty('blamo.playing.trakt_resume')
-        salts_resume = self.win.getProperty('blamo.playing.salts_resume')
-        self._from_library = self.win.getProperty('blamo.playing.library') == 'True'
+        playing = self.win.getProperty('asguard.playing') == 'True'
+        self.trakt_id = self.win.getProperty('asguard.playing.trakt_id')
+        self.season = self.win.getProperty('asguard.playing.season')
+        self.episode = self.win.getProperty('asguard.playing.episode')
+        srt_path = self.win.getProperty('asguard.playing.srt')
+        trakt_resume = self.win.getProperty('asguard.playing.trakt_resume')
+        salts_resume = self.win.getProperty('asguard.playing.salts_resume')
+        self._from_library = self.win.getProperty('asguard.playing.library') == 'True'
         if playing:   # Playback is ours
             logger.log('Service: tracking progress...', log_utils.LOGNOTICE)
             self.tracked = True
@@ -108,8 +109,10 @@ class Service(xbmc.Player):
                 pl.clear()
                 
             playedTime = float(self._lastPos)
-            try: percent_played = int((playedTime / self._totalTime) * 100)
-            except: percent_played = 0  # guard div by zero
+            try: 
+                percent_played = int((playedTime / self._totalTime) * 100)
+            except: 
+                percent_played = 0  # guard div by zero
             pTime = utils.format_time(playedTime)
             tTime = utils.format_time(self._totalTime)
             logger.log('Service: Played %s of %s total = %s%%' % (pTime, tTime, percent_played), log_utils.LOGDEBUG)
@@ -147,16 +150,14 @@ def disable_global_cx(was_on):
     return was_on
     
 def check_cooldown(cd_begin):
-    black_list = ['']
-    active_plugin = xbmc.getInfoLabel('Container.PluginName')
-    if active_plugin in black_list:
-        cd_begin = time.time()
-    
-    active = 'false' if (time.time() - cd_begin) > 30 else 'true'
-    if kodi.get_setting('cool_down') != active:
-        kodi.set_setting('cool_down', active)
-    
-    return cd_begin
+    cd = int(kodi.get_setting('cooldown'))
+    if cd > 0:
+        cd_end = cd_begin + (cd * 60)
+        now = time.time()
+        if now < cd_end:
+            logger.log('Service: Cooldown active for %s more seconds' % (cd_end - now), log_utils.LOGNOTICE)
+            return True
+    return False
 
 def show_next_up(last_label, sf_begin):
     token = kodi.get_setting('trakt_oauth_token')
@@ -169,10 +170,14 @@ def show_next_up(last_label, sf_begin):
             liz_url = xbmc.getInfoLabel('ListItem.FileNameAndPath')
             queries = kodi.parse_query(liz_url[liz_url.find('?'):])
             if 'trakt_id' in queries:
-                try: list_size = int(kodi.get_setting('list_size'))
-                except: list_size = 30
-                try: trakt_timeout = int(kodi.get_setting('trakt_timeout'))
-                except: trakt_timeout = 20
+                try: 
+                    list_size = int(kodi.get_setting('list_size'))
+                except: 
+                    list_size = 30
+                try: 
+                    trakt_timeout = int(kodi.get_setting('trakt_timeout'))
+                except: 
+                    trakt_timeout = 20
                 trakt_api = Trakt_API(token, kodi.get_setting('use_https') == 'true', list_size, trakt_timeout, kodi.get_setting('trakt_offline') == 'true')
                 progress = trakt_api.get_show_progress(queries['trakt_id'], full=True)
                 if 'next_episode' in progress and progress['next_episode']:
@@ -194,7 +199,8 @@ def show_next_up(last_label, sf_begin):
     return last_label, sf_begin
 
 def main(argv=None):  # @UnusedVariable
-    if sys.argv: argv = sys.argv  # @UnusedVariable
+    if sys.argv: 
+        argv = sys.argv  # @UnusedVariable
     MAX_ERRORS = 10
     errors = 0
     last_label = ''
@@ -240,5 +246,61 @@ def main(argv=None):  # @UnusedVariable
     proxy.stop_proxy()
     logger.log('Service: shutting down...', log_utils.LOGNOTICE)
 
+def update_xml(xml, new_settings, cat_count):
+    new_settings.insert(0, '<category label="Settings %s">' % (cat_count))
+    new_settings.append('    </category>')
+    new_settings = '\n'.join(new_settings)
+    match = re.search('(<category label="Settings %s">.*?</category>)' % (cat_count), xml, re.DOTALL | re.I)
+    if match:
+        old_settings = match.group(1)
+        if old_settings != new_settings:
+            xml = xml.replace(old_settings, new_settings)
+    else:
+        logger.log('Unable to match category: %s' % (cat_count), log_utils.LOGWARNING)
+    return xml
+
+def update_settings():
+    full_path = os.path.join(kodi.get_path(), 'resources', 'settings.xml')
+    
+    try:
+        # open for append; skip update if it fails
+        with open(full_path, 'a') as f:
+            pass
+    except Exception as e:
+        logger.log('Dynamic settings update skipped: %s' % (e), log_utils.LOGWARNING)
+    else:
+        with open(full_path, 'r') as f:
+            xml = f.read()
+
+        new_settings = []
+        cat_count = 1
+        old_xml = xml
+        # Assuming you have classes that provide settings
+        classes = [Service]  # Add other classes if needed
+        for cls in sorted(classes, key=lambda x: x.__name__.upper()):
+            new_settings += cls.get_settings() if hasattr(cls, 'get_settings') else []
+            if len(new_settings) > 90:
+                xml = update_xml(xml, new_settings, cat_count)
+                new_settings = []
+                cat_count += 1
+    
+        if new_settings:
+            xml = update_xml(xml, new_settings, cat_count)
+    
+        if xml != old_xml:
+            with open(full_path, 'w') as f:
+                f.write(xml)
+        else:
+            logger.log('No Settings Update Needed', log_utils.LOGDEBUG)
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    update_settings()
+    service = Service()
+    was_on = False
+    monitor = xbmc.Monitor()  # Use Monitor for checking abort requests
+    while not monitor.abortRequested():
+        was_on = disable_global_cx(was_on)
+        if service.isPlaying():
+            service._lastPos = service.getTime()
+        kodi.sleep(1000)
