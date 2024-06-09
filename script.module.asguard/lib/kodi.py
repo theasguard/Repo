@@ -15,21 +15,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import xbmcaddon
-import xbmcplugin
-import xbmcgui
-import xbmc
-import xbmcvfs
+import xbmcaddon, xbmc, xbmcgui, xbmcplugin, xbmcvfs, os, sys, re, json
 import six
-import sys
-import os
-import re
-import json
+
 from kodi_six import xbmc, xbmcgui, xbmcplugin, xbmcaddon, xbmcvfs
 from six.moves import urllib_parse
 import time
-import CustomProgressDialog
-from urllib.parse import urlencode, parse_qs, quote, unquote
+from lib import CustomProgressDialog
+from urllib.parse import urlencode, quote, unquote
 from html.parser import HTMLParser
 
 addon = xbmcaddon.Addon()
