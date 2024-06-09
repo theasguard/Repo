@@ -21,15 +21,17 @@
         <setting id="Movies_main" type="text" default="top-rated@movistapp" visible="true"/>
         <setting id="source_sort_order" type="text" label="Source Sort Order" enable="false" visible="true"/>
         <setting id="prev_responses" type="text" label="Previous Auto-Conf Responses" enable="true" visible="true"/>
+        <setting id="use_cache" type="bool" label="Use Cache" visible="true"/>
+        <setting id="last_list_check" type="bool" label="Last List Check" visible="true"/>
         <setting id="current_ua" type="text" visible="true"/>
         <setting id="rewatch_min_list" type="text" visible="true"/>
         <setting id="rewatch_max_list" type="text" visible="true"/>
-        <setting id="last_ua_create" type="number" default="0" visible="true"/>
-        <setting id="sema_value" type="number" default="1" visible="true"/>
-        <setting id="addon_debug" type="bool" default="false" visible="true"/>
+        <setting id="last_ua_create" type="number" default="0" visible="false"/>
+        <setting id="sema_value" type="number" default="1" visible="false"/>
+        <setting id="addon_debug" type="bool" label="Debug" default="false" visible="true"/>
         <setting id="cookie_debug" type="bool" default="false" visible="true"/>
-        <setting id="enabled_comp" type="text" default="" visible="true"/>
-        <setting id="cool_down" type="bool" default="false" visible="true"/>
+        <setting id="enabled_comp" type="text" default="" visible="false"/>
+        <setting id="cool_down" type="bool" default="false" visible="false"/>
     </category>
 
     <category label="30022">
@@ -93,13 +95,14 @@
         <setting id="rewatch_slug" type="text" visible="false"/>
         <setting id="Movies_fav_slug" type="text" visible="false"/>
         <setting id="trakt_oauth_token" type="text" default="" visible="false"/>
-        <setting id="trakt_refresh_token" type="text" default="" visible="true"/>
-        <setting id="last_reminder" type="number" default="0" visible="true"/>
+        <setting id="trakt_refresh_token" type="text" default="" visible="false"/>
+        <setting id="last_reminder" type="number" default="0" visible="false"/>
     </category>
 
     <category label="30723">
         <setting type="lsep" label="30730"/>
-        <setting id="proxy_port" type="number" label="30732" default="20508"/>
+        <setting id="proxy_port" type="number" label="30732" default="9090"/>
+        <setting id="restart_proxy" type="action" label="Restart Image Proxy" />
         <setting type="lsep" label="30725"/>
         <setting id="bg_enable" label="30719" type="bool" default="true"/>
         <setting id="poster_enable" label="30720" type="bool" default="true"/>
@@ -111,10 +114,11 @@
         <setting id="fanart_enable" label="30717" type="bool" default="true"/>
         <setting id="fanart_person_key" type="text" label="30718" visible="eq(-1,true)" default="2dd1c2a0df58e22b28ac59ae32263f13"/>
         <setting id="omdb_enable" label="30714" type="bool" default="true"/>
+        <setting id="omdb_api" label="omdd api" default="d994e738"/>
         <setting id="tvmaze_enable" label="30715" type="bool" default="true"/>
         <setting id="fanart_key" type="text" label="30711" visible="false" default="d2c98a4e6096e0b24b8560107c48dae2"/>
         <setting id="tmdb_key" type="text" label="30712" default="b9dac73f34df572d5e551a8a66cfeb87"/>
-        <setting id="tvdb_key" type="text" label="30713" default="Y0Y29XATG6TC2PBW"/>
+        <setting id="tvdb_key" type="text" label="30713" default="b64a2c35-ba29-4353-b46c-1e306874afb6"/>
     </category>
 
     <category label="30557">
@@ -167,8 +171,8 @@
         <setting id="scraper_url" type="text" label="30211" default="" visible="eq(-1,true)"/>
         <setting id="scraper_password" type="text" label="30212" option="hidden" default="" visible="eq(-2,true)"/>
         <setting id="scraper_last_update" type="text" label="30673" default="" visible="eq(-3,true)"/>
-        <settind id="last_list_check" type="number" default="0" visible="true"/>
-        <setting id="random_sso" type="bool" visible="true" default="true"/>
+        <settind id="last_list_check" type="number" default="0" visible="false"/>
+        <setting id="random_sso" type="bool" visible="false" default="true"/>
         <setting id="scraper_failures" type="text" default="{}" visible="false"/>
     </category>
     
@@ -211,16 +215,10 @@
          <setting id="Furk.net-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
          <setting id="Furk.net-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>
          <setting id="Furk.net-size_limit" label="     Maximum Allowed Size (GB) (0 = No Limit)" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>
-         <setting id="IceFilms-enable" type="bool" label="IceFilms Enabled" default="true" visible="true"/>
-         <setting id="IceFilms-base_url" type="text" label="    Base Url" default="https://www.icefilms-info.com" visible="eq(-1,true)"/>
-         <setting id="IceFilms-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Local-enable" type="bool" label="Local Enabled" default="true" visible="true"/>
          <setting id="Local-base_url" type="text" label="    Base Url" default="" visible="eq(-1,true)"/>
          <setting id="Local-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Local-def-quality" type="enum" label="     Default Quality" values="None|Low|Medium|High|HD720|HD1080" default="0" visible="eq(-3,true)"/>
-         <setting id="LosMovies-enable" type="bool" label="LosMovies Enabled" default="true" visible="true"/>
-         <setting id="LosMovies-base_url" type="text" label="    Base Url" default="http://losmovies.to" visible="eq(-1,true)"/>
-         <setting id="LosMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
          <setting id="Orion-enable" type="bool" label="Orion Enabled" default="true" visible="true"/>
          <setting id="Orion-base_url" type="text" label="    Base Url" default="https://orionoid.com" visible="eq(-1,true)"/>
          <setting id="Orion-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
@@ -235,9 +233,6 @@
          <setting id="Premiumize.me-include_trans" type="bool" label="     Include Transodes" default="true" visible="eq(-8,true)"/>
          <setting id="Premiumize.V2-enable" type="bool" label="Premiumize.V2 Enabled" default="true" visible="true"/>
          <setting id="Premiumize.V2-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-1,true)"/>
-         <setting id="WatchEpisodes-enable" type="bool" label="WatchEpisodes Enabled" default="true" visible="true"/>
-         <setting id="WatchEpisodes-base_url" type="text" label="    Base Url" default="https://www.watchepisodes4.com" visible="eq(-1,true)"/>
-         <setting id="WatchEpisodes-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
     </category>
 
     <category label="Scrapers 2">

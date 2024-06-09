@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window id="9998">
+    <defaultcontrol always="false">200</defaultcontrol>
+    <zorder>100</zorder>
+    <coordinates>
+        <system>1</system>
+        <posx>440</posx>
+        <posy>30</posy>
+    </coordinates>
+    <controls>
+        <control type="group">
+            <control type="image">
+                <description>Background Image</description>
+                <posx>0</posx>
+                <posy>0</posx>
+                <width>400</width>
+                <height>420</height>
+                <texture border="40">DialogBack2.png</texture>
+            </control>
+            <control type="image">
+                <description>Dialog Header image</description>
+                <posx>40</posx>
+                <posy>16</posy>
+                <width>320</width>
+                <height>40</height>
+                <texture>dialogheader.png</texture>
+            </control>
+            <control type="label" id="100">
+                <description>header label</description>
+                <posx>40</posx>
+                <posy>20</posy>
+                <width>320</width>
+                <height>30</height>
+                <font>font13_title</font>
+                <label>$ADDON[plugin.video.asguard 30675]</label>
+                <align>center</align>
+                <aligny>center</aligny>
+                <textcolor>darkorange</textcolor>
+                <shadowcolor>black</shadowcolor>
+            </control>
+            <control type="button" id="200">
+                <description>Yes Button</description>
+                <posx>90</posx>
+                <posy>325</posy>
+                <width>100</width>
+                <height>40</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$ADDON[plugin.video.asguard 30102]</label>
+                <font>font12_title</font>
+            </control>
+            <control type="button" id="201">
+                <description>No Button</description>
+                <posx>210</posx>
+                <posy>325</posy>
+                <width>100</width>
+                <height>40</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$ADDON[plugin.video.asguard 30103]</label>
+                <font>font12_title</font>
+            </control>
+        </control>
+    </controls>
+</window>
