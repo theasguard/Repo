@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 tknorris
+    Copyright (C) 2024 MrBlamo, tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,28 +15,29 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import os
-import time
-import csv
-import json
-import hashlib
-import cPickle
-import threading
+import os, time, csv, json, hashlib, pickle, threading
+
 from threading import Semaphore
-import xbmcvfs
-import xbmcgui
+import xbmcvfs, xbmcgui
+
 import log_utils
 import kodi
-from utils2 import i18n
+from .utils2 import i18n
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
+
 
 def enum(**enums):
     return type('Enum', (), enums)
 
 class DatabaseRecoveryError(Exception):
     pass
+
+# Simplified error handling example
+try:
+    from mysql.connector import connect, OperationalError, DatabaseError
+except ImportError:
+    from sqlite3 import connect, OperationalError, DatabaseError  # Fallback to sqlite3 if mysql.connector is not available
 
 DB_TYPES = enum(MYSQL='mysql', SQLITE='sqlite')
 CSV_MARKERS = enum(REL_URL='***REL_URL***', OTHER_LISTS='***OTHER_LISTS***', SAVED_SEARCHES='***SAVED_SEARCHES***', BOOKMARKS='***BOOKMARKS***')
@@ -98,6 +99,8 @@ class DB_Connection():
     def flush_cache(self):
         if self.db_type == DB_TYPES.SQLITE:
             self.__execute('VACUUM')
+        else:
+            self.__execute('FLUSH TABLES')
 
     def prune_cache(self, prune_age=31):
         min_age = time.time() - prune_age * (60 * 60 * 24)
@@ -156,10 +159,10 @@ class DB_Connection():
         if self.db_type == DB_TYPES.MYSQL and len(data) > MYSQL_DATA_SIZE:
             data = data[:MYSQL_DATA_SIZE]
 
-        if isinstance(body, unicode):
+        if isinstance(body, str):
             body = body.encode('utf-8')
         if self.db_type == DB_TYPES.SQLITE:
-            body = buffer(body)
+            body = memoryview(body)
         sql = 'REPLACE INTO url_cache (url, data, response, res_header, timestamp) VALUES(?, ?, ?, ?, ?)'
         self.__execute(sql, (url, data, body, res_header, now))
 
@@ -206,7 +209,7 @@ class DB_Connection():
         now = time.time()
         if args is None: args = []
         if kwargs is None: kwargs = {}
-        pickle_result = cPickle.dumps(result)
+        pickle_result = pickle.dumps(result)
         # do not cache a partial result
         if self.db_type == DB_TYPES.MYSQL and len(pickle_result) > MYSQL_MAX_BLOB_SIZE:
             return
@@ -225,20 +228,20 @@ class DB_Connection():
         rows = self.__execute(sql, (name, arg_hash, max_age))
         if rows:
             logger.log('Function Cache Hit: |%s|%s|%s| -> |%d|' % (name, args, kwargs, len(rows[0][0])), log_utils.LOGDEBUG)
-            return True, cPickle.loads(rows[0][0])
+            return True, pickle.loads(rows[0][0])
         else:
             return False, None
         
     def cache_sources(self, sources):
         sql = 'DELETE FROM source_cache'
         self.__execute(sql)
-        for i in xrange(0, len(sources), SOURCE_CHUNK):
+        for i in range(0, len(sources), SOURCE_CHUNK):
             uow = sources[i: i + SOURCE_CHUNK]
             for source in uow:
                 if 'class' in source:
                     source['name'] = source['class'].get_name()
                     del source['class']
-            pickled_row = cPickle.dumps(uow)
+            pickled_row = pickle.dumps(uow)
             sql = 'INSERT INTO source_cache (source) VALUES (?)'
             self.__execute(sql, (pickled_row,))
     
@@ -274,8 +277,8 @@ class DB_Connection():
         rows = self.__execute(sql)
         sources = []
         for row in rows:
-            col = row[0].encode('utf-8') if isinstance(row[0], unicode) else row[0]
-            sources += cPickle.loads(col)
+            col = row[0].encode('utf-8') if isinstance(row[0], str) else row[0]
+            sources += pickle.loads(col)
         return sources
     
     def add_other_list(self, section, username, slug, name=None):
@@ -370,7 +373,7 @@ class DB_Connection():
 
     def export_from_db(self, full_path):
         temp_path = os.path.join(kodi.translate_path("special://profile"), 'temp_export_%s.csv' % (int(time.time())))
-        with open(temp_path, 'w') as f:
+        with open(temp_path, 'w', encoding='utf-8') as f:
             writer = csv.writer(f)
             f.write('***VERSION: %s***\n' % self.get_db_version())
             if self.__table_exists('rel_url'):
@@ -400,7 +403,7 @@ class DB_Connection():
     def __utf8_encode(self, items):
         l = []
         for i in items:
-            if isinstance(i, basestring):
+            if isinstance(i, str):
                 try:
                     l.append(i.encode('utf-8'))
                 except UnicodeDecodeError:
@@ -416,14 +419,14 @@ class DB_Connection():
             raise Exception('Import: Copy from |%s| to |%s| failed' % (full_path, temp_path))
 
         try:
-            num_lines = sum(1 for line in open(temp_path))
+            num_lines = sum(1 for line in open(temp_path, encoding='utf-8'))
             if self.progress:
                 progress = self.progress
                 progress.update(0, line2='Importing Saved Data', line3='Importing 0 of %s' % (num_lines))
             else:
                 progress = xbmcgui.DialogProgress()
                 progress.create('Asguard', line2='Import from %s' % (full_path), line3='Importing 0 of %s' % (num_lines))
-            with open(temp_path, 'r') as f:
+            with open(temp_path, 'r', encoding='utf-8') as f:
                     reader = csv.reader(f)
                     mode = ''
                     _ = f.readline()  # read header
@@ -459,9 +462,9 @@ class DB_Connection():
     def __unicode_encode(self, items):
         l = []
         for i in items:
-            if isinstance(i, basestring):
+            if isinstance(i, str):
                 try:
-                    l.append(unicode(i, 'utf-8'))
+                    l.append(i.encode('utf-8'))
                 except UnicodeDecodeError:
                     l.append(i)
             else:
@@ -484,6 +487,7 @@ class DB_Connection():
     
             logger.log('Building Asguard Database', log_utils.LOGDEBUG)
             if self.db_type == DB_TYPES.MYSQL:
+                self.__execute('CREATE TABLE IF NOT EXISTS cache_table (key VARCHAR(255) NOT NULL, value TEXT, timestamp DOUBLE NOT NULL, PRIMARY KEY(key))')
                 self.__execute('CREATE TABLE IF NOT EXISTS url_cache (url VARBINARY(%s) NOT NULL, data VARBINARY(%s) NOT NULL, \
                 response MEDIUMBLOB, res_header TEXT, timestamp TEXT, PRIMARY KEY(url, data))' % (MYSQL_URL_SIZE, MYSQL_DATA_SIZE))
                 self.__execute('CREATE TABLE IF NOT EXISTS function_cache (name VARCHAR(255) NOT NULL, args VARCHAR(64), result MEDIUMBLOB, \
@@ -506,6 +510,7 @@ class DB_Connection():
             else:
                 self.__create_sqlite_db()
                 self.__execute('PRAGMA journal_mode=WAL')
+                self.__execute('CREATE TABLE IF NOT EXISTS cache_table (key TEXT NOT NULL, value TEXT, timestamp REAL NOT NULL, PRIMARY KEY(key))')
                 self.__execute('CREATE TABLE IF NOT EXISTS url_cache (url VARCHAR(255) NOT NULL, data VARCHAR(255), response, res_header, timestamp, \
                 PRIMARY KEY(url, data))')
                 self.__execute('CREATE TABLE IF NOT EXISTS function_cache (name VARCHAR(255) NOT NULL, args VARCHAR(64), result, timestamp, \
@@ -521,7 +526,7 @@ class DB_Connection():
                 PRIMARY KEY(slug, season, episode))')
                 self.__execute('CREATE TABLE IF NOT EXISTS source_cache (source TEXT NOT NULL)')
                 self.__execute('CREATE TABLE IF NOT EXISTS image_cache (object_type TEXT NOT NULL, trakt_id INTEGER NOT NULL, season TEXT NOT NULL, episode TEXT NOT NULL,\
-                timestamp, banner TEXT, fanart TEXT, thumb TEXT, poster TEXT, clearart TEXT, clearlogo TEST, PRIMARY KEY(object_type, trakt_id, season, episode))')
+                timestamp, banner TEXT, fanart TEXT, thumb TEXT, poster TEXT, clearart TEXT, clearlogo TEXT, PRIMARY KEY(object_type, trakt_id, season, episode))')
     
             # reload the previously saved backup export
             if db_version is not None and cur_version != db_version:
@@ -549,7 +554,8 @@ class DB_Connection():
 
     def reset_db(self):
         if self.db_type == DB_TYPES.SQLITE:
-            try: self.__get_db_connection().close()
+            try: 
+                self.__get_db_connection().close()
             except: pass
             os.remove(self.db_path)
             self.db = None
@@ -672,8 +678,10 @@ class DB_Connection():
 
     def __create_sqlite_db(self):
         if not xbmcvfs.exists(os.path.dirname(self.db_path)):
-            try: xbmcvfs.mkdirs(os.path.dirname(self.db_path))
-            except: os.makedirs(os.path.dirname(self.db_path))
+            try: 
+                xbmcvfs.mkdirs(os.path.dirname(self.db_path))
+            except: 
+                os.makedirs(os.path.dirname(self.db_path))
 
     def __drop_all(self):
         if self.db_type == DB_TYPES.MYSQL:
@@ -709,3 +717,4 @@ class DB_Connection():
                 sql = 'INSERT OR ' + sql
 
         return sql
+
