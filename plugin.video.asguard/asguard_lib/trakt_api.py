@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 tknorris
+    Copyright (C) 2024 Mrblamo, Tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,17 +15,37 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import json,socket,ssl,threading,time,urllib,urllib2
-
+import json
+import socket
+import ssl
+import threading
+import time
+import gzip
+from io import StringIO
+from six.moves import urllib_parse, urllib_request, urllib_error
+import urllib.request
+import urllib.error
+import urllib.parse
 import kodi
 import log_utils
 import utils
-import utils2
-from constants import SECTIONS, TEMP_ERRORS, TRAKT_SECTIONS
-from db_utils import DB_Connection
+from . import utils2  # Use relative import
+import logging
+
+from .constants import SECTIONS, TEMP_ERRORS, TRAKT_SECTIONS  # Ensure relative import
+from .db_utils import DB_Connection  # Ensure relative import
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
+
+logging.basicConfig(level=logging.DEBUG)
+
+def __enum(**enums):
+    return type('Enum', (), enums)
+
+
+TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
+SECTIONS = __enum(TV='TV', MOVIES='Movies')
+TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
 
 class TraktError(Exception):
     pass
@@ -97,7 +117,8 @@ class Trakt_API():
         return [item[TRAKT_SECTIONS[section][:-1]] for item in response]
 
     def get_list_header(self, slug, username=None, auth=True):
-        if not username: username = 'me'
+        if not username:
+            username = 'me'
         url = '/users/%s/lists/%s' % (utils.to_slug(username), slug)
         return self.__call_trakt(url, auth=auth)
 
@@ -142,9 +163,12 @@ class Trakt_API():
         return self.__manage_watchlist('remove', section, items)
 
     def get_trending(self, section, page=None, filters=None):
+        logging.error('get_trending')
         if filters is None: filters = {}
-        url = '/%s/trending' % (TRAKT_SECTIONS[section])
+        url = '/{}/trending'.format(TRAKT_SECTIONS[section])
+        logging.error(url)
         params = {'extended': 'full', 'limit': self.list_size}
+        logging.error(params)
         params.update(filters)
         if page: params['page'] = page
         response = self.__call_trakt(url, params=params)
@@ -152,7 +176,7 @@ class Trakt_API():
 
     def get_anticipated(self, section, page=None, filters=None):
         if filters is None: filters = {}
-        url = '/%s/anticipated' % (TRAKT_SECTIONS[section])
+        url = '/{}/anticipated'.format(TRAKT_SECTIONS[section])
         params = {'extended': 'full', 'limit': self.list_size}
         params.update(filters)
         if page: params['page'] = page
@@ -161,14 +185,14 @@ class Trakt_API():
 
     def get_popular(self, section, page=None, filters=None):
         if filters is None: filters = {}
-        url = '/%s/popular' % (TRAKT_SECTIONS[section])
+        url = '/{}/popular'.format(TRAKT_SECTIONS[section])
         params = {'extended': 'full', 'limit': self.list_size}
         params.update(filters)
         if page: params['page'] = page
         return self.__call_trakt(url, params=params)
 
     def get_recent(self, section, date, page=None):
-        url = '/%s/updates/%s' % (TRAKT_SECTIONS[section], date)
+        url = '/{}/updates/{}'.format(TRAKT_SECTIONS[section], date)
         params = {'extended': 'full', 'limit': self.list_size}
         if page: params['page'] = page
         response = self.__call_trakt(url, params=params)
@@ -185,7 +209,7 @@ class Trakt_API():
     
     def __get_most(self, category, section, period, page, filters):
         if filters is None: filters = {}
-        url = '/%s/%s/%s' % (TRAKT_SECTIONS[section], category, period)
+        url = '/{}/{}/{}'.format(TRAKT_SECTIONS[section], category, period)
         params = {'extended': 'full', 'limit': self.list_size}
         params.update(filters)
         if page: params['page'] = page
@@ -193,11 +217,11 @@ class Trakt_API():
         return [item[TRAKT_SECTIONS[section][:-1]] for item in response]
     
     def get_genres(self, section):
-        url = '/genres/%s' % (TRAKT_SECTIONS[section])
-        return self.__call_trakt(url, cache_limit=7 * 24)
+        url = '/genres/{}'.format(TRAKT_SECTIONS[section])
+        return self.__call_trakt(url, cache_limit=24 * 7)
 
     def get_recommendations(self, section):
-        url = '/recommendations/%s' % (TRAKT_SECTIONS[section])
+        url = '/recommendations/{}'.format(TRAKT_SECTIONS[section])
         params = {'extended': 'full', 'limit': self.list_size}
         return self.__call_trakt(url, params=params)
 
@@ -225,12 +249,12 @@ class Trakt_API():
     def get_seasons(self, show_id):
         url = '/shows/%s/seasons' % (show_id)
         params = {'extended': 'full'}
-        return self.__call_trakt(url, params=params, cache_limit=12)
+        return self.__call_trakt(url, params=params, cache_limit=24 * 7)
 
     def get_episodes(self, show_id, season):
         url = '/shows/%s/seasons/%s' % (show_id, season)
         params = {'extended': 'full'}
-        return self.__call_trakt(url, params=params, cache_limit=1)
+        return self.__call_trakt(url, params=params, cache_limit=24 * 7)
 
     def get_show_details(self, show_id):
         url = '/shows/%s' % (show_id)
@@ -264,7 +288,7 @@ class Trakt_API():
         return [item[TRAKT_SECTIONS[section][:-1]] for item in response]
 
     def get_collection(self, section, full=True, cached=True):
-        url = '/users/me/collection/%s' % (TRAKT_SECTIONS[section])
+        url = '/users/me/collection/{}'.format(TRAKT_SECTIONS[section])
         params = {'extended': 'full'} if full else None
         media = 'movies' if section == SECTIONS.MOVIES else 'episodes'
         cache_limit = self.__get_cache_limit(media, 'collected_at', cached)
@@ -368,15 +392,13 @@ class Trakt_API():
 
     def get_last_activity(self, media=None, activity=None):
         url = '/sync/last_activities'
-        result = self.__call_trakt(url, cache_limit=.01)
-        if media is not None and media in result:
-            if activity is not None and activity in result[media]:
+        result = self.__call_trakt(url, cache_limit=0.01)
+        if media and media in result:
+            if activity and activity in result[media]:
                 return result[media][activity]
-            else:
-                return result[media]
-        
+            return result[media]
         return result
-    
+
     def __get_cache_limit(self, media, activity, cached):
         if cached:
             activity = self.get_last_activity(media, activity)
@@ -386,24 +408,29 @@ class Trakt_API():
         else:
             cache_limit = 0
         return cache_limit
-        
+
     def __manage_list(self, action, section, slug, items):
-        url = '/users/me/lists/%s/items' % (slug)
-        if action == 'remove': url = url + '/remove'
-        if not isinstance(items, (list, tuple)): items = [items]
+        url = f'/users/me/lists/{slug}/items'
+        if action == 'remove':
+            url += '/remove'
+        if not isinstance(items, (list, tuple)):
+            items = [items]
         data = self.__make_media_list_from_list(section, items)
         return self.__call_trakt(url, data=data, cache_limit=0)
 
     def __manage_watchlist(self, action, section, items):
         url = '/sync/watchlist'
-        if action == 'remove': url = url + '/remove'
-        if not isinstance(items, (list, tuple)): items = [items]
+        if action == 'remove':
+            url += '/remove'
+        if not isinstance(items, (list, tuple)):
+            items = [items]
         data = self.__make_media_list_from_list(section, items)
         return self.__call_trakt(url, data=data, cache_limit=0)
 
     def __manage_collection(self, action, section, item):
         url = '/sync/collection'
-        if action == 'remove': url = url + '/remove'
+        if action == 'remove':
+            url += '/remove'
         data = self.__make_media_list(section, item)
         return self.__call_trakt(url, data=data, cache_limit=0)
 
@@ -427,12 +454,12 @@ class Trakt_API():
         return data
 
     def __get_db_connection(self):
-        worker_id = threading.current_thread().ident
+        worker_id = threading.get_ident()
         if not self.__db_connection or self.__worker_id != worker_id:
             self.__db_connection = DB_Connection()
             self.__worker_id = worker_id
         return self.__db_connection
-    
+
     def __call_trakt(self, url, method=None, data=None, params=None, auth=True, cache_limit=.25, cached=True):
         res_headers = {}
         if not cached: cache_limit = 0
@@ -443,10 +470,14 @@ class Trakt_API():
                 db_cache_limit = cache_limit
             else:
                 db_cache_limit = 8
-        json_data = json.dumps(data) if data else None
-        headers = {'Content-Type': 'application/json', 'trakt-api-key': V2_API_KEY, 'trakt-api-version': 2, 'Accept-Encoding': 'gzip'}
+        json_data = json.dumps(data).encode('utf-8') if data else None
+        logger.log('***Trakt Call: %s, data: %s cache_limit: %s cached: %s' % (url, json_data, cache_limit, cached), log_utils.LOGDEBUG)
+
+        headers = {'Content-Type': 'application/json', 'trakt-api-key': V2_API_KEY, 'trakt-api-version': 2}
         url = '%s%s%s' % (self.protocol, BASE_URL, url)
-        if params: url += '?' + urllib.urlencode(params)
+        if params: 
+            url = url + '?' + urllib_parse.urlencode(params)
+
 
         db_connection = self.__get_db_connection()
         created, cached_headers, cached_result = db_connection.get_cached_url(url, json_data, db_cache_limit)
@@ -458,31 +489,34 @@ class Trakt_API():
             auth_retry = False
             while True:
                 try:
-                    if auth: headers.update({'Authorization': 'Bearer %s' % (self.token)})
+                    if auth: 
+                        headers.update({'Authorization': 'Bearer %s' % (self.token)})
                     logger.log('***Trakt Call: %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
-                    request = urllib2.Request(url, data=json_data, headers=headers)
-                    if method is not None: request.get_method = lambda: method.upper()
-                    response = urllib2.urlopen(request, timeout=self.timeout)
+                    request = urllib_request.Request(url, data=json_data, headers=headers)
+                    if method is not None: 
+                        request.get_method = lambda: method.upper()
+
+                    response = urllib_request.urlopen(request, timeout=self.timeout)
                     result = ''
                     while True:
                         data = response.read()
-                        if not data: break
-                        result += data
+                        if not data:
+                            break
+                        result += data.decode('utf-8')
+                    logger.log('***Trakt Response: %s' % (result), log_utils.LOGDEBUG)
 
-                    res_headers = dict(response.info().items())
-                    if res_headers.get('content-encoding') == 'gzip':
-                        result = utils2.ungz(result)
 
                     db_connection.cache_url(url, result, json_data, response.info().items())
                     break
                 except (ssl.SSLError, socket.timeout) as e:
+                    logger.log('Socket Timeout or SSL Error occurred: {}'.format(e), log_utils.LOGWARNING)
                     if cached_result:
                         result = cached_result
                         logger.log('Temporary Trakt Error (%s). Using Cached Page Instead.' % (str(e)), log_utils.LOGWARNING)
                     else:
                         raise TransientTraktError('Temporary Trakt Error: ' + str(e))
-                except urllib2.URLError as e:
-                    if isinstance(e, urllib2.HTTPError):
+                except urllib_error.URLError as e:
+                    if isinstance(e, urllib_error.HTTPError):
                         if e.code in TEMP_ERRORS:
                             if cached_result:
                                 result = cached_result
@@ -492,7 +526,7 @@ class Trakt_API():
                                 raise TransientTraktError('Temporary Trakt Error: ' + str(e))
                         elif e.code == 401 or e.code == 405:
                             # token is fine, profile is private
-                            if e.info().getheader('X-Private-User') == 'true':
+                            if 'X-Private-User' in e.headers and e.headers.get('X-Private-User') == 'true':
                                 raise TraktAuthError('Object is No Longer Available (%s)' % (e.code))
                             # auth failure retry or a token request
                             elif auth_retry or url.endswith('/oauth/token'):
@@ -520,7 +554,8 @@ class Trakt_API():
                             raise TransientTraktError('Temporary Trakt Error: ' + str(e))
                     else:
                         raise TraktError('Trakt Error: ' + str(e))
-                except:
+                except Exception as e:
+                    logger.log('Unexpected error: {}'.format(e), log_utils.LOGERROR)
                     raise
 
         try:
@@ -532,5 +567,4 @@ class Trakt_API():
             if result:
                 logger.log('Invalid JSON Trakt API Response: %s - |%s|' % (url, js_data), log_utils.LOGERROR)
 
-        # logger.log('Trakt Response: %s' % (response), xbmc.LOGDEBUG)
         return js_data
