@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 MrBlamo, tknorris
+    Copyright (C) 2014 tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,24 +15,17 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import gzip
-import random
-import sys
-import os
-import re
-import datetime
 
+import random, sys, os, re, datetime, time, json, gzip
+import xbmc, xbmcgui, xbmcaddon, xbmcplugin, xbmcvfs, xbmcaddon
 from scrapers import local_scraper
 from asguard_lib.net import Net
 from asguard_lib import tmdb_api
 import js2py
-import time
 import shutil
-import xbmc, xbmcgui, xbmcaddon, xbmcplugin
-import xbmcvfs
-import xbmcaddon
+
+
 import log_utils
-import json
 import utils
 import kodi
 import six
@@ -42,7 +35,7 @@ from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
 from asguard_lib.srt_scraper import SRT_Scraper
 from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
-from asguard_lib import salts_utils
+from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper
 
 from asguard_lib import control
 from asguard_lib import utils2
@@ -52,7 +45,7 @@ from asguard_lib import worker_pool
 from asguard_lib import image_scraper
 from asguard_lib.constants import *  # @UnusedWildImport
 from asguard_lib.utils2 import i18n
-from asguard_lib.image_proxy import ImageProxy
+from asguard_lib import ImageProxy
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 from scrapers import ScraperVideo
 
