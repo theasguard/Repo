@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 tknorris
+    Copyright (C) 2024 MrBlamo, tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,14 +15,36 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import random,sys,os,re,datetime,js2py,time,shutil,xbmcplugin,xbmcgui,xbmc,xbmcvfs,json,utils,urllib,httplib,cookielib
-import kodi
+import gzip
+import random
+import sys
+import os
+import re
+import datetime
+
+from scrapers import local_scraper
+from asguard_lib.net import Net
+from asguard_lib import tmdb_api
+import js2py
+import time
+import shutil
+import xbmc, xbmcgui, xbmcaddon, xbmcplugin
+import xbmcvfs
+import xbmcaddon
 import log_utils
+import json
+import utils
+import kodi
+import six
+from six.moves import urllib_request, urllib_parse
+
 from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
 from asguard_lib.srt_scraper import SRT_Scraper
 from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
 from asguard_lib import salts_utils
+
+from asguard_lib import control
 from asguard_lib import utils2
 from asguard_lib import gui_utils
 from asguard_lib import strings
@@ -30,22 +52,28 @@ from asguard_lib import worker_pool
 from asguard_lib import image_scraper
 from asguard_lib.constants import *  # @UnusedWildImport
 from asguard_lib.utils2 import i18n
+from asguard_lib.image_proxy import ImageProxy
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 from scrapers import ScraperVideo
 
+import logging
+
 try:
     import resolveurl
-except:
+except ImportError:
     kodi.notify(msg=i18n('smu_failed'), duration=5000)
 
 logger = log_utils.Logger.get_logger()
+logging.basicConfig(level=logging.DEBUG)
 
+addon = xbmcaddon.Addon('plugin.video.asguard')
 TOKEN = kodi.get_setting('trakt_oauth_token')
 use_https = kodi.get_setting('use_https') == 'true'
 trakt_timeout = int(kodi.get_setting('trakt_timeout'))
 list_size = int(kodi.get_setting('list_size'))
 OFFLINE = kodi.get_setting('trakt_offline') == 'true'
 trakt_api = Trakt_API(TOKEN, use_https, list_size, trakt_timeout, OFFLINE)
+proxy = ImageProxy()
 
 url_dispatcher = URL_Dispatcher()
 
@@ -57,10 +85,14 @@ def main_menu():
 
     kodi.create_item({'mode': MODES.BROWSE, 'section': SECTIONS.MOVIES}, i18n('movies'), thumb=utils2.art('movies.png'), fanart=utils2.art('fanart.jpg'))
     kodi.create_item({'mode': MODES.BROWSE, 'section': SECTIONS.TV}, i18n('tv_shows'), thumb=utils2.art('television.png'), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('settings'): kodi.create_item({'mode': MODES.SETTINGS}, i18n('settings'), thumb=utils2.art('settings.png'), fanart=utils2.art('fanart.jpg'))
+    kodi.create_item({'mode': MODES.TMDB_SEARCH}, i18n('tmdb_search'), thumb=utils2.art('search.png'), fanart=utils2.art('fanart.jpg'))
+    kodi.create_item({'mode': MODES.TMDB_TV_SEARCH}, i18n('tmdb_tv_search'), thumb=utils2.art('search.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('settings'):
+        kodi.create_item({'mode': MODES.SETTINGS}, i18n('settings'), thumb=utils2.art('settings.png'), fanart=utils2.art('fanart.jpg'))
     if TOKEN:
         profile = trakt_api.get_user_profile()
-        kodi.set_setting('trakt_user', '%s (%s)' % (profile['username'], profile['name']))
+        if isinstance(profile, dict) and 'username' in profile and 'name' in profile:
+            kodi.set_setting('trakt_user', '%s (%s)' % (profile['username'], profile['name']))
             
     kodi.set_content(CONTENT_TYPES.ADDONS)
     kodi.end_of_directory()
@@ -85,44 +117,68 @@ def browse_menu(section):
     section_params = utils2.get_section_params(section)
     section_label = section_params['label_plural']
     section_label2 = section_params['label_single']
-    if utils2.menu_on('trending'): kodi.create_item({'mode': MODES.TRENDING, 'section': section}, i18n('trending') % (section_label), thumb=utils2.art('trending.png'), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('popular'): kodi.create_item({'mode': MODES.POPULAR, 'section': section}, i18n('popular') % (section_label), thumb=utils2.art('popular.png'), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('anticipated'): kodi.create_item({'mode': MODES.ANTICIPATED, 'section': section}, i18n('anticipated') % (section_label), thumb=utils2.art('anticipated.png'), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('recent'): kodi.create_item({'mode': MODES.RECENT, 'section': section}, i18n('recently_updated') % (section_label), thumb=utils2.art('recent.png'), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('mosts'): kodi.create_item({'mode': MODES.MOSTS, 'section': section}, i18n('mosts') % (section_label2), thumb=utils2.art('mosts.png'), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('genres'): kodi.create_item({'mode': MODES.GENRES, 'section': section}, i18n('genres'), thumb=utils2.art('genres.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('trending'):
+        kodi.create_item({'mode': MODES.TRENDING, 'section': section}, i18n('trending').format(section_label), thumb=utils2.art('trending.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('popular'):
+        kodi.create_item({'mode': MODES.POPULAR, 'section': section}, i18n('popular').format(section_label), thumb=utils2.art('popular.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('anticipated'):
+        kodi.create_item({'mode': MODES.ANTICIPATED, 'section': section}, i18n('anticipated').format(section_label), thumb=utils2.art('anticipated.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('recent'):
+        kodi.create_item({'mode': MODES.RECENT, 'section': section}, i18n('recently_updated').format(section_label), thumb=utils2.art('recent.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('mosts'):
+        kodi.create_item({'mode': MODES.MOSTS, 'section': section}, i18n('mosts').format(section_label2), thumb=utils2.art('mosts.png'), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('genres'):
+        kodi.create_item({'mode': MODES.GENRES, 'section': section}, i18n('genres'), thumb=utils2.art('genres.png'), fanart=utils2.art('fanart.jpg'))
     add_section_lists(section)
     if TOKEN:
-        if utils2.menu_on('on_deck'): kodi.create_item({'mode': MODES.SHOW_BOOKMARKS, 'section': section}, i18n('trakt_on_deck'), thumb=utils2.art('on_deck.png'), fanart=utils2.art('fanart.jpg'))
-        if utils2.menu_on('recommended'): kodi.create_item({'mode': MODES.RECOMMEND, 'section': section}, i18n('recommended') % (section_label), thumb=utils2.art('recommended.png'), fanart=utils2.art('fanart.jpg'))
-        if utils2.menu_on('collection'): add_refresh_item({'mode': MODES.SHOW_COLLECTION, 'section': section}, i18n('my_collection') % (section_label), utils2.art('collection.png'), utils2.art('fanart.jpg'))
-        if utils2.menu_on('history'): kodi.create_item({'mode': MODES.SHOW_HISTORY, 'section': section}, i18n('watched_history'), thumb=utils2.art('watched_history.png'), fanart=utils2.art('fanart.jpg'))
-        if utils2.menu_on('favorites'): kodi.create_item({'mode': MODES.SHOW_FAVORITES, 'section': section}, i18n('my_favorites'), thumb=utils2.art('my_favorites.png'), fanart=utils2.art('fanart.jpg'))
-        if utils2.menu_on('subscriptions'): add_refresh_item({'mode': MODES.MANAGE_SUBS, 'section': section}, i18n('my_subscriptions'), utils2.art('my_subscriptions.png'), utils2.art('fanart.jpg'))
-        if utils2.menu_on('watchlist'): add_refresh_item({'mode': MODES.SHOW_WATCHLIST, 'section': section}, i18n('my_watchlist'), utils2.art('my_watchlist.png'), utils2.art('fanart.jpg'))
-        if utils2.menu_on('my_lists'): kodi.create_item({'mode': MODES.MY_LISTS, 'section': section}, i18n('my_lists'), thumb=utils2.art('my_lists.png'), fanart=utils2.art('fanart.jpg'))
-        if utils2.menu_on('liked_lists'): add_refresh_item({'mode': MODES.LIKED_LISTS, 'section': section}, i18n('liked_lists'), utils2.art('liked_lists.png'), utils2.art('fanart.jpg'))
-    if utils2.menu_on('other_lists'): kodi.create_item({'mode': MODES.OTHER_LISTS, 'section': section}, i18n('other_lists'), thumb=utils2.art('other_lists.png'), fanart=utils2.art('fanart.jpg'))
+        if utils2.menu_on('on_deck'):
+            kodi.create_item({'mode': MODES.SHOW_BOOKMARKS, 'section': section}, i18n('trakt_on_deck'), thumb=utils2.art('on_deck.png'), fanart=utils2.art('fanart.jpg'))
+        if utils2.menu_on('recommended'):
+            kodi.create_item({'mode': MODES.RECOMMEND, 'section': section}, i18n('recommended').format(section_label), thumb=utils2.art('recommended.png'), fanart=utils2.art('fanart.jpg'))
+        if utils2.menu_on('collection'):
+            add_refresh_item({'mode': MODES.SHOW_COLLECTION, 'section': section}, i18n('my_collection').format(section_label), utils2.art('collection.png'), utils2.art('fanart.jpg'))
+        if utils2.menu_on('history'):
+            kodi.create_item({'mode': MODES.SHOW_HISTORY, 'section': section}, i18n('watched_history'), thumb=utils2.art('watched_history.png'), fanart=utils2.art('fanart.jpg'))
+        if utils2.menu_on('favorites'):
+            kodi.create_item({'mode': MODES.SHOW_FAVORITES, 'section': section}, i18n('my_favorites'), thumb=utils2.art('my_favorites.png'), fanart=utils2.art('fanart.jpg'))
+        if utils2.menu_on('subscriptions'):
+            add_refresh_item({'mode': MODES.MANAGE_SUBS, 'section': section}, i18n('my_subscriptions'), utils2.art('my_subscriptions.png'), utils2.art('fanart.jpg'))
+        if utils2.menu_on('watchlist'):
+            add_refresh_item({'mode': MODES.SHOW_WATCHLIST, 'section': section}, i18n('my_watchlist'), utils2.art('my_watchlist.png'), utils2.art('fanart.jpg'))
+        if utils2.menu_on('my_lists'):
+            kodi.create_item({'mode': MODES.MY_LISTS, 'section': section}, i18n('my_lists'), thumb=utils2.art('my_lists.png'), fanart=utils2.art('fanart.jpg'))
+        if utils2.menu_on('liked_lists'):
+            add_refresh_item({'mode': MODES.LIKED_LISTS, 'section': section}, i18n('liked_lists'), utils2.art('liked_lists.png'), utils2.art('fanart.jpg'))
+    if utils2.menu_on('other_lists'):
+        kodi.create_item({'mode': MODES.OTHER_LISTS, 'section': section}, i18n('other_lists'), thumb=utils2.art('other_lists.png'), fanart=utils2.art('fanart.jpg'))
     if section == SECTIONS.TV:
         if TOKEN:
-            if utils2.menu_on('progress'): add_refresh_item({'mode': MODES.SHOW_PROGRESS}, i18n('my_next_episodes'), utils2.art('my_progress.png'), utils2.art('fanart.jpg'))
-            if utils2.menu_on('rewatch'): add_refresh_item({'mode': MODES.SHOW_REWATCH}, i18n('my_rewatches'), utils2.art('my_rewatch.png'), utils2.art('fanart.jpg'))
-            if utils2.menu_on('my_cal'): add_refresh_item({'mode': MODES.MY_CAL}, i18n('my_calendar'), utils2.art('my_calendar.png'), utils2.art('fanart.jpg'))
-        if utils2.menu_on('general_cal'): add_refresh_item({'mode': MODES.CAL}, i18n('general_calendar'), utils2.art('calendar.png'), utils2.art('fanart.jpg'))
-        if utils2.menu_on('premiere_cal'): add_refresh_item({'mode': MODES.PREMIERES}, i18n('premiere_calendar'), utils2.art('premiere_calendar.png'), utils2.art('fanart.jpg'))
-    if utils2.menu_on('search'): kodi.create_item({'mode': MODES.SEARCH, 'section': section}, i18n('search'), thumb=utils2.art(section_params['search_img']), fanart=utils2.art('fanart.jpg'))
-    if utils2.menu_on('search'): add_search_item({'mode': MODES.RECENT_SEARCH, 'section': section}, i18n('recent_searches'), utils2.art(section_params['search_img']), MODES.CLEAR_RECENT)
-    if utils2.menu_on('search'): add_search_item({'mode': MODES.SAVED_SEARCHES, 'section': section}, i18n('saved_searches'), utils2.art(section_params['search_img']), MODES.CLEAR_SAVED)
+            if utils2.menu_on('progress'):
+                add_refresh_item({'mode': MODES.SHOW_PROGRESS}, i18n('my_next_episodes'), utils2.art('my_progress.png'), utils2.art('fanart.jpg'))
+            if utils2.menu_on('rewatch'):
+                add_refresh_item({'mode': MODES.SHOW_REWATCH}, i18n('my_rewatches'), utils2.art('my_rewatch.png'), utils2.art('fanart.jpg'))
+            if utils2.menu_on('my_cal'):
+                add_refresh_item({'mode': MODES.MY_CAL}, i18n('my_calendar'), utils2.art('my_calendar.png'), utils2.art('fanart.jpg'))
+        if utils2.menu_on('general_cal'):
+            add_refresh_item({'mode': MODES.CAL}, i18n('general_calendar'), utils2.art('calendar.png'), utils2.art('fanart.jpg'))
+        if utils2.menu_on('premiere_cal'):
+            add_refresh_item({'mode': MODES.PREMIERES}, i18n('premiere_calendar'), utils2.art('premiere_calendar.png'), utils2.art('fanart.jpg'))
+    if utils2.menu_on('search'):
+        kodi.create_item({'mode': MODES.SEARCH, 'section': section}, i18n('search'), thumb=utils2.art(section_params['search_img']), fanart=utils2.art('fanart.jpg'))
+    if utils2.menu_on('search'):
+        add_search_item({'mode': MODES.RECENT_SEARCH, 'section': section}, i18n('recent_searches'), utils2.art(section_params['search_img']), MODES.CLEAR_RECENT)
+    if utils2.menu_on('search'):
+        add_search_item({'mode': MODES.SAVED_SEARCHES, 'section': section}, i18n('saved_searches'), utils2.art(section_params['search_img']), MODES.CLEAR_SAVED)
     if OFFLINE:
-        kodi.notify(msg='[COLOR blue]***[/COLOR][COLOR red] %s [/COLOR][COLOR blue]***[/COLOR]' % (i18n('trakt_api_offline')))
+        kodi.notify(msg='[COLOR blue]***[/COLOR][COLOR red] %s [/COLOR][COLOR blue]***[/COLOR]'.format(i18n('trakt_api_offline')))
     kodi.set_content(CONTENT_TYPES.ADDONS)
     kodi.end_of_directory()
-
 
 @url_dispatcher.register(MODES.GENRES, ['section'])
 def browse_genres(section):
     for genre in trakt_api.get_genres(section):
-        if genre['slug'] == 'none': continue
+        if genre['slug'] == 'none':
+            continue
         kodi.create_item({'mode': MODES.SHOW_GENRE, 'genre': genre['slug'], 'section': section}, genre['name'], utils2.art('%s.png' % (genre['slug'])), fanart=utils2.art('fanart.jpg'))
     kodi.set_content(CONTENT_TYPES.ADDONS)
     kodi.end_of_directory()
@@ -198,9 +254,12 @@ def delete_bookmark(bookmark_id):
 
 @url_dispatcher.register(MODES.SHOW_VIEWS)
 def show_views():
-    for content_type in ['movies', 'tvshows', 'seasons', 'episodes', 'files']:
-        kodi.create_item({'mode': MODES.BROWSE_VIEW, 'content_type': content_type}, i18n('set_default_x_view') % (content_type.capitalize()),
-                         thumb=utils2.art('settings.png'), fanart=utils2.art('fanart.jpg'))
+    content_types = ['movies', 'tvshows', 'seasons', 'episodes', 'files']
+    for content_type in content_types:
+        label = i18n('set_default_x_view') % (content_type.capitalize())
+        thumb = utils2.art('settings.png')
+        fanart = utils2.art('fanart.jpg')
+        kodi.create_item({'mode': MODES.BROWSE_VIEW, 'content_type': content_type}, label, thumb=thumb, fanart=fanart)
     kodi.end_of_directory()
 
 @url_dispatcher.register(MODES.BROWSE_VIEW, ['content_type'])
@@ -392,9 +451,9 @@ def scraper_settings():
             failures = 'N/A'
             index = 0
         else:
-            index = min([(int(failures) * (len(COLORS) - 1) / fail_limit), len(COLORS) - 1])
+            index = int(min([(failures * (len(COLORS) - 1) // fail_limit), len(COLORS) - 1]))
             
-        label = '%s. %s [COLOR %s][FL: %s][/COLOR]:' % (i + 1, label, COLORS[index], failures)
+        label = '%s. %s [COLOR %s][FL: %s][/COLOR]' % (i + 1, label, COLORS[index], failures)
 
         menu_items = []
         if i > 0:
@@ -574,7 +633,7 @@ def browse_calendar(mode, start_date=None):
 @url_dispatcher.register(MODES.MY_LISTS, ['section'])
 def browse_lists(section):
     lists = trakt_api.get_lists()
-    lists.insert(0, {'name': 'watchlist', 'ids': {'slug': salts_utils.WATCHLIST_SLUG}})
+    lists.insert(0, {'name': 'watchlist', 'ids': {'slug': utils.WATCHLIST_SLUG}})
     total_items = len(lists)
     for user_list in lists:
         add_list_item(section, user_list, total_items)
@@ -594,7 +653,7 @@ def add_list_item(section, user_list, total_items=0):
     menu_items.append((i18n('import_collection'), 'RunPlugin(%s)' % (kodi.get_plugin_url(queries))),)
     queries = {'mode': MODES.FORCE_REFRESH, 'refresh_mode': MODES.SHOW_LIST, 'section': section, 'slug': ids['slug']}
     menu_items.append((i18n('force_refresh'), 'RunPlugin(%s)' % (kodi.get_plugin_url(queries))),)
-    if ids['slug'] != salts_utils.WATCHLIST_SLUG:
+    if ids['slug'] != utils.WATCHLIST_SLUG:
         if ids['slug'] in kodi.get_setting('%s_main' % (section)).split('|'):
             label = i18n('remove_from_main')
             action = 'remove'
@@ -647,7 +706,7 @@ def add_other_list_item(mode, section, other_list, total_items=0):
         if len(other_list) >= 3 and other_list[2]:
             name = other_list[2]
         else:
-            name = ['name']
+            name = header['name']
     else:
         name = other_list[1]
 
@@ -853,7 +912,7 @@ def show_list(section, slug, username=None):
 
 @url_dispatcher.register(MODES.SHOW_WATCHLIST, ['section'])
 def show_watchlist(section):
-    show_list(section, salts_utils.WATCHLIST_SLUG)
+    show_list(section, utils.WATCHLIST_SLUG)
 
 @url_dispatcher.register(MODES.SHOW_COLLECTION, ['section'])
 def show_collection(section):
@@ -1418,7 +1477,7 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
             else:
                 try:
                     stream_url = hmf.resolve()
-                    if not stream_url or not isinstance(stream_url, basestring):
+                    if not stream_url or not isinstance(stream_url, str):
                         try: msg = stream_url.msg
                         except: msg = hoster_url
                         raise Exception(msg)
@@ -1467,6 +1526,7 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
                 people = trakt_api.get_people(SECTIONS.TV, trakt_id) if kodi.get_setting('include_people') == 'true' else None
                 info = salts_utils.make_info(ep_meta, show_meta, people)
                 art = image_scraper.get_images(VIDEO_TYPES.EPISODE, show_meta['ids'], season, episode)
+
     
                 path = make_path(path, VIDEO_TYPES.TVSHOW, show_meta['title'], season=season)
                 file_name = utils2.filename_from_title(show_meta['title'], VIDEO_TYPES.TVSHOW)
@@ -2052,21 +2112,26 @@ def flush_cache():
     ln3 = ''
     yes = i18n('keep')
     no = i18n('delete')
-    if dlg.yesno(i18n('flush_web_cache'), ln1, ln2, ln3, yes, no):
+    # Convert localized strings to integers for yesno dialog if needed
+    yes_label = 1 if yes.lower() == 'yes' else 0
+    no_label = 1 if no.lower() == 'yes' else 0
+    if dlg.yesno(i18n('flush_web_cache'), ln1, ln2, ln3, yes_label, no_label):
         with kodi.WorkingDialog() as wd:
             start = None
-            while not xbmc.abortRequested:
+            monitor = xbmc.Monitor()  # Use Monitor for Kodi 21 compatibility
+            while not monitor.abortRequested():
                 days_left = db_connection.prune_cache(prune_age=0)
                 if start is None: start = days_left
                 if days_left:
-                    wd.update(100 * (start - days_left) / start)
+                    wd.update_progress(100 * (start - days_left) / start)
                 else:
                     # call flush_cache at the end to trigger vacuum for SQLITE
-                    wd.update(100)
+                    wd.update_progress(100)
                     db_connection.flush_cache()
                     break
             
         kodi.refresh_container()
+
 
 @url_dispatcher.register(MODES.FLUSH_IMAGES)
 def flush_image_cache():
@@ -2076,10 +2141,14 @@ def flush_image_cache():
     ln3 = ''
     yes = i18n('keep')
     no = i18n('delete')
-    if dlg.yesno(i18n('flush_image_cache'), ln1, ln2, ln3, yes, no):
+    # Convert localized strings to integers for yesno dialog if needed
+    yes_label = 1 if yes.lower() == 'yes' else 0
+    no_label = 1 if no.lower() == 'yes' else 0
+    if dlg.yesno(i18n('flush_image_cache'), ln1, ln2, ln3, yes_label, no_label):
         with kodi.WorkingDialog():
             db_connection.flush_image_cache()
             kodi.notify(msg=i18n('flush_complete'))
+
 
 @url_dispatcher.register(MODES.PRUNE_CACHE)
 def prune_cache():
@@ -2467,18 +2536,30 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id):
     return liz
 
 def make_episode_item(show, episode, show_subs=True, menu_items=None):
-    # logger.log('Make Episode: Show: %s, Episode: %s, Show Subs: %s' % (show, episode, show_subs), log_utils.LOGDEBUG)
-    # logger.log('Make Episode: Episode: %s' % (episode), log_utils.LOGDEBUG)
     if menu_items is None: menu_items = []
+    
+    # Ensure 'title' key is present in show
+    if 'title' not in show:
+        logger.log('Missing key "title" in show: {}'.format(show), log_utils.LOGERROR)
+        show['title'] = 'Unknown Title'
+    
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
+
+    # Ensure 'title' key is present in episode
+    if 'title' not in episode:
+        logger.log('Missing key "title" in episode: {}'.format(episode), log_utils.LOGERROR)
+        episode['title'] = 'Unknown Title'
+
     if episode['title'] is None:
         label = '%sx%s' % (episode['season'], episode['number'])
     else:
         label = '%sx%s %s' % (episode['season'], episode['number'], episode['title'])
 
     if 'first_aired' in episode: utc_air_time = utils.iso_2_utc(episode['first_aired'])
-    try: time_str = time.asctime(time.localtime(utc_air_time))
-    except: time_str = i18n('unavailable')
+    try: 
+        time_str = time.asctime(time.localtime(utc_air_time))
+    except: 
+        time_str = i18n('unavailable')
 
     logger.log('First Aired: Title: %s S/E: %s/%s fa: %s, utc: %s, local: %s' %
                   (show['title'], episode['season'], episode['number'], episode['first_aired'], utc_air_time, time_str), log_utils.LOGDEBUG)
@@ -2495,7 +2576,7 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
         else:
             srts = []
         label = utils2.format_episode_label(label, episode['season'], episode['number'], srts)
-
+    
     meta = salts_utils.make_info(episode, show)
     art = image_scraper.get_images(VIDEO_TYPES.EPISODE, show['ids'], episode['season'], episode['number'])
     liz = utils.make_list_item(label, meta, art)
@@ -2507,8 +2588,6 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
                'ep_title': episode['title'], 'ep_airdate': air_date, 'trakt_id': show['ids']['trakt'], 'random': time.time()}
     liz_url = kodi.get_plugin_url(queries)
 
-    queries = {'video_type': VIDEO_TYPES.EPISODE, 'title': show['title'], 'year': show['year'], 'season': episode['season'], 'episode': episode['number'],
-               'ep_title': episode['title'], 'ep_airdate': air_date, 'trakt_id': show['ids']['trakt']}
     if kodi.get_setting('auto-play') == 'true':
         queries['mode'] = MODES.SELECT_SOURCE
         label = i18n('select_source')
@@ -2570,13 +2649,78 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
     liz.addContextMenuItems(menu_items, replaceItems=True)
     return liz, liz_url
 
+def make_tmdb_episode_item(show, episode):
+    """
+    Create a list item for an episode from TMDB data, including context menus for source selection and downloading.
+    
+    :param show: The show details.
+    :param episode: The episode details.
+    :return: A tuple containing the list item and its URL.
+    """
+    episode_title = episode.get('name', 'N/A')  # TMDB uses 'name' for episode title
+    season = episode.get('season_number', 'N/A')  # TMDB uses 'season_number'
+    episode_number = episode.get('episode_number', 'N/A')
+    
+    label = '%sx%s %s' % (season, episode_number, episode_title)
+    
+    # Create the list item
+    liz = xbmcgui.ListItem(label=label)
+    liz.setInfo('video', {
+        'title': episode_title,
+        'season': season,
+        'episode': episode_number,
+        'aired': episode.get('air_date')
+    })
+
+    # Set art
+    liz.setArt({
+        'thumb': episode.get('still_path'),
+        'fanart': show.get('backdrop_path')
+    })
+
+    # Context menu items
+    menu_items = []
+    queries = {
+        'mode': MODES.GET_SOURCES,
+        'video_type': VIDEO_TYPES.EPISODE,
+        'title': show['name'],
+        'year': show.get('first_air_date', '')[:4],
+        'season': season,
+        'episode': episode_number,
+        'tmdb_id': episode['id']
+    }
+    url = kodi.get_plugin_url(queries)
+
+    # Auto-play setting
+    if kodi.get_setting('auto-play') == 'true':
+        runstring = 'RunPlugin(%s)' % url
+        menu_items.append((i18n('auto-play'), runstring))
+    else:
+        runstring = 'Container.Update(%s)' % url
+        menu_items.append((i18n('select_source'), runstring))
+
+    # Download option
+    if kodi.get_setting('show_download') == 'true':
+        download_queries = queries.copy()
+        download_queries['mode'] = MODES.DOWNLOAD_SOURCE
+        download_url = kodi.get_plugin_url(download_queries)
+        menu_items.append((i18n('download_source'), 'RunPlugin(%s)' % download_url))
+
+    liz.addContextMenuItems(menu_items, replaceItems=True)
+
+    return liz, url
+
 def make_item(section_params, show, menu_items=None):
     if menu_items is None: menu_items = []
-    if not isinstance(show['title'], basestring): show['title'] = ''
+    if not isinstance(show['title'], str): show['title'] = ''
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
     label = '%s (%s)' % (show['title'], show['year'])
     trakt_id = show['ids']['trakt']
     art = image_scraper.get_images(section_params['video_type'], show['ids'])
+        # Check if essential art pieces are missing
+    if not art.get('poster') or not art.get('fanart')or not art.get('banner'):
+        fallback_art = image_scraper.tvdb_scraper.get_tvshow_images_v2(section_params['video_type'], show['ids'])
+        art.update(fallback_art)
     if kodi.get_setting('include_people') == 'true':
         people = trakt_api.get_people(section_params['section'], trakt_id)
         cast = salts_utils.make_cast(show['ids'], people)
@@ -2718,9 +2862,135 @@ def get_list(section, slug, username=None, cached=True):
             return
     
     return items
+
+@url_dispatcher.register(MODES.TMDB_SEARCH)
+def tmdb_search(query=None):
+    if query is None:
+        heading = i18n('tmdb_search')
+        keyboard = xbmc.Keyboard('', heading)
+        keyboard.doModal()
+        if keyboard.isConfirmed():
+            query = keyboard.getText()
+        else:
+            kodi.notify(msg=i18n('search_cancelled'), duration=5000)
+            return
+
+    if not query:
+        kodi.notify(msg=i18n('blank_searches'), duration=5000)
+        return
+
+    # Assuming you have a function in your TMDB API wrapper to search for movies or TV shows
+    search_results = tmdb_api.get_all_results(query)
+    if not search_results:
+        kodi.notify(msg=i18n('no_results_found'), duration=5000)
+        return
+
+    for result in search_results:
+        label = result['title'] or result['name']
+        meta = {
+            'ids': {
+                'imdb': result.get('imdb_id'),
+                'tvdb': result.get('tvdb_id')
+            }
+        }
+        art = image_scraper.get_images(VIDEO_TYPES.TVSHOW, {'imdb': result['id']})
+        
+        # Construct the URL using the TMDB ID
+        tmdb_id = result.get('id')
+        if tmdb_id:
+            url = f"https://www.themoviedb.org/movie/{tmdb_id}"
+            list_item = utils.make_list_item(label, meta, art)
+            xbmcplugin.addDirectoryItem(int(sys.argv[1]), url, list_item, isFolder=True)
+        else:
+            logger.warning(f"TMDB ID not found in result: {result}")
+
+    kodi.end_of_directory()
+
+@url_dispatcher.register(MODES.TMDB_TV_SEARCH)
+def tmdb_tv_search():
+    dialog = xbmcgui.Dialog()
+    query = dialog.input("Enter the TV show name to search", type=xbmcgui.INPUT_ALPHANUM)
+    if not query:
+        logger.info("No search query entered.")
+        return
+
+    results = tmdb_api.search_tmdb_tv(query)
+    shows = results.get('results', [])
+    totalItems = len(shows)
+    for show in shows:
+        liz, liz_url = make_tv_show_item(show)
+        xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True, totalItems=totalItems)
+    kodi.set_view(CONTENT_TYPES.TVSHOWS, True)
+    kodi.end_of_directory()
+
+def make_tv_show_item(show):
+    label = '{} ({})'.format(show['name'], show['first_air_date'][:4])
+    art = image_scraper.get_images(VIDEO_TYPES.TVSHOW, {'trakt': show['id']})
+            # Check if essential art pieces are missing
+    if not art.get('poster') or not art.get('banner'):
+        fallback_art = image_scraper.tvdb_scraper.get_tvshow_images_v2(VIDEO_TYPES.TVSHOW, {'trakt': show['id']})
+        art.update(fallback_art)
+
+    liz = utils.make_list_item(label, show, art)
+    liz.setInfo('video', salts_utils.make_info(show))
+    queries = {'mode': MODES.TMDB_SEASONS, 'tv_id': show['id']}
+    liz_url = kodi.get_plugin_url(queries)
+    return liz, liz_url
+
+@url_dispatcher.register(MODES.TMDB_SEASONS, ['tv_id'])
+def browse_seasons(tv_id):
+    show = tmdb_api.get_tv_details(tv_id)
     
+    if not isinstance(show, dict):
+        logger.log('Expected show to be a dictionary, but got: {}'.format(type(show)), log_utils.LOGERROR)
+        return
+    
+    seasons = tmdb_api.get_tv_seasons(tv_id)
+    totalItems = len(seasons)
+    for season in seasons:
+        liz, liz_url = make_tmdb_season_item(season, show, tv_id)
+        xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True, totalItems=totalItems)
+    kodi.set_view(CONTENT_TYPES.SEASONS, True)
+    kodi.end_of_directory()
+
+def make_tmdb_season_item(season, show, tv_id):
+    label = '{} {}'.format(i18n('season'), season['season_number'])
+    art = image_scraper.get_images(VIDEO_TYPES.SEASON, {'trakt': tv_id}, season['season_number'])
+            # Check if essential art pieces are missing
+    if not art.get('poster')or not art.get('banner'):
+        fallback_art = image_scraper.tvdb_scraper.get_tvshow_images_v2(VIDEO_TYPES.SEASON, season['season_number'])
+        art.update(fallback_art)
+
+    liz = utils.make_list_item(label, season, art)
+    liz.setInfo('video', salts_utils.make_info(season, show))
+    queries = {'mode': MODES.TMDB_EPISODES, 'tv_id': tv_id, 'season': season['season_number']}
+    liz_url = kodi.get_plugin_url(queries)
+    return liz, liz_url
+
+@url_dispatcher.register(MODES.TMDB_EPISODES, ['tv_id', 'season'])
+def browse_episodes(tv_id, season):
+    show = tmdb_api.get_tv_details(tv_id)
+    
+    if not isinstance(show, dict):
+        logger.log('Expected show to be a dictionary, but got: {}'.format(type(show)), log_utils.LOGERROR)
+        return
+    
+    episodes = tmdb_api.get_season_episodes(tv_id, season)
+    totalItems = len(episodes)
+    now = time.time()
+    for episode in episodes:
+        utc_air_time = utils.iso_2_utc(episode['air_date'])
+        if kodi.get_setting('show_unaired') == 'true' or utc_air_time <= now:
+            if kodi.get_setting('show_unknown') == 'true' or utc_air_time:
+                liz, liz_url = make_tmdb_episode_item(show, episode)
+                if liz and liz_url:
+                    xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=False, totalItems=totalItems)
+    kodi.set_view(CONTENT_TYPES.EPISODES, True)
+    kodi.end_of_directory()
+
 def main(argv=None):
-    if sys.argv: argv = sys.argv
+    if sys.argv:
+        argv = sys.argv
     queries = kodi.parse_query(sys.argv[2])
     logger.log('Version: |%s| Queries: |%s|' % (kodi.get_version(), queries), log_utils.LOGNOTICE)
     logger.log('Args: |%s|' % (argv), log_utils.LOGNOTICE)
@@ -2743,153 +3013,13 @@ def main(argv=None):
         db_connection.attempt_db_recovery()
 
 
-def HostResolver(url):
-        print "in HostResolver"
-        parsed_uri = urlparse.urlparse(url)
-        server=str(parsed_uri.netloc)
-        #server=server.replace("openload.co","oload.stream")
-
-        server=server.split(".")
-        if(len(server)>2):
-            server=server[1]
-        else:
-            server=server[0]
-        server=server.replace("180upload","one80upload")
-        server=server.replace(":","")
-        exec "from servers import "+server+" as server_connector"
-        rtnstatus,msg = server_connector.test_video_exists( page_url=url )
-        if(rtnstatus):
-            video_urls = server_connector.get_video_url( page_url=url , video_password="" )
-            return video_urls[0][1]
-        else:
-            return ""
-        
-def GetContent(url):
-    try:
-       url=url.replace("putlocker.com","putlocker.ac")
-       net = Net()
-       second_response = net.http_GET(url)
-       rcontent=second_response.content
-       try:
-            rcontent =rcontent.encode("UTF-8")
-       except: pass
-       return rcontent
-    except: 
-       d = xbmcgui.Dialog()
-       d.ok(url,"Can't Connect to site",'Try again in a moment')
-
-try:
-
-    DB_NAME =    ADDON.getSetting('db_name')
-    DB_USER =    ADDON.getSetting('db_user')
-    DB_PASS =    ADDON.getSetting('db_pass')
-    DB_ADDRESS = ADDON.getSetting('db_address')
-
-    if  ADDON.getSetting('use_remote_db')=='true' and DB_ADDRESS is not None and DB_USER is not None and DB_PASS is not None and DB_NAME is not None:
-        import mysql.connector as database
-        print 'Loading MySQL as DB engine'
-        DB = 'mysql'
-    else:
-        print'MySQL not enabled or not setup correctly'
-        raise ValueError('MySQL not enabled or not setup correctly')
-
-except:
-
-    try: 
-        from sqlite3 import dbapi2 as database
-        print 'Loading sqlite3 as DB engine'
-    except: 
-        from pysqlite2 import dbapi2 as database
-        addon.log('pysqlite2 as DB engine')
-    DB = 'sqlite'
-    db_dir = os.path.join(xbmc.translatePath("special://database"), 'asguard_cache.db')
-
-def CheckRedirect(url):
-    try:
-       net = Net()
-       second_response = net.http_GET(url)
-       cj = net.get_cookies()
-       return (second_response,cj)
-    except:
-       d = xbmcgui.Dialog()
-       d.ok(url,"Can't Connect to site",'Try again in a moment')
-
 def add_contextsearchmenu(title, video_type):
-    title=urllib.parse.quote(title)
+    title=urllib_parse.quote(title)
     contextmenuitems = []
 
-    xbmcplugin.setContent(addon_handle, 'movies')
+    xbmcplugin.setContent(addon, 'movies')
     return contextmenuitems
 
- 
-def postContent(url,data,referr):
-    opener = urllib2.build_opener()
-    opener.addheaders = [('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
-                         ('Accept-Encoding','gzip, deflate'),
-                         ('Referer', referr),
-                         ('Content-Type', 'application/x-www-form-urlencoded'),
-                         ('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:13.0) Gecko/20100101 Firefox/13.0'),
-                         ('Connection','keep-alive'),
-                         ('Accept-Language','en-us,en;q=0.5'),
-                         ('Pragma','no-cache'),
-                         ('Host','player.phim47.com')]
-    usock=opener.open(url,data)
-    if usock.info().get('Content-Encoding') == 'gzip':
-        buf = StringIO.StringIO(usock.read())
-        f = gzip.GzipFile(fileobj=buf)
-        response = f.read()
-    else:
-        response = usock.read()
-    usock.close()
-    return response
-    
-def postContent2(url,data,referr):
-    req = urllib2.Request(url,data)
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
-    response = urllib2.urlopen(req)
-    data=response.read()
-    response.close()
-    return data
-        
-def unpackjs(texto):
 
-    # Extract the function body
-    patron = "eval\(function\(p\,a\,c\,k\,e\,d\)\{[^\}]+\}(.*?)\.split\('\|'\)\)\)"
-    matches = re.compile(patron,re.DOTALL).findall(texto)
-
-    
-    # Separate code conversion table
-    if len(matches)>0:
-        data = matches[0]
-
-    else:
-        return ""
-
-    patron = "(.*)'([^']+)'"
-    matches = re.compile(patron,re.DOTALL).findall(data)
-    cifrado = matches[0][0]
-    descifrado = ""
-    
-    # Create the Dictionary with the conversion table
-    claves = []
-    claves.extend(["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"])
-    claves.extend(["10","11","12","13","14","15","16","17","18","19","1a","1b","1c","1d","1e","1f","1g","1h","1i","1j","1k","1l","1m","1n","1o","1p","1q","1r","1s","1t","1u","1v","1w","1x","1y","1z"])
-    claves.extend(["20","21","22","23","24","25","26","27","28","29","2a","2b","2c","2d","2e","2f","2g","2h","2i","2j","2k","2l","2m","2n","2o","2p","2q","2r","2s","2t","2u","2v","2w","2x","2y","2z"])
-    claves.extend(["30","31","32","33","34","35","36","37","38","39","3a","3b","3c","3d","3e","3f","3g","3h","3i","3j","3k","3l","3m","3n","3o","3p","3q","3r","3s","3t","3u","3v","3w","3x","3y","3z"])
-    palabras = matches[0][1].split("|")
-    diccionario = {}
-
-    i=0
-    for palabra in palabras:
-        if palabra!="":
-            diccionario[claves[i]]=palabra
-        else:
-            diccionario[claves[i]]=claves[i]
-        i=i+1
-
-    # Substitute the words of the conversion table
-    # Retrieved from http://rc98.net/multiple_replace
-
-	 
 if __name__ == '__main__':
     sys.exit(main())
