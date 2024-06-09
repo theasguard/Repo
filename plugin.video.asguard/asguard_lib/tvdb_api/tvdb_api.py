@@ -6,6 +6,7 @@ import zipfile
 import requests
 from asguard_lib import image_cache
 import six
+import kodi
 from six.moves.urllib.parse import quote as url_quote
 import logging
 
@@ -344,6 +345,6 @@ def date_to_timestamp(date_str, string_format="%Y-%m-%d"):
     return None
         
 if __name__ == "__main__":
-    api = Tvdb(api_key="83914568-d055-4943-a789-4175d6466b05")
+    api = Tvdb(api_key=kodi.get_setting('tvdb_key'))
     id = api.search('scrubs')[0]['id']
     print(api[id][8].get_poster(language="he"))
