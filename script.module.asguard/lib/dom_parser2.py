@@ -18,6 +18,7 @@
 import re
 import log_utils
 from collections import namedtuple
+import chardet
 
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
@@ -65,11 +66,11 @@ def __get_dom_elements(item, name, attrs):
         this_list = re.findall(pattern, item, re.M | re.S | re.I)
     else:
         last_list = None
-        for key, value in attrs.iteritems():
+        for key, value in attrs.items():
             value_is_regex = isinstance(value, re_type)
-            value_is_str = isinstance(value, basestring)
+            value_is_str = isinstance(value, str)
             pattern = '''(<{tag}[^>]*\s{key}=(?P<delim>['"])(.*?)(?P=delim)[^>]*>)'''.format(tag=name, key=key)
-            re_list = re.findall(pattern, item, re.M | re. S | re.I)
+            re_list = re.findall(pattern, item, re.M | re.S | re.I)
             if value_is_regex:
                 this_list = [r[0] for r in re_list if re.match(value, r[2])]
             else:
@@ -80,7 +81,7 @@ def __get_dom_elements(item, name, attrs):
                 has_space = (value_is_regex and ' ' in value.pattern) or (value_is_str and ' ' in value)
                 if not has_space:
                     pattern = '''(<{tag}[^>]*\s{key}=((?:[^\s>]|/>)*)[^>]*>)'''.format(tag=name, key=key)
-                    re_list = re.findall(pattern, item, re.M | re. S | re.I)
+                    re_list = re.findall(pattern, item, re.M | re.S | re.I)
                     if value_is_regex:
                         this_list = [r[0] for r in re_list if re.match(value, r[1])]
                     else:
@@ -108,19 +109,20 @@ def __get_attribs(element):
 def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
     if attrs is None: attrs = {}
     name = name.strip()
-    # logger.log('parse_dom: Name: |%s| Attrs: |%s| Ret: |%s| - HTML: %s' % (name, attrs, req, type(html)), log_utils.LOGDEBUG)
-    if isinstance(html, unicode) or isinstance(html, DomMatch):
-        html = [html]
-    elif isinstance(html, str):
+    if isinstance(html, str):
         try:
-            html = [html.decode("utf-8")]  # Replace with chardet thingy
-        except:
-            logger.log("HTML Decode Failed. Data length: %d" % len(html), log_utils.LOGWARNING)
+            html = [html.decode("utf-8")]
+        except AttributeError:
+            encoding = chardet.detect(html)['encoding']
             try:
-                html = [html.decode("utf-8", "replace")]
+                html = [html.decode(encoding)]
             except:
-                logger.log("HTML Decode Failed (Replace). Data length: %d" % len(html), log_utils.LOGWARNING)
-                html = [html]
+                logger.log("HTML Decode Failed. Data length: %d" % len(html), log_utils.LOGWARNING)
+                try:
+                    html = [html.decode("utf-8", "replace")]
+                except:
+                    logger.log("HTML Decode Failed (Replace). Data length: %d" % len(html), log_utils.LOGWARNING)
+                    html = [html]
     elif not isinstance(html, list):
         logger.log("Input isn't list or string/unicode.", log_utils.LOGWARNING)
         return ''
@@ -140,9 +142,6 @@ def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
         
     all_results = []
     for item in html:
-        if isinstance(item, DomMatch):
-            item = item.content
-            
         if exclude_comments:
             item = re.sub(re.compile('<!--.*?-->', re.DOTALL), '', item)
         
@@ -155,5 +154,4 @@ def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
             item = item[item.find(temp, item.find(element)):]
         all_results += results
 
-    # logger.log("Done: %s" + (all_results), xbmc.LOGDEBUG)
     return all_results

@@ -18,7 +18,6 @@
 import log_utils
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
 
 class URL_Dispatcher:
     def __init__(self):
@@ -31,12 +30,12 @@ class URL_Dispatcher:
         Decorator function to register a function as a plugin:// url endpoint
 
         mode: the mode value passed in the plugin:// url
-        args: a list  of strings that are the positional arguments to expect
+        args: a list of strings that are the positional arguments to expect
         kwargs: a list of strings that are the keyword arguments to expect
 
-        * Positional argument must be in the order the function expect
+        * Positional argument must be in the order the function expects
         * kwargs can be in any order
-        * kwargs without positional arguments are supported by passing in a kwargs but no args
+        * kwargs without positional arguments are supported by passing in kwargs but no args
         * If there are no arguments at all, just "mode" can be specified
         """
 
@@ -48,11 +47,14 @@ class URL_Dispatcher:
         def decorator(f):
             if mode in self.func_registry:
                 message = 'Error: %s already registered as %s' % (str(f), mode)
+                logger.log(message, log_utils.LOGERROR)
                 raise Exception(message)
 
+            # logger.log('registering function: |%s|->|%s|' % (mode,str(f)), xbmc.LOGDEBUG)
             self.func_registry[mode.strip()] = f
             self.args_registry[mode] = args
             self.kwargs_registry[mode] = kwargs
+            # logger.log('registering args: |%s|-->(%s) and {%s}' % (mode, args, kwargs), xbmc.LOGDEBUG)
 
             return f
         return decorator
@@ -64,9 +66,9 @@ class URL_Dispatcher:
         mode: the string that the function was associated with
         queries: a dictionary of the parameters to be passed to the called function
         """
-
         if mode not in self.func_registry:
             message = 'Error: Attempt to invoke unregistered mode |%s|' % (mode)
+            logger.log(message, log_utils.LOGERROR)
             raise Exception(message)
 
         args = []
@@ -81,6 +83,7 @@ class URL_Dispatcher:
                     del unused_args[arg]
                 else:
                     message = 'Error: mode |%s| requested argument |%s| but it was not provided.' % (mode, arg)
+                    logger.log(message, log_utils.LOGERROR)
                     raise Exception(message)
 
         if self.kwargs_registry[mode]:
@@ -91,8 +94,11 @@ class URL_Dispatcher:
                     kwargs[arg] = self.__coerce(queries[arg])
                     del unused_args[arg]
 
-        if 'mode' in unused_args: del unused_args['mode']  # delete mode last in case it's used by the target function
-        if unused_args: pass
+        if 'mode' in unused_args:
+            del unused_args['mode']  # delete mode last in case it's used by the target function
+        logger.log('Calling |%s| for mode |%s| with pos args |%s| and kwargs |%s|' % (self.func_registry[mode].__name__, mode, args, kwargs), log_utils.LOGNOTICE)
+        if unused_args:
+            logger.log('Warning: Arguments |%s| were passed but unused by |%s| for mode |%s|' % (unused_args, self.func_registry[mode].__name__, mode), log_utils.LOGWARNING)
         self.func_registry[mode](*args, **kwargs)
 
     def showmodes(self):

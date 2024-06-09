@@ -1,6 +1,6 @@
 """
     tknorris shared module
-    Copyright (C) 2016 tknorris
+    Copyright (C) 2024 tknorris, MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,15 +20,17 @@ import _strptime
 import time
 import re
 import json
-import urllib2
-import urllib
-import urlparse
+import urllib.request as urllib_request
+import urllib.parse as urllib_parse
 import os
 import kodi
 import log_utils
 import xbmcgui
 import xbmcvfs
 import xbmc
+from six.moves import urllib_request, urllib_parse, urllib_error
+import six
+
 
 logger = log_utils.Logger.get_logger(__name__)
 
@@ -36,33 +38,55 @@ def __enum(**enums):
     return type('Enum', (), enums)
 
 PROGRESS = __enum(OFF=0, WINDOW=1, BACKGROUND=2)
-CHUNK_SIZE = 512 * 1024
+BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+CHUNK_SIZE = 8192
 DEFAULT_EXT = 'mpg'
-BROWSER_UA = 'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'
 INTERVALS = 5
 WATCHLIST_SLUG = 'watchlist_slug'
 
 def make_list_item(label, meta, art=None, cast=None):
-    if art is None: art = {'thumb': '', 'fanart': ''}
-    if cast is None: cast = []
-    listitem = xbmcgui.ListItem(label, iconImage=art['thumb'], thumbnailImage=art['thumb'])
-    listitem.setProperty('fanart_image', art['fanart'])
+    if art is None:
+        art = {'thumb': '', 'fanart': ''}
+    if cast is None:
+        cast = []
+
+    # Create a new ListItem with the label
+    listitem = xbmcgui.ListItem(label)
+
+    # Set artwork for the list item, using setArt method which is compatible with Kodi 21+
+    listitem.setArt({
+        'thumb': art['thumb'],
+        'fanart': art['fanart'],
+        'icon': art['thumb']
+    })
+
+    # Set properties for the list item
     listitem.setProperty('isPlayable', 'false')
+
+    # Add empty stream info for video
     listitem.addStreamInfo('video', {})
-    try: listitem.setArt(art)
-    except AttributeError: pass
-    try: listitem.setCast(cast)
-    except AttributeError: pass
-    if 'ids' in meta and 'imdb' in meta['ids']: listitem.setProperty('imdb_id', str(meta['ids']['imdb']))
-    if 'ids' in meta and 'tvdb' in meta['ids']: listitem.setProperty('tvdb_id', str(meta['ids']['tvdb']))
+
+    # Set cast if available
+    if cast:
+        listitem.setCast(cast)
+
+    # Set IMDb and TVDB ids as properties if available in meta
+    if 'ids' in meta:
+        if 'imdb' in meta['ids']:
+            listitem.setProperty('imdb_id', str(meta['ids']['imdb']))
+        if 'tvdb' in meta['ids']:
+            listitem.setProperty('tvdb_id', str(meta['ids']['tvdb']))
+
     return listitem
 
 def iso_2_utc(iso_ts):
-    if not iso_ts or iso_ts is None: return 0
+    if not iso_ts or iso_ts is None:
+        return 0
     delim = -1
     if not iso_ts.endswith('Z'):
         delim = iso_ts.rfind('+')
-        if delim == -1: delim = iso_ts.rfind('-')
+        if delim == -1:
+            delim = iso_ts.rfind('-')
 
     if delim > -1:
         ts = iso_ts[:delim]
@@ -75,8 +99,10 @@ def iso_2_utc(iso_ts):
     if ts.find('.') > -1:
         ts = ts[:ts.find('.')]
 
-    try: d = datetime.datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S')
-    except TypeError: d = datetime.datetime(*(time.strptime(ts, '%Y-%m-%dT%H:%M:%S')[0:6]))
+    try:
+        d = datetime.datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S')
+    except TypeError:
+        d = datetime.datetime(*(time.strptime(ts, '%Y-%m-%dT%H:%M:%S')[0:6]))
 
     dif = datetime.timedelta()
     if tz:
@@ -90,8 +116,10 @@ def iso_2_utc(iso_ts):
     utc_dt = d - dif
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = utc_dt - epoch
-    try: seconds = delta.total_seconds()  # works only on 2.7
-    except: seconds = delta.seconds + delta.days * 24 * 3600  # close enough
+    try:
+        seconds = delta.total_seconds()  # works only on 2.7
+    except:
+        seconds = delta.seconds + delta.days * 24 * 3600  # close enough
     return seconds
 
 def to_slug(username):
@@ -108,12 +136,12 @@ def json_loads_as_str(json_text):
     return _byteify(json.loads(json_text, object_hook=_byteify), ignore_dicts=True)
 
 def _byteify(data, ignore_dicts=False):
-    if isinstance(data, unicode):
-        return data.encode('utf-8')
+    if isinstance(data, six.text_type):
+        return six.ensure_str(data)
     if isinstance(data, list):
         return [_byteify(item, ignore_dicts=True) for item in data]
     if isinstance(data, dict) and not ignore_dicts:
-        return dict([(_byteify(key, ignore_dicts=True), _byteify(value, ignore_dicts=True)) for key, value in data.iteritems()])
+        return dict([(_byteify(key, ignore_dicts=True), _byteify(value, ignore_dicts=True)) for key, value in six.iteritems(data)])
     return data
 
 def download_media(url, path, file_name, translations, progress=None):
@@ -122,68 +150,68 @@ def download_media(url, path, file_name, translations, progress=None):
             progress = int(kodi.get_setting('down_progress'))
             
         i18n = translations.i18n
-        active = not progress == PROGRESS.OFF
+        active = progress != PROGRESS.OFF
         background = progress == PROGRESS.BACKGROUND
+        
+        # Ensure file_name is a string
+        if isinstance(file_name, bytes):
+            file_name = file_name.decode('utf-8')
             
-        with kodi.ProgressDialog(kodi.get_name(), i18n('downloading') % (file_name), background=background, active=active) as pd:
+        with kodi.ProgressDialog(kodi.get_name(), i18n('downloading').format(file_name), background=background, active=active) as pd:
             try:
-                headers = dict([item.split('=') for item in (url.split('|')[1]).split('&')])
-                for key in headers: headers[key] = urllib.unquote(headers[key])
-            except:
+                headers = {item.split('=')[0]: urllib_parse.unquote(item.split('=')[1]) for item in (url.split('|')[1]).split('&')}
+            except IndexError:
                 headers = {}
-            if 'User-Agent' not in headers: headers['User-Agent'] = BROWSER_UA
-            request = urllib2.Request(url.split('|')[0], headers=headers)
-            response = urllib2.urlopen(request)
-            if 'Content-Length' in response.info():
-                content_length = int(response.info()['Content-Length'])
-            else:
-                content_length = 0
+            if 'User-Agent' not in headers:
+                headers['User-Agent'] = BROWSER_UA
+            request = urllib_request.Request(url.split('|')[0], headers=headers)
+            response = urllib_request.urlopen(request)
+            content_length = int(response.info().get('Content-Length', 0))
     
-            file_name += '.' + get_extension(url, response)
+            if not file_name.endswith('.zip'):
+                file_name += '.' + get_extension(url, response)
             full_path = os.path.join(path, file_name)
-            logger.log('Downloading: %s -> %s' % (url, full_path), log_utils.LOGDEBUG)
+            logger.log('Downloading: {} -> {}'.format(url, full_path), log_utils.LOGDEBUG)
     
-            path = kodi.translate_path(xbmc.makeLegalFilename(path))
+            path = kodi.translate_path(xbmcvfs.validatePath(path))
             try:
-                try: xbmcvfs.mkdirs(path)
-                except: os.makedirs(path)
+                os.makedirs(path, exist_ok=True)
             except Exception as e:
-                logger.log('Path Create Failed: %s (%s)' % (e, path), log_utils.LOGDEBUG)
+                logger.log('Path Create Failed: {} ({})'.format(e, path), log_utils.LOGDEBUG)
     
-            if not path.endswith(os.sep): path += os.sep
+            if not path.endswith(os.sep):
+                path += os.sep
             if not xbmcvfs.exists(path):
                 raise Exception(i18n('failed_create_dir'))
             
-            file_desc = xbmcvfs.File(full_path, 'w')
-            total_len = 0
-            cancel = False
-            while True:
-                data = response.read(CHUNK_SIZE)
-                if not data:
-                    break
+            with xbmcvfs.File(full_path, 'w') as file_desc:
+                total_len = 0
+                cancel = False
+                while True:
+                    data = response.read(CHUNK_SIZE)
+                    if not data:
+                        break
+        
+                    if pd.is_canceled():
+                        cancel = True
+                        break
+        
+                    file_desc.write(data)
+                    total_len += len(data)
+                    if content_length > 0:
+                        percent = int((total_len * 100) / content_length)
+                        pd.update(percent)
     
-                if pd.is_canceled():
-                    cancel = True
-                    break
+                if cancel:
+                    xbmcvfs.delete(full_path)
+                    raise Exception(i18n('download_canceled'))
     
-                total_len += len(data)
-                if not file_desc.write(data):
-                    raise Exception(i18n('failed_write_file'))
-    
-                percent_progress = (total_len) * 100 / content_length if content_length > 0 else 0
-                logger.log('Position : %s / %s = %s%%' % (total_len, content_length, percent_progress), log_utils.LOGDEBUG)
-                pd.update(percent_progress)
-            
-            file_desc.close()
-
-        if not cancel:
-            kodi.notify(msg=i18n('download_complete') % (file_name), duration=5000)
-            logger.log('Download Complete: %s -> %s' % (url, full_path), log_utils.LOGDEBUG)
-
+            return full_path
     except Exception as e:
-        logger.log('Error (%s) during download: %s -> %s' % (str(e), url, file_name), log_utils.LOGERROR)
-        kodi.notify(msg=i18n('download_error') % (str(e), file_name), duration=5000)
-
+        logger.log('Download Error: {}'.format(str(e)), log_utils.LOGERROR)
+        kodi.notify(msg=i18n('download_error').format(str(e), file_name), duration=5000)
+        return None
+    
 def get_extension(url, response):
     filename = url2name(url)
     if 'Content-Disposition' in response.info():
@@ -200,15 +228,17 @@ def get_extension(url, response):
 
 def create_legal_filename(title, year):
     filename = title
-    if year: filename += ' %s' % (year)
+    if year:
+        filename += ' %s' % (year)
     filename = re.sub(r'(?!%s)[^\w\-_\.]', '.', filename)
-    filename = re.sub('\.+', '.', filename)
-    xbmc.makeLegalFilename(filename)
+    filename = re.sub(r'\.+', '.', filename)
+    xbmc.makeLegalFilename(filename) if six.PY2 else xbmcvfs.makeLegalFilename(filename)
     return filename
+
 
 def url2name(url):
     url = url.split('|')[0]
-    return os.path.basename(urllib.unquote(urlparse.urlsplit(url)[2]))
+    return os.path.basename(urllib_parse.unquote(urllib_parse.urlsplit(url)[2]))
 
 def auth_trakt(Trakt_API, translations):
     i18n = translations.i18n
@@ -223,7 +253,7 @@ def auth_trakt(Trakt_API, translations):
     line2 = i18n('prompt_code') % (result['user_code'])
     with kodi.CountdownDialog(i18n('trakt_acct_auth'), line1=line1, line2=line2, countdown=time_left, interval=interval) as cd:
         result = cd.start(__auth_trakt, [trakt_api, code, i18n])
-    
+
     try:
         kodi.set_setting('trakt_oauth_token', result['access_token'])
         kodi.set_setting('trakt_refresh_token', result['refresh_token'])
@@ -233,13 +263,13 @@ def auth_trakt(Trakt_API, translations):
         kodi.notify(msg=i18n('trakt_auth_complete'), duration=3000)
     except Exception as e:
         logger.log('Trakt Authorization Failed: %s' % (e), log_utils.LOGDEBUG)
-        
-        
+
+
 def __auth_trakt(trakt_api, code, i18n):
     try:
         result = trakt_api.get_device_token(code)
         return result
-    except urllib2.URLError as e:
+    except urllib_error.URLError as e:
         # authorization is pending; too fast
         if e.code in [400, 429]:
             return
@@ -255,7 +285,8 @@ def choose_list(Trakt_API, translations, username=None):
     i18n = translations.i18n
     trakt_api = Trakt_API(kodi.get_setting('trakt_oauth_token'), kodi.get_setting('use_https') == 'true', timeout=int(kodi.get_setting('trakt_timeout')))
     lists = trakt_api.get_lists(username)
-    if username is None: lists.insert(0, {'name': 'watchlist', 'ids': {'slug': WATCHLIST_SLUG}})
+    if username is None:
+        lists.insert(0, {'name': 'watchlist', 'ids': {'slug': WATCHLIST_SLUG}})
     if lists:
         dialog = xbmcgui.Dialog()
         index = dialog.select(i18n('pick_a_list'), [list_data['name'] for list_data in lists])
@@ -271,4 +302,3 @@ def format_time(seconds):
         return "%02d:%02d:%02d" % (hours, minutes, seconds)
     else:
         return "%02d:%02d" % (minutes, seconds)
-

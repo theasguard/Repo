@@ -18,9 +18,13 @@
 import time
 import kodi
 import cProfile
-import StringIO
+import io
 import pstats
-from xbmc import LOGDEBUG, LOGERROR, LOGFATAL, LOGINFO, LOGNONE, LOGNOTICE, LOGSEVERE, LOGWARNING  # @UnusedImport
+from xbmc import LOGDEBUG, LOGERROR, LOGFATAL, LOGINFO, LOGNONE, LOGWARNING  # @UnusedImport
+
+# Define LOGNOTICE and LOGSEVERE if they are not available
+LOGNOTICE = LOGINFO
+LOGSEVERE = LOGERROR
 
 # TODO: Remove after next SALTS release
 name = kodi.get_name()
@@ -37,8 +41,8 @@ def log(msg, level=LOGDEBUG, component=None):
         level = LOGNOTICE
     
     try:
-        if isinstance(msg, unicode):
-            msg = '%s (ENCODED)' % (msg.encode('utf-8'))
+        if isinstance(msg, str):
+            msg = '%s (ENCODED)' % (msg.encode('utf-8').decode('utf-8'))
 
         if req_level != LOGDEBUG or (enabled_comp is None or component in enabled_comp):
             kodi._log('%s: %s' % (name, msg), level)
@@ -90,8 +94,8 @@ class Logger(object):
                     return
         
         try:
-            if isinstance(msg, unicode):
-                msg = '%s (ENCODED)' % (msg.encode('utf-8'))
+            if isinstance(msg, str):
+                msg = '%s (ENCODED)' % (msg.encode('utf-8').decode('utf-8'))
     
             kodi._log('%s: %s' % (self.__name, msg), level)
                 
@@ -131,8 +135,8 @@ class Profiler(object):
         
     def dump_stats(self):
         if self._profiler is not None:
-            s = StringIO.StringIO()
-            params = (self.sort_by,) if isinstance(self.sort_by, basestring) else self.sort_by
+            s = io.StringIO()
+            params = (self.sort_by,) if isinstance(self.sort_by, str) else self.sort_by
             ps = pstats.Stats(self._profiler, stream=s).sort_stats(*params)
             ps.print_stats()
             if self.file_path is not None:
@@ -155,3 +159,28 @@ def trace(method):
     else:
         return method_trace_off
 
+def error(message=None, exception=True):
+    try:
+        import sys, traceback
+        if exception:
+            type, value, tb = sys.exc_info()
+            filename = (tb.tb_frame.f_code.co_filename)
+            name = tb.tb_frame.f_code.co_name
+            linenumber = tb.tb_lineno
+            errortype = type.__name__
+            errormessage = value or value.args[0] if value.args else ''
+            if str(errormessage) == '':
+                return
+            if message:
+                message += ' -> '
+            else:
+                message = ''
+            message += str(errortype) + ' -> ' + str(errormessage)
+            caller = [filename, name, linenumber]
+        else:
+            caller = None
+        del(type, value, tb) # So we don't leave our local labels/objects dangling
+        log(msg=message, caller=caller, level=LOGERROR)
+    except Exception as e:
+        import xbmc
+        xbmc.log('[ script.module.asguard ] log_utils.error() Logging Failure: %s' % (e), LOGERROR)

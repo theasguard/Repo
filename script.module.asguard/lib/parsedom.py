@@ -23,8 +23,6 @@ import sys
 import os
 import random
 import re
-import urllib
-import urlparse
 import log_utils
 import xbmc
 
@@ -73,10 +71,10 @@ def _getDOMElements(item, name, attrs):
         last_list = None
         for key in attrs:
             pattern = '''(<%s [^>]*%s=['"]%s['"][^>]*>)''' % (name, key, attrs[key])
-            this_list = re.findall(pattern, item, re.M | re. S | re.I)
+            this_list = re.findall(pattern, item, re.M | re.S | re.I)
             if not this_list and ' ' not in attrs[key]:
                 pattern = '''(<%s [^>]*%s=%s[^>]*>)''' % (name, key, attrs[key])
-                this_list = re.findall(pattern, item, re.M | re. S | re.I)
+                this_list = re.findall(pattern, item, re.M | re.S | re.I)
     
             if last_list is None:
                 last_list = this_list
@@ -91,15 +89,19 @@ def parse_dom(html, name='', attrs=None, ret=False):
     if isinstance(html, str):
         try:
             html = [html.decode("utf-8")]  # Replace with chardet thingy
-        except:
-            print "none"
+        except Exception as e:
+            xbmc.log("Error decoding HTML: %s" % str(e), xbmc.LOGERROR)
             try:
                 html = [html.decode("utf-8", "replace")]
-            except:
-                
+            except Exception as e:
+                xbmc.log("Error decoding HTML with replace: %s" % str(e), xbmc.LOGERROR)
                 html = [html]
-    elif isinstance(html, unicode):
-        html = [html]
+    elif isinstance(html, bytes):
+        try:
+            html = [html.decode("utf-8")]
+        except Exception as e:
+            xbmc.log("Error decoding HTML bytes: %s" % str(e), xbmc.LOGERROR)
+            html = [html.decode("utf-8", "replace")]
     elif not isinstance(html, list):
         
         return ''

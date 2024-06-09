@@ -25,8 +25,8 @@ class ProgressDialog(object):
         
     def create(self, heading, line1='', line2='', line3=''):
         addon = xbmcaddon.Addon('script.module.asguard')
-        path_setting = addon.getSetting('xml_folder').decode('utf-8')
-        addon_path = addon.getAddonInfo('path').decode('utf-8')
+        path_setting = addon.getSetting('xml_folder')
+        addon_path = addon.getAddonInfo('path')
         # if a path is set, try to use it and fallback to the default if it fails
         if path_setting:
             try: self.dialog = ProgressDialog.Window(DIALOG_XML, path_setting)
@@ -73,8 +73,7 @@ class ProgressDialog(object):
             pass
             
         def onAction(self, action):
-            # logger.log('Action: %s' % (action.getId()), log_utils.LOGDEBUG, COMPONENT)
-            if action == self.ACTION_PREVIOUS_MENU or action == self.ACTION_BACK:
+            if action.getId() in [self.ACTION_PREVIOUS_MENU, self.ACTION_BACK]:
                 self.cancel = True
                 self.close()
     
@@ -87,25 +86,24 @@ class ProgressDialog(object):
             pass
     
         def onClick(self, control):
-            # logger.log('onClick: %s' % (control), log_utils.LOGDEBUG, COMPONENT)
-            if control == self.CANCEL_BUTTON:
+            if control.getId() == self.CANCEL_BUTTON:
                 self.cancel = True
                 self.close()
         
         def setHeading(self, heading):
-            self.setLabel(self.HEADING_CTRL, heading)
+            self.getControl(self.HEADING_CTRL).setLabel(heading)
             
         def setProgress(self, progress):
             self.getControl(self.PROGRESS_CTRL).setPercent(progress)
     
         def setLine1(self, line):
-            self.setLabel(self.LINE1_CTRL, line)
+            self.getControl(self.LINE1_CTRL).setLabel(line)
             
         def setLine2(self, line):
-            self.setLabel(self.LINE2_CTRL, line)
+            self.getControl(self.LINE2_CTRL).setLabel(line)
             
         def setLine3(self, line):
-            self.setLabel(self.LINE3_CTRL, line)
+            self.getControl(self.LINE3_CTRL).setLabel(line)
             
         def setLabel(self, ctrl, line):
             self.getControl(ctrl).setLabel(line)
