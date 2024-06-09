@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 Mrblamo, Tknorris
+    Copyright (C) 2014 tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -217,7 +217,7 @@ class Trakt_API():
         return [item[TRAKT_SECTIONS[section][:-1]] for item in response]
     
     def get_genres(self, section):
-        url = '/genres/{}'.format(TRAKT_SECTIONS[section])
+        url = '/genres/%s' % (TRAKT_SECTIONS[section])
         return self.__call_trakt(url, cache_limit=24 * 7)
 
     def get_recommendations(self, section):

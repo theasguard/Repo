@@ -4,8 +4,14 @@ import time
 import datetime
 import zipfile
 import requests
-from asguard_lib.image_cache as image_cache
-from urllib import quote as url_quote
+from asguard_lib import image_cache
+import six
+from six.moves.urllib.parse import quote as url_quote
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 try:
     import xml.etree.cElementTree as ElementTree
@@ -17,8 +23,8 @@ try:
 except ImportError:
     gzip = None
 
-int_types = (int, long)
-text_type = unicode
+int_types = six.integer_types
+text_type = six.text_type
 
 def to_bytes(text):
     if isinstance(text, text_type):
@@ -26,51 +32,43 @@ def to_bytes(text):
     return text
 
 class Show(dict):
-    """Holds a dict of seasons, and show data.
-    """
+    """Holds a dict of seasons, and show data."""
     def __init__(self):
-        dict.__init__(self)
+        super().__init__()
         self.data = {}
 
     def __repr__(self):
         return "<Show %r (containing %s seasons)>" % (
-            self.data.get(u'seriesname', 'instance'),
+            self.data.get('seriesname', 'instance'),
             len(self)
         )
 
     def get(self, key, default=None):
-        try:
-            return self[key]
-        except:
-            pass
-        return default
+        return super().get(key, default)
         
     def __getitem__(self, key):
         if key in self:
-            # Key is an episode, return it
-            return dict.__getitem__(self, key)
-
+            return super().__getitem__(self, key)
         if key in self.data:
-            # Non-numeric request is for show-data
-            return dict.__getitem__(self.data, key)
-            
-        raise Exception("%s not found"  % key)
+            return self.data[key]
+        raise KeyError(f"{key} not found")
 
     def get_poster(self, language=None, default=None):
         try:
             posters = self['_banners']['poster'].values()
             posters = [poster for poster in posters if poster['season'] == str(self.num)]
-            posters.sort(key=lambda k: float(k.get('rating',0)), reverse=True)
+            posters.sort(key=lambda k: float(k.get('rating', 0)), reverse=True)
             if language:
-                posters.sort(key=lambda k: k['language']!=language)
+                posters.sort(key=lambda k: k['language'] != language)
             return posters[0]['_bannerpath']
-        except:
+        except Exception as e:
+            logger.error(f"Error getting poster: {e}")
             return default
             
 class Season(dict):
     def __init__(self, show=None, num=0):
-        """The show attribute points to the parent show
-        """
+        """The show attribute points to the parent show"""
+        super().__init__()
         self.show = show
         self.num = num
 
@@ -79,12 +77,11 @@ class Season(dict):
             self.num, len(self.keys())
         )
 
-
     def __getitem__(self, episode_number):
-        return dict.__getitem__(self, episode_number)
+        return super().__getitem__(self, episode_number)
         
     def has_aired(self, flexible=False):
-        if len(self.keys()) > 0 and self.values()[0].has_aired(flexible):
+        if len(self.keys()) > 0 and list(self.values())[0].has_aired(flexible):
             return True
         return False
         
@@ -92,38 +89,39 @@ class Season(dict):
         try:
             posters = self.show['_banners']['season']['season'].values()
             posters = [poster for poster in posters if poster['season'] == str(self.num)]
-            posters.sort(key=lambda k: float(k.get('rating',0)), reverse=True)
+            posters.sort(key=lambda k: float(k.get('rating', 0)), reverse=True)
             if language:
-                posters.sort(key=lambda k: k['language']!=language)
+                posters.sort(key=lambda k: k['language'] != language)
             return posters[0]['_bannerpath']
-        except:
+        except Exception as e:
+            logger.error(f"Error getting poster: {e}")
             return default
         
 class Episode(dict):
     def __init__(self, season=None):
-        """The season attribute points to the parent season
-        """
+        """The season attribute points to the parent season"""
+        super().__init__()
         self.season = season
 
     def __repr__(self):
-        seasno = int(self.get(u'seasonnumber', 0))
-        epno = int(self.get(u'episodenumber', 0))
-        epname = self.get(u'episodename')
+        seasno = int(self.get('seasonnumber', 0))
+        epno = int(self.get('episodenumber', 0))
+        epname = self.get('episodename')
         if epname is not None:
             return "<Episode %02dx%02d - %r>" % (seasno, epno, epname)
         else:
             return "<Episode %02dx%02d>" % (seasno, epno)
 
     def __getitem__(self, key):
-        return dict.__getitem__(self, key)
+        return super().__getitem__(self, key)
 
     def get_air_time(self):
         firstaired = self.get('firstaired', None)
         if firstaired and "-" in firstaired:
             try:
                 return date_to_timestamp(firstaired)
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error converting date to timestamp: {e}")
         return -1
     
     def has_aired(self, flexible=False):
@@ -139,18 +137,18 @@ class Tvdb:
         config['apikey'] = api_key
 
         # Language
-        if language in ("da", "fi", "nl", "de", "it", "es", "fr","pl", "hu","el","tr","ru","he","ja","pt","zh","cs","sl", "hr","ko","en","sv","no"):
+        if language in ("da", "fi", "nl", "de", "it", "es", "fr", "pl", "hu", "el", "tr", "ru", "he", "ja", "pt", "zh", "cs", "sl", "hr", "ko", "en", "sv", "no"):
             config['language'] = language
         else:
             config['language'] = "en"
 
         # URLs
         config['base_url'] = "http://thetvdb.com"
-        config['url_search'] = u"%(base_url)s/api/GetSeries.php?seriesname=%%s&language=%%s" % config
-        config['url_search_by_imdb'] = u"%(base_url)s/api/GetSeriesByRemoteID.php?imdbid=%%s&language=%%s" % config
-        config['url_sid_full'] = u"%(base_url)s/api/%(apikey)s/series/%%s/all/%%s.zip" % config
-        config['url_sid_base'] = u"%(base_url)s/api/%(apikey)s/series/%%s/%%s.xml" % config
-        config['url_artwork_prefix'] = u"%(base_url)s/banners/%%s" % config
+        config['url_search'] = "%(base_url)s/api/GetSeries.php?seriesname=%%s&language=%%s" % config
+        config['url_search_by_imdb'] = "%(base_url)s/api/GetSeriesByRemoteID.php?imdbid=%%s&language=%%s" % config
+        config['url_sid_full'] = "%(base_url)s/api/%(apikey)s/series/%%s/all/%%s.zip" % config
+        config['url_sid_base'] = "%(base_url)s/api/%(apikey)s/series/%%s/%%s.xml" % config
+        config['url_artwork_prefix'] = "%(base_url)s/banners/%%s" % config
             
         self.config = config
         self.session = requests.session()
@@ -159,52 +157,29 @@ class Tvdb:
     def clear_cache(self):
         try:
             self.session.cache.clear()
-        except:
+        except AttributeError:
             pass
             
     def search(self, series, year=None, language="en"):
         series = url_quote(to_bytes(series))
-        result = self._loadUrl(self.config['url_search'] % (series,language))
+        result = self._loadUrl(self.config['url_search'] % (series, language))
         seriesEt = self._parseXML(result)
 
         allSeries = []
         for series in seriesEt:
-            result = dict((k.tag.lower(), k.text) for k in series.getchildren())
+            result = dict((k.tag.lower(), k.text) for k in series)
             result['id'] = int(result['id'])
             if 'aliasnames' in result:
                 result['aliasnames'] = result['aliasnames'].split("|")
-
-            if year:
-                try:
-                    year = int(year)
-                    aired_year = int(result['firstaired'].split("-")[0].strip())
-                    if aired_year != year:
-                        continue
-                except:
-                    continue
-                    
             allSeries.append(result)
-        
         return allSeries
-
-    def search_by_imdb(self, imdb_id, year=None):
-        language = "en"
-        result = self._loadUrl(self.config['url_search_by_imdb'] % (imdb_id,language))
-        pre_tvdb = str(result).split('<seriesid>')
-        if len(pre_tvdb) > 1:
-            tvdb = str(pre_tvdb[1]).split('</seriesid>')
-            return tvdb[0]
-        else: return None
-
-    def url_sid_full(self, sid, language):
-        return self.config['url_sid_full'] % (sid, language)
 
     def get_show(self, sid, language=None, full=False):
         if language is None:
             language = self.config['language']
             
         if full:
-            url = self.url_sid_full(sid, language)
+            url = self.config['url_sid_full'] % (sid, language)
             response = self._loadZip(url)
 
             fullDataEt = self._parseXML(response["%s.xml" % language])
@@ -217,7 +192,8 @@ class Tvdb:
         else:
             url = self.config['url_sid_base'] % (sid, language)
             response = self._loadUrl(url)
-            if "404 Not Found" in str(response): return None
+            if "404 Not Found" in str(response):
+                return None
             else:
                 seriesInfoEt = self._parseXML(response)
                 self._parseSeriesData(sid, seriesInfoEt)
@@ -242,21 +218,22 @@ class Tvdb:
     def _loadUrl(self, url):
         resp = None
         
-        for i in xrange(3):
+        for i in range(3):
             try:
                 resp = self.session.get(url)
                 break
-            except:
+            except Exception as e:
+                logger.error(f"Error loading URL {url}: {e}")
                 time.sleep(0.5)
         
         if resp is None:
-            raise Exception("No response from url %s"  % url)
+            raise Exception(f"No response from url {url}")
             
         return resp.content
         
     def _parseXML(self, content):
         global ElementTree
-        content = content.rstrip("\r") # FIXME: this seems wrong
+        content = content.rstrip("\r")  # FIXME: this seems wrong
 
         try:
             return ElementTree.fromstring(content)
@@ -265,7 +242,7 @@ class Tvdb:
             return ElementTree.fromstring(content)
         
     def _cleanData(self, data):
-        data = data.replace(u"&amp;", u"&")
+        data = data.replace("&amp;", "&")
         data = data.strip()
         return data
         
@@ -278,9 +255,9 @@ class Tvdb:
         if sid not in self.shows:
             self.shows[sid] = Show()
         if seas not in self.shows[sid]:
-            self.shows[sid][seas] = Season(show = self.shows[sid], num=seas)
+            self.shows[sid][seas] = Season(show=self.shows[sid], num=seas)
         if ep not in self.shows[sid][seas]:
-            self.shows[sid][seas][ep] = Episode(season = self.shows[sid][seas])
+            self.shows[sid][seas][ep] = Episode(season=self.shows[sid][seas])
         self.shows[sid][seas][ep][attrib] = value
 
     def _parseEpisodesData(self, sid, et):
@@ -288,12 +265,12 @@ class Tvdb:
             elem_seasnum, elem_epno = cur_ep.find('SeasonNumber'), cur_ep.find('EpisodeNumber')
 
             if elem_seasnum is None or elem_epno is None:
-                continue # Skip to next episode
+                continue  # Skip to next episode
 
             seas_no = int(float(elem_seasnum.text))
             ep_no = int(float(elem_epno.text))
 
-            for cur_item in cur_ep.getchildren():
+            for cur_item in cur_ep:
                 tag = cur_item.tag.lower()
                 value = cur_item.text
                 if value is not None:
@@ -320,10 +297,9 @@ class Tvdb:
                 try:
                     # TODO: don't override if year already exists
                     self._setShowData(sid, 'year', int(value.split("-")[0].strip()))
-                except:
-                    pass
+                except Exception as e:
+                    logger.error(f"Error parsing first aired date: {e}")
 
-            
     def _parseBanners(self, sid, bannersEt):
         banners = {}
         for cur_banner in bannersEt.findall('Banner'):
@@ -333,14 +309,14 @@ class Tvdb:
             if btype is None or btype2 is None:
                 continue
             btype, btype2 = btype.text, btype2.text
-            if not btype in banners:
+            if btype not in banners:
                 banners[btype] = {}
-            if not btype2 in banners[btype]:
+            if btype2 not in banners[btype]:
                 banners[btype][btype2] = {}
-            if not bid in banners[btype][btype2]:
+            if bid not in banners[btype][btype2]:
                 banners[btype][btype2][bid] = {}
 
-            for cur_element in cur_banner.getchildren():
+            for cur_element in cur_banner:
                 tag = cur_element.tag.lower()
                 value = cur_element.text
                 if tag is None or value is None:
@@ -362,13 +338,12 @@ def date_to_timestamp(date_str, string_format="%Y-%m-%d"):
         try:
             tt = time.strptime(date_str, string_format)
             return int(time.mktime(tt))
-        except:
+        except Exception as e:
+            logger.error(f"Error converting date to timestamp: {e}")
             return 0  # 1970
     return None
         
-        
 if __name__ == "__main__":
-    api = Tvdb()
+    api = Tvdb(api_key="83914568-d055-4943-a789-4175d6466b05")
     id = api.search('scrubs')[0]['id']
-    print api[id][8].get_poster(language="he")
-    
+    print(api[id][8].get_poster(language="he"))

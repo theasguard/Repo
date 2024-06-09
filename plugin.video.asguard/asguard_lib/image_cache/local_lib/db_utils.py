@@ -17,6 +17,8 @@
 """
 import threading
 import json
+import os
+import requests
 from sqlite3 import dbapi2 as db_lib
 
 def __enum(**enums):
@@ -25,15 +27,26 @@ def __enum(**enums):
 DB_TYPES = __enum(MYSQL='mysql', SQLITE='sqlite')
 
 class DBCache(object):
+    TMDB_API_KEY = 'b9dac73f34df572d5e551a8a66cfeb87'  # Replace with your TMDB API key
+
     def __init__(self, db_path=None):
-        self.db_path = '../tmdb_cache.db' if db_path is None else db_path
+        self.db_path = os.path.join(os.path.expanduser('~'), 'tmdb_cache.db') if db_path is None else db_path
         self.db_type = DB_TYPES.SQLITE
         self.db = None
-        self.__execute('CREATE TABLE IF NOT EXISTS api_cache (tmdb_id INTEGER NOT NULL, object_type CHAR(1) NOT NULL, data VARCHAR(255), PRIMARY KEY(tmdb_id, object_type))')
-        self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting VARCHAR(255), value TEXT, PRIMARY KEY(setting))')
+        self.__create_db()
+        self.__execute('CREATE TABLE IF NOT EXISTS api_cache (tmdb_id INTEGER NOT NULL, object_type CHAR(1) NOT NULL, data TEXT, PRIMARY KEY(tmdb_id, object_type))')
+        self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting TEXT, value TEXT, PRIMARY KEY(setting))')
         
+    def __create_db(self):
+        db_dir = os.path.dirname(self.db_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir)
+        if not os.path.exists(self.db_path):
+            open(self.db_path, 'w').close()
+            
     def close(self):
-        self.db.close()
+        if self.db:
+            self.db.close()
             
     def update_movie(self, tmdb_id, js_data):
         self.__update_object(tmdb_id, 'M', js_data)
@@ -48,7 +61,7 @@ class DBCache(object):
         return self.__get_object(tmdb_id, 'P')
         
     def __get_object(self, tmdb_id, object_type):
-        sql = 'SELECT data from api_cache where tmdb_id = ? and object_type=?'
+        sql = 'SELECT data FROM api_cache WHERE tmdb_id = ? AND object_type = ?'
         rows = self.__execute(sql, (tmdb_id, object_type))
         if rows:
             return json.loads(rows[0][0])
@@ -62,10 +75,10 @@ class DBCache(object):
         self.__update_object(tmdb_id, 'P', js_data)
     
     def __update_object(self, tmdb_id, object_type, js_data):
-        self.__execute('REPLACE INTO api_cache (tmdb_id, object_type, data) values (?, ?, ?)', (tmdb_id, object_type, json.dumps(js_data)))
+        self.__execute('REPLACE INTO api_cache (tmdb_id, object_type, data) VALUES (?, ?, ?)', (tmdb_id, object_type, json.dumps(js_data)))
         
     def get_setting(self, setting):
-        sql = 'SELECT value FROM db_info WHERE setting=?'
+        sql = 'SELECT value FROM db_info WHERE setting = ?'
         rows = self.__execute(sql, (setting,))
         if rows:
             return rows[0][0]
@@ -78,7 +91,7 @@ class DBCache(object):
         return self.__execute(sql, params)
     
     def __get_db_connection(self):
-        worker_id = threading.current_thread().ident
+        worker_id = threading.get_ident()
         # create a connection if we don't have one or it was created in a different worker
         if self.db is None or self.worker_id != worker_id:
             self.db = db_lib.connect(self.db_path)
@@ -114,3 +127,27 @@ class DBCache(object):
     def __is_read(self, sql):
         fragment = sql[:6].upper()
         return fragment[:6] == 'SELECT' or fragment[:4] == 'SHOW'
+
+    def fetch_and_store_movie(self, tmdb_id):
+        url = f'https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={self.TMDB_API_KEY}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            self.update_movie(tmdb_id, response.json())
+        else:
+            raise Exception(f"Failed to fetch movie data: {response.status_code}")
+
+    def fetch_and_store_tvshow(self, tmdb_id):
+        url = f'https://api.themoviedb.org/3/tv/{tmdb_id}?api_key={self.TMDB_API_KEY}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            self.update_tvshow(tmdb_id, response.json())
+        else:
+            raise Exception(f"Failed to fetch TV show data: {response.status_code}")
+
+    def fetch_and_store_person(self, tmdb_id):
+        url = f'https://api.themoviedb.org/3/person/{tmdb_id}?api_key={self.TMDB_API_KEY}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            self.update_person(tmdb_id, response.json())
+        else:
+            raise Exception(f"Failed to fetch person data: {response.status_code}")
