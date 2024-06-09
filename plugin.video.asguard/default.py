@@ -35,17 +35,11 @@ from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
 from asguard_lib.srt_scraper import SRT_Scraper
 from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
-from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper
+from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper, control, imageproxy
 
-from asguard_lib import control
-from asguard_lib import utils2
-from asguard_lib import gui_utils
-from asguard_lib import strings
 from asguard_lib import worker_pool
-from asguard_lib import image_scraper
 from asguard_lib.constants import *  # @UnusedWildImport
 from asguard_lib.utils2 import i18n
-from asguard_lib import ImageProxy
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 from scrapers import ScraperVideo
 
