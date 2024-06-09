@@ -1,6 +1,6 @@
 """
     Asguard module
-    Copyright (C) 2018 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,18 +17,12 @@
 """
 import functools
 import log_utils
-import xbmcaddon
-import xbmc
-import xbmcvfs
-import time
-import cPickle as pickle
-import hashlib
-import os
-import shutil
 import kodi
-import ast
-import re
 
+import xbmc, xbmcaddon, xbmcvfc, time, os, pickle, hashlib, re
+import shutil
+import ast
+import six
 try:
     from sqlite3 import dbapi2 as db, OperationalError
 except ImportError:
@@ -55,35 +49,50 @@ def reset_cache():
         return False
     
 def _get_func(name, args=None, kwargs=None, cache_limit=1):
-    if not cache_enabled: return False, None
+    if not cache_enabled:
+        return False, None
     now = time.time()
     max_age = now - (cache_limit * 60 * 60)
-    if args is None: args = []
-    if kwargs is None: kwargs = {}
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     full_path = os.path.join(cache_path, _get_filename(name, args, kwargs))
     if os.path.exists(full_path):
         mtime = os.path.getmtime(full_path)
         if mtime >= max_age:
-            with open(full_path, 'r') as f:
-                pickled_result = f.read()
-            # logger.log('Returning cached result: |%s|%s|%s| - modtime: %s max_age: %s age: %ss' % (name, args, kwargs, mtime, max_age, now - mtime), log_utils.LOGDEBUG)
+            if six.PY2:
+                with open(full_path, 'r') as f:
+                    pickled_result = f.read()
+            else:
+                with open(full_path, 'rb') as f:
+                    pickled_result = f.read()
             return True, pickle.loads(pickled_result)
-    
+
     return False, None
     
 def _save_func(name, args=None, kwargs=None, result=None):
     try:
-        if args is None: args = []
-        if kwargs is None: kwargs = {}
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
         pickled_result = pickle.dumps(result)
         full_path = os.path.join(cache_path, _get_filename(name, args, kwargs))
-        with open(full_path, 'w') as f:
-            f.write(pickled_result)
+        if six.PY2:
+            with open(full_path, 'w') as f:
+                f.write(pickled_result)
+        else:
+            with open(full_path, 'wb') as f:
+                f.write(pickled_result)
     except Exception as e:
         logger.log('Failure during cache write: %s' % (e), log_utils.LOGWARNING)
 
 def _get_filename(name, args, kwargs):
-    arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
+    if six.PY2:
+        arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
+    else:
+        arg_hash = hashlib.md5(name.encode('utf8')).hexdigest() + hashlib.md5(str(args).encode('utf8')).hexdigest() + hashlib.md5(str(kwargs).encode('utf8')).hexdigest()
     return arg_hash
 
 def cache_method(cache_limit):
@@ -171,7 +180,6 @@ def timeout(function, *args):
 
 
 def cache_get(key):
-    # type: (str, str) -> dict or None
     try:
         cursor = _get_connection_cursor()
         cursor.execute("SELECT * FROM %s WHERE key = ?" % cache_table, [key])
@@ -222,10 +230,11 @@ def _get_connection_cursor():
 
 
 def _get_connection():
-    xbmcvfs.mkdir(xbmc.translatePath(addonInfo('profile')).decode('utf-8'))
-    conn = db.connect(os.path.join(xbmc.translatePath(addonInfo('profile')).decode('utf-8'), 'cache.db'))
+    from xbmcaddon import Addon
+    addon = Addon()
+    xbmcvfs.mkdir(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+    conn = db.connect(os.path.join(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'), 'cache.db'))
     conn.row_factory = _dict_factory
-    return conn
 
 
 def _dict_factory(cursor, row):
