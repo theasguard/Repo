@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#      Copyright (C) 2015 tknorris (Derived from Mikey1234's & Lambda's)
+#      Copyright (C) 2024 MrBlamo tknorris (Derived from Mikey1234's & Lambda's)
 #
 #  This Program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@ import re
 from . import util
 import xbmc
 from .constants import USER_AGENT
-from urllib import request as urllib_request, error as urllib_error, parse as urllib_parse
+import six
+from six.moves import urllib_request, urllib_parse, urllib_error
 
 MAX_TRIES = 3
 COMPONENT = __name__
