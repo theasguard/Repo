@@ -2,7 +2,7 @@
 
 '''
     Asguard Add-on
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,17 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import re
-import sys
+import re, sys, gzip, time, random, base64
 import urllib.request
 import urllib.error
 import urllib.parse
-import gzip
+from six import BytesIO
+import six
 import http.cookiejar as cookielib
 import html.parser as HTMLParser
-import time
-import random
-import base64
 import cache
 import dom_parser
 from asguard_lib import worker_pool
