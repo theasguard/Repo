@@ -17,15 +17,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import re, os, urllib, urlparse, json, binascii
-import client
+import re, os, urllib.parse, json, binascii
+from . import client
 
 
 def google(url):
     try:
-        if any(x in url for x in ['youtube.', 'docid=']): url = 'https://drive.google.com/file/d/%s/view' % re.compile('docid=([\w-]+)').findall(url)[0]
+        if any(x in url for x in ['youtube.', 'docid=']): 
+            url = 'https://drive.google.com/file/d/%s/view' % re.compile('docid=([\w-]+)').findall(url)[0]
 
-        netloc = urlparse.urlparse(url.strip().lower()).netloc
+        netloc = urllib.parse.urlparse(url.strip().lower()).netloc
         netloc = netloc.split('.google')[0]
 
         if netloc == 'docs' or netloc == 'drive':
@@ -56,7 +57,7 @@ def google(url):
 
             result = result.replace('\\u003d', '=').replace('\\u0026', '&')
             result = re.compile('url=(.+?)&').findall(result)
-            result = [urllib.unquote(i) for i in result]
+            result = [urllib.parse.unquote(i) for i in result]
 
             result = sum([googletag(i, append_height=True) for i in result], [])
 
@@ -78,14 +79,14 @@ def google(url):
 
 
         elif netloc == 'plus':
-            id = (urlparse.urlparse(url).path).split('/')[-1]
+            id = (urllib.parse.urlparse(url).path).split('/')[-1]
 
             result = result.replace('\r', '').replace('\n', '').replace('\t', '')
             result = result.split('"%s"' % id)[-1].split(']]')[0]
 
             result = result.replace('\\u003d', '=').replace('\\u0026', '&')
             result = re.compile('url=(.+?)&').findall(result)
-            result = [urllib.unquote(i) for i in result]
+            result = [urllib.parse.unquote(i) for i in result]
 
             result = sum([googletag(i, append_height=True) for i in result], [])
 
@@ -100,7 +101,7 @@ def google(url):
 
         for i in url:
             i.pop('height', None)
-            i.update({'url': i['url'] + '|%s' % urllib.urlencode(headers)})
+            i.update({'url': i['url'] + '|%s' % urllib.parse.urlencode(headers)})
 
         if not url: return
         return url
@@ -150,7 +151,7 @@ def googletag(url, append_height=False):
 def googlepass(url):
     try:
         try:
-            headers = dict(urlparse.parse_qsl(url.rsplit('|', 1)[1]))
+            headers = dict(urllib.parse.parse_qsl(url.rsplit('|', 1)[1]))
         except:
             headers = None
         url = url.split('|')[0].replace('\\', '')
@@ -159,7 +160,7 @@ def googlepass(url):
             url = url.replace('http://', 'https://')
         else:
             url = url.replace('https://', 'http://')
-        if headers: url += '|%s' % urllib.urlencode(headers)
+        if headers: url += '|%s' % urllib.parse.urlencode(headers)
         return url
     except:
         return
@@ -167,7 +168,7 @@ def googlepass(url):
 
 def vk(url):
     try:
-        query = urlparse.parse_qs(urlparse.urlparse(url).query)
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
 
         try:
             oid, video_id = query['oid'][0], query['id'][0]
@@ -265,10 +266,10 @@ def yandex(url):
 
         idstring = re.findall('"id"\s*:\s*"([^"]+)', r)[0]
 
-        idclient = binascii.b2a_hex(os.urandom(16))
+        idclient = binascii.b2a_hex(os.urandom(16)).decode('utf-8')
 
         post = {'idClient': idclient, 'version': '3.9.2', 'sk': sk, '_model.0': 'do-get-resource-url', 'id.0': idstring}
-        post = urllib.urlencode(post)
+        post = urllib.parse.urlencode(post)
 
         r = client.request('https://yadi.sk/models/?_m=do-get-resource-url', post=post, cookie=cookie)
         r = json.loads(r)
@@ -278,5 +279,3 @@ def yandex(url):
         return url
     except:
         return
-
-

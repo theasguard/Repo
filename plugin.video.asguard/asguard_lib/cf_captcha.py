@@ -17,17 +17,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
-import urllib2
-import urllib
-import urlparse
 import log_utils
+from six.moves import urllib_parse, urllib_request, urllib_error
 from asguard_lib import recaptcha_v2
 from asguard_lib.constants import USER_AGENT
 
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
 
-class NoRedirection(urllib2.HTTPErrorProcessor):
+class NoRedirection(urllib_request.HTTPErrorProcessor):
     def http_response(self, request, response):  # @UnusedVariable
         logger.log('Stopping Redirect', log_utils.LOGDEBUG)
         return response
@@ -37,12 +35,12 @@ class NoRedirection(urllib2.HTTPErrorProcessor):
 def solve(url, cj, user_agent=None, name=None):
     if user_agent is None: user_agent = USER_AGENT
     headers = {'User-Agent': user_agent, 'Referer': url}
-    request = urllib2.Request(url)
+    request = urllib_request.Request(url)
     for key in headers: request.add_header(key, headers[key])
     try:
-        response = urllib2.urlopen(request)
+        response = urllib_request.urlopen(request)
         html = response.read()
-    except urllib2.HTTPError as e:
+    except urllib_error.HTTPError as e:
         html = e.read()
 
     match = re.search('data-sitekey="([^"]+)', html)
@@ -51,33 +49,33 @@ def solve(url, cj, user_agent=None, name=None):
         token = recaptcha_v2.UnCaptchaReCaptcha().processCaptcha(match.group(1), lang='en', name=name, referer=url)
         if token:
             data = {'g-recaptcha-response': token, 'id': match1.group(1)}
-            scheme = urlparse.urlparse(url).scheme
-            domain = urlparse.urlparse(url).hostname
-            url = '%s://%s/cdn-cgi/l/chk_captcha?%s' % (scheme, domain, urllib.urlencode(data))
+            scheme = urllib_parse.urlparse(url).scheme
+            domain = urllib_parse.urlparse(url).hostname
+            url = '%s://%s/cdn-cgi/l/chk_captcha?%s' % (scheme, domain, urllib_parse.urlencode(data))
             if cj is not None:
                 try: cj.load(ignore_discard=True)
                 except: pass
-                opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-                urllib2.install_opener(opener)
+                opener = urllib_request.build_opener(urllib_request.HTTPCookieProcessor(cj))
+                urllib_request.install_opener(opener)
 
             try:
-                request = urllib2.Request(url)
+                request = urllib_request.Request(url)
                 for key in headers: request.add_header(key, headers[key])
-                opener = urllib2.build_opener(NoRedirection)
-                urllib2.install_opener(opener)
-                response = urllib2.urlopen(request)
+                opener = urllib_request.build_opener(NoRedirection)
+                urllib_request.install_opener(opener)
+                response = urllib_request.urlopen(request)
                 while response.getcode() in [301, 302, 303, 307]:
                     if cj is not None:
                         cj.extract_cookies(response, request)
                     redir_url = response.info().getheader('location')
                     if not redir_url.startswith('http'):
-                        redir_url = urlparse.urljoin(url, redir_url)
-                    request = urllib2.Request(redir_url)
+                        redir_url = urllib_parse.urljoin(url, redir_url)
+                    request = urllib_request.Request(redir_url)
                     for key in headers: request.add_header(key, headers[key])
                     if cj is not None:
                         cj.add_cookie_header(request)
                         
-                    response = urllib2.urlopen(request)
+                    response = urllib_request.urlopen(request)
 
                 final = response.read()
                 if cj is not None:
@@ -85,7 +83,7 @@ def solve(url, cj, user_agent=None, name=None):
                     cj.save(ignore_discard=True)
                     
                 return final
-            except urllib2.HTTPError as e:
+            except urllib_error.HTTPError as e:
                 logger.log('CF Captcha Error: %s on url: %s' % (e.code, url), log_utils.LOGWARNING)
                 return False
     else:

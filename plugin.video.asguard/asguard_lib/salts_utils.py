@@ -24,15 +24,14 @@ import xbmcvfs
 import log_utils
 import kodi
 import utils
-import utils2
-import image_scraper
-from constants import *  # @UnusedWildImport
-from trakt_api import Trakt_API
-from db_utils import DB_Connection
+from . import utils2 
+from . import image_scraper
+from .constants import *  # @UnusedWildImport
+from .trakt_api import Trakt_API
+from .db_utils import DB_Connection
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
 
 db_connection = DB_Connection()
 last_check = datetime.datetime.fromtimestamp(0)
@@ -43,12 +42,17 @@ list_size = int(kodi.get_setting('list_size'))
 offline = kodi.get_setting('trakt_offline') == 'true'
 trakt_api = Trakt_API(TOKEN, use_https, list_size, trakt_timeout, offline)
 GENRES = {}
+WATCHLIST_SLUG = 'watchlist_slug'
 
 def make_info(item, show=None, people=None):
     if people is None: people = {}
     if show is None: show = {}
-    # logger.log('Making Info: Show: %s' % (show), log_utils.LOGDEBUG)
-    # logger.log('Making Info: Item: %s' % (item), log_utils.LOGDEBUG)
+    
+    # Ensure 'title' key is present in item
+    if 'title' not in item:
+        logger.log('Missing key "title" in item: {}'.format(item), log_utils.LOGERROR)
+        return {}
+    
     info = {}
     info['originaltitle'] = info['title'] = item['title']
     if 'originaltitle' in item: info['originaltitle'] = item['originaltitle']
@@ -201,7 +205,7 @@ def parallel_get_sources(scraper, video):
             found = True
         elif not hoster['direct']:
             hoster['host'] = hoster['host'].lower().strip()
-            if isinstance(hoster['host'], unicode):
+            if isinstance(hoster['host'], str):
                 hoster['host'] = hoster['host'].encode('utf-8')
     
     if found:
@@ -388,7 +392,7 @@ def is_salts():
         return False
 
 def clear_thumbnails(images):
-    for url in images.itervalues():
+    for url in images.values():
         crc = utils2.crc32(url)
         for ext in ['jpg', 'png']:
             file_name = crc + '.' + ext

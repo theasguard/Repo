@@ -20,14 +20,14 @@
     reusable captcha methods
 """
 import re
-import urllib
-import urllib2
+import urllib.parse
+import urllib.request
 import os
 import xbmcgui
+from asguard_lib import scraper_utils
 import log_utils
 import kodi
 import dom_parser2
-import scraper_utils
 
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
@@ -45,13 +45,13 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.chkstate = [False] * 9
 
         imgX, imgY, imgw, imgh = 436, 210, 408, 300
-        ph, pw = imgh / 3, imgw / 3
+        ph, pw = imgh // 3, imgw // 3
         x_gap = 70
         y_gap = 70
         button_gap = 40
         button_h = 40
         button_y = imgY + imgh + button_gap
-        middle = imgX + (imgw / 2)
+        middle = imgX + (imgw // 2)
         win_x = imgX - x_gap
         win_y = imgY - y_gap
         win_h = imgh + 2 * y_gap + button_h + button_gap
@@ -74,8 +74,8 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.addControl(self.okbutton)
         self.addControl(self.cancelbutton)
 
-        for i in xrange(9):
-            row = i / 3
+        for i in range(9):
+            row = i // 3
             col = i % 3
             x_pos = imgX + (pw * col)
             y_pos = imgY + (ph * row)
@@ -85,8 +85,8 @@ class cInputWindow(xbmcgui.WindowDialog):
             self.chkbutton[i] = xbmcgui.ControlButton(x_pos, y_pos, pw, ph, str(i + 1), font='font1', focusTexture=button_fo, noFocusTexture=button_nofo)
             self.addControl(self.chkbutton[i])
 
-        for i in xrange(9):
-            row_start = (i / 3) * 3
+        for i in range(9):
+            row_start = (i // 3) * 3
             right = row_start + (i + 1) % 3
             left = row_start + (i - 1) % 3
             up = (i - 3) % 9
@@ -117,7 +117,7 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.doModal()
         self.close()
         if not self.cancelled:
-            return [i for i in xrange(9) if self.chkstate[i]]
+            return [i for i in range(9) if self.chkstate[i]]
 
     def onControl(self, control):
         # logger.log('control: %s' % (control), log_utils.LOGDEBUG)
@@ -188,23 +188,20 @@ class UnCaptchaReCaptcha:
 def get_url(url, data=None, timeout=20, headers=None):
     if headers is None: headers = {}
     if data is None: data = {}
-    post_data = urllib.urlencode(data, doseq=True)
+    post_data = urllib.parse.urlencode(data, doseq=True).encode('utf-8')
     if 'User-Agent' not in headers:
         headers['User-Agent'] = scraper_utils.get_ua()
     logger.log('URL: |%s| Data: |%s| Headers: |%s|' % (url, post_data, headers), log_utils.LOGDEBUG)
 
     try:
-        req = urllib2.Request(url)
-        for key in headers:
-            req.add_header(key, headers[key])
-    
-        response = urllib2.urlopen(req, data=post_data, timeout=timeout)
-        result = response.read()
+        req = urllib.request.Request(url, data=post_data, headers=headers)
+        response = urllib.request.urlopen(req, timeout=timeout)
+        result = response.read().decode('utf-8')
         response.close()
-    except urllib2.HTTPError as e:
+    except urllib.error.HTTPError as e:
         logger.log('ReCaptcha.V2 HTTP Error: %s on url: %s' % (e.code, url), log_utils.LOGWARNING)
         result = ''
-    except urllib2.URLError as e:
+    except urllib.error.URLError as e:
         logger.log('ReCaptcha.V2 URLError Error: %s on url: %s' % (e, url), log_utils.LOGWARNING)
         result = ''
 

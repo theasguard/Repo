@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
     Asguard Addon
-    Copyright (C) 2024 tknorris, MrBlamo
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,20 +16,21 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import socket
+import urllib.request
+import urllib.parse
 import random
 import threading
 import os
 import json
-import urllib.request
-import urllib.parse
+import urllib
 import kodi
 import log_utils
-import image_scraper
-import worker_pool
+from asguard_lib import image_scraper
+from asguard_lib import worker_pool
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import logging
 
+logging.basicConfig(level=logging.DEBUG)
 logger = log_utils.Logger.get_logger(__name__)
 
 class ValidationError(Exception):
@@ -44,45 +45,46 @@ class ImageProxy(object):
     
     @property
     def running(self):
-        try:
-            res = urllib.request.urlopen(f'http://{self.host}:{self.port}/ping').read()
-        except Exception as e:
-            logger.error(f"Error checking if proxy is running: {e}")
+        try: 
+            res = urllib.request.urlopen('http://%s:%s/ping' % (self.host, self.port)).read()
+            logging.debug(res)
+        except: 
             res = ''
         return res == b'OK'
     
     def start_proxy(self):
-        self.svr_thread = threading.Thread(target=self.__run)
-        self.svr_thread.daemon = True
-        self.svr_thread.start()
+        if not self.running:
+            self.svr_thread = threading.Thread(target=self.__run)
+            self.svr_thread.daemon = True
+            self.svr_thread.start()
+            logger.log('Proxy thread started.', log_utils.LOGNOTICE)
+        else:
+            logger.log('Proxy is already running.', log_utils.LOGWARNING)
 
     def stop_proxy(self):
         if self.httpd is not None:
             self.httpd.shutdown()
+            logger.log('HTTP server shutdown initiated.', log_utils.LOGNOTICE)
         
         if self.svr_thread is not None:
-            logger.log(f'Reaping proxy thread: {self.svr_thread}')
+            logger.log('Reaping proxy thread: %s' % (self.svr_thread))
             self.svr_thread.join()
             self.svr_thread = None
+            logger.log('Proxy thread reaped.', log_utils.LOGNOTICE)
 
     def __run(self):
         server_address = (self.host, self.port)
-        logger.log(f'Starting Image Proxy: {server_address}', log_utils.LOGNOTICE)
-        self.httpd = MyHTTPServer(server_address, MyRequestHandler)
-        self.httpd.serve_forever()
-        logger.log(f'Image Proxy Exiting: {server_address}', log_utils.LOGNOTICE)
-        self.httpd.server_close()
+        logger.log('Attempting to start Image Proxy: %s:%s' % (server_address), log_utils.LOGNOTICE)
+        try:
+            self.httpd = MyHTTPServer(server_address, MyRequestHandler)
+            logger.log('Image Proxy started successfully', log_utils.LOGNOTICE)
+            self.httpd.serve_forever()
+        except Exception as e:
+            logger.log('Failed to start Image Proxy: %s' % str(e), log_utils.LOGERROR)
 
     @staticmethod
     def _get_port():
-        def is_port_available(port):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                return s.connect_ex(('127.0.0.1', port)) != 0
-
-        port = random.randint(10000, 65535)
-        while not is_port_available(port):
-            port = random.randint(10000, 65535)
-        
+        port = random.randint(1000, 65535)
         kodi.set_setting('proxy_port', str(port))
         return port
 
@@ -93,29 +95,34 @@ class MyHTTPServer(HTTPServer):
         
     def process_request(self, request, client_address):
         self._wp.request(func=self._process_request, args=(request, client_address))
-        try: self._wp.receive(0)
-        except worker_pool.Empty: pass
+        try: 
+            self._wp.receive(0)
+        except worker_pool.Empty: 
+            pass
     
     def _process_request(self, request, client_address):
         try:
             HTTPServer.process_request(self, request, client_address)
         except IOError as e:
+            logging.debug(e)
             logger.log('Image Proxy Error: (%s) %s - %s' % (threading.current_thread().getName(), type(e), e), log_utils.LOGDEBUG)
     
     def server_close(self):
         try:
             workers = self._wp.close()
         except:
-            try: worker_pool.reap_workers(workers, None)
-            except UnboundLocalError: pass
+            try: 
+                worker_pool.reap_workers(workers, None)
+            except UnboundLocalError: 
+                pass
         HTTPServer.server_close(self)
         
 class MyRequestHandler(SimpleHTTPRequestHandler):
     proxy_cache = {}
     LOG_FILE = kodi.translate_path(os.path.join(kodi.get_profile(), 'proxy.log'))
-    try:
+    try: 
         log_fd = open(LOG_FILE, 'w')
-    except:
+    except: 
         log_fd = None
     lock = threading.Lock()
     ping_required = {}
@@ -146,7 +153,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
         
     def log_message(self, format, *args):
         if self.log_fd is not None:
-            self.log_fd.write(f'[{self.log_date_time_string()}] ({threading.current_thread().getName()}) {format % args}\n')
+            self.log_fd.write('[%s] (%s) %s\n' % (self.log_date_time_string(), threading.current_thread().getName(), format % (args)))
         
     def do_HEAD(self):
         return self.do_GET()
@@ -202,27 +209,25 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
         params = self.parse_query(path)
 
         if action not in self.required:
-            raise ValidationError(f'Unrecognized Action: {action}')
+            raise ValidationError('Unrecognized Action: %s' % (action))
         
         if '' in self.required[action]:
             required = self.required[action][''][:]
             for key in self.required[action]['']:
-                if key in params:
-                    required.remove(key)
+                if key in params: required.remove(key)
         
             if required:
-                raise ValidationError(f'Missing Base Parameters: {", ".join(required)}')
+                raise ValidationError('Missing Base Parameters: %s' % (', '.join(required)))
         
         if 'video_type' in params:
             video_type = params['video_type']
             if video_type in self.required[action]:
                 required = self.required[action][video_type][:]
                 for key in self.required[action][video_type]:
-                    if key in params:
-                        required.remove(key)
+                    if key in params: required.remove(key)
         
                 if required:
-                    raise ValidationError(f'Missing Sub Parameters: {", ".join(required)}')
+                    raise ValidationError('Missing Sub Parameters: %s' % (', '.join(required)))
         
         return action, params
     
@@ -233,8 +238,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
     def parse_query(path):
         q = {}
         query = urllib.parse.urlparse(path).query
-        if query.startswith('?'):
-            query = query[1:]
+        if query.startswith('?'): query = query[1:]
         queries = urllib.parse.parse_qs(query)
         for key in queries:
             if len(queries[key]) == 1:

@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+# Dictionary mapping string keys to integer values for localization
 STRINGS = {
     'movies': 30000,
     'tv_shows': 30001,
@@ -312,5 +313,6 @@ STRINGS = {
     'torba_auth_reset': 30303,
     'repair_urlresolver': 30304,
     'repair_line_1': 30305,
-    'smu_failed': 30306
+    'smu_failed': 30306,
+    'proxy_restarted': 30307
 }
