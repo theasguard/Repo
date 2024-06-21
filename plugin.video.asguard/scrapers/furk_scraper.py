@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,16 +17,18 @@
 """
 import json
 import re
-import urllib
-import kodi
-import log_utils  # @UnusedImport
-import utils
-from asguard_lib import scraper_utils
-from asguard_lib.constants import FORCE_NO_MATCH
-from asguard_lib.constants import VIDEO_TYPES
-from asguard_lib.utils2 import i18n
-import scraper
+import urllib.parse
+import urllib.request
+import urllib.error
 import xml.etree.ElementTree as ET
+
+import kodi
+import log_utils
+import utils
+from asguard_lib import scraper_utils, control
+from asguard_lib.constants import FORCE_NO_MATCH, VIDEO_TYPES
+from asguard_lib.utils2 import i18n
+from . import scraper
 import xbmcgui
 
 logger = log_utils.Logger.get_logger()
@@ -40,11 +42,11 @@ class Scraper(scraper.Scraper):
 
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
         self.timeout = timeout
-        self.base_url = kodi.get_setting('%s-base_url' % (self.get_name()))
-        self.username = kodi.get_setting('%s-username' % (self.get_name()))
-        self.password = kodi.get_setting('%s-password' % (self.get_name()))
-        self.max_results = int(kodi.get_setting('%s-result_limit' % (self.get_name())))
-        self.max_gb = kodi.get_setting('%s-size_limit' % (self.get_name()))
+        self.base_url = kodi.get_setting(f'{self.get_name()}-base_url')
+        self.username = kodi.get_setting(f'{self.get_name()}-username')
+        self.password = kodi.get_setting(f'{self.get_name()}-password')
+        self.max_results = int(kodi.get_setting(f'{self.get_name()}-result_limit'))
+        self.max_gb = kodi.get_setting(f'{self.get_name()}-size_limit')
         self.max_bytes = int(self.max_gb) * 1024 * 1024 * 1024
 
     @classmethod
@@ -60,93 +62,59 @@ class Scraper(scraper.Scraper):
         try:
             ns = '{http://xspf.org/ns/0/}'
             root = ET.fromstring(playlist)
-            tracks = root.findall('.//%strack' % (ns))
-            locations = []
-            for track in tracks:
-                duration = track.find('%sduration' % (ns)).text
-                try: duration = int(duration)
-                except: duration = 0
-                if duration >= MIN_DURATION:
-                    location = track.find('%slocation' % (ns)).text
-                    locations.append({'duration': duration / 1000, 'url': location})
+            tracks = root.findall(f'.//{ns}track')
+            locations = [
+                {'duration': int(track.find(f'{ns}duration').text) / 1000, 'url': track.find(f'{ns}location').text}
+                for track in tracks if int(track.find(f'{ns}duration').text) >= MIN_DURATION
+            ]
 
             if len(locations) > 1:
-                result = xbmcgui.Dialog().select(i18n('choose_stream'), [utils.format_time(location['duration']) for location in locations])
+                result = xbmcgui.Dialog().select(i18n('choose_stream'), [utils.format_time(loc['duration']) for loc in locations])
                 if result > -1:
                     return locations[result]['url']
             elif locations:
                 return locations[0]['url']
         except Exception as e:
-            logger.log('Failure during furk playlist parse: %s' % (e), log_utils.LOGWARNING)
+            logger.log(f'Failure during furk playlist parse: {e}', log_utils.LOGWARNING)
         
     def get_sources(self, video):
         hosters = []
         source_url = self.get_url(video)
-        if not source_url or source_url == FORCE_NO_MATCH: return hosters
+        if not source_url or source_url == FORCE_NO_MATCH:
+            return hosters
+
         params = scraper_utils.parse_query(source_url)
         if 'title' in params:
-            search_title = re.sub("[^A-Za-z0-9. ]", "", urllib.unquote_plus(params['title']))
+            search_title = re.sub("[^A-Za-z0-9. ]", "", urllib.parse.unquote_plus(params['title']))
             query = search_title
-            if video.video_type == VIDEO_TYPES.MOVIE:
-                if 'year' in params: query += ' %s' % (params['year'])
-            else:
-                sxe = ''
-                if 'season' in params:
-                    sxe = 'S%02d' % (int(params['season']))
-                if 'episode' in params:
-                    sxe += 'E%02d' % (int(params['episode']))
-                if sxe: query = '%s %s' % (query, sxe)
-            query_url = '/search?query=%s' % (query)
-            hosters = self.__get_links(query_url, video)
-            if not hosters and video.video_type == VIDEO_TYPES.EPISODE and params['air_date']:
-                query = urllib.quote_plus('%s %s' % (search_title, params['air_date'].replace('-', '.')))
-                query_url = '/search?query=%s' % (query)
-                hosters = self.__get_links(query_url, video)
+            if video.video_type == VIDEO_TYPES.MOVIE and 'year' in params:
+                query += f' {params["year"]}'
+            elif video.video_type == VIDEO_TYPES.EPISODE:
+                sxe = f'S{int(params["season"]):02d}E{int(params["episode"]):02d}'
+                query += f' {sxe}'
 
-        return hosters
-    
-    def __get_links(self, url, video):
-        hosters = []
-        search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL)
-        query = self.__translate_search(url)
-        result = self._http_get(search_url, data=query, allow_redirect=False, cache_limit=.5)
-        for item in result.get('files', []):
-            checks = [False] * 6
-            if item.get('type', '').upper() != 'VIDEO': checks[0] = True
-            if item.get('is_ready') != '1': checks[1] = True
-            if item.get('av_result') in ['warning', 'infected']: checks[2] = True
-            if 'video_info' not in item: checks[3] = True
-            if item.get('video_info') and not re.search('#0:(0|1)(\((eng|und)\))?:\s*Audio:', item['video_info'], re.I): checks[4] = True
-            if not scraper_utils.release_check(video, item['name']): checks[5] = True
-            if any(checks):
-                logger.log('Furk.net result excluded: %s - |%s|' % (checks, item['name']), log_utils.LOGDEBUG)
-                continue
-            
-            match = re.search('(\d{3,})\s*x\s*(\d{3,})', item['video_info'])
-            if match:
-                width, _height = match.groups()
-                quality = scraper_utils.width_get_quality(width)
-            else:
-                if video.video_type == VIDEO_TYPES.MOVIE:
-                    meta = scraper_utils.parse_movie_link(item['name'])
+            search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL)
+            search_data = self.__translate_search(search_url)
+            search_data['q'] = query
+            search_results = self._http_get(search_url, data=urllib.parse.urlencode(search_data).encode('utf-8'))
+
+            for item in search_results.get('files', []):
+                if 'url_pls' in item:
+                    size_gb = scraper_utils.format_size(int(item['size']), 'B')
+                    if self.max_bytes and int(item['size']) > self.max_bytes:
+                        logger.log(f'Result skipped, Too big: |{item["name"]}| - {item["size"]} ({size_gb}) > {self.max_bytes} ({self.max_gb}GB)')
+                        continue
+
+                    stream_url = item['url_pls']
+                    host = scraper_utils.get_direct_hostname(self, stream_url)
+                    hoster = {
+                        'multi-part': False, 'class': self, 'views': None, 'url': stream_url,
+                        'rating': None, 'host': host, 'quality': scraper_utils.width_get_quality(item.get('width', 0)),
+                        'direct': True, 'size': size_gb, 'extra': item['name']
+                    }
+                    hosters.append(hoster)
                 else:
-                    meta = scraper_utils.parse_episode_link(item['name'])
-                quality = scraper_utils.height_get_quality(meta['height'])
-                
-            if 'url_pls' in item:
-                size_gb = scraper_utils.format_size(int(item['size']), 'B')
-                if self.max_bytes and int(item['size']) > self.max_bytes:
-                    logger.log('Result skipped, Too big: |%s| - %s (%s) > %s (%sGB)' % (item['name'], item['size'], size_gb, self.max_bytes, self.max_gb))
-                    continue
-
-                stream_url = item['url_pls']
-                host = scraper_utils.get_direct_hostname(self, stream_url)
-                hoster = {'multi-part': False, 'class': self, 'views': None, 'url': stream_url, 'rating': None, 'host': host, 'quality': quality, 'direct': True}
-                hoster['size'] = size_gb
-                hoster['extra'] = item['name']
-                hosters.append(hoster)
-            else:
-                logger.log('Furk.net result skipped - no playlist: |%s|' % (json.dumps(item)), log_utils.LOGDEBUG)
+                    logger.log(f'Furk.net result skipped - no playlist: |{json.dumps(item)}|', log_utils.LOGDEBUG)
                     
         return hosters
     
@@ -155,13 +123,13 @@ class Scraper(scraper.Scraper):
         result = self.db_connection().get_related_url(video.video_type, video.title, video.year, self.get_name(), video.season, video.episode)
         if result:
             url = result[0][0]
-            logger.log('Got local related url: |%s|%s|%s|%s|%s|' % (video.video_type, video.title, video.year, self.get_name(), url), log_utils.LOGDEBUG)
+            logger.log(f'Got local related url: |{video.video_type}|{video.title}|{video.year}|{self.get_name()}|{url}|', log_utils.LOGDEBUG)
         else:
             if video.video_type == VIDEO_TYPES.MOVIE:
-                query = 'title=%s&year=%s' % (urllib.quote_plus(video.title), video.year)
+                query = f'title={urllib.parse.quote_plus(video.title)}&year={video.year}'
             else:
-                query = 'title=%s&season=%s&episode=%s&air_date=%s' % (urllib.quote_plus(video.title), video.season, video.episode, video.ep_airdate)
-            url = '/search?%s' % (query)
+                query = f'title={urllib.parse.quote_plus(video.title)}&season={video.season}&episode={video.episode}&air_date={video.ep_airdate}'
+            url = f'/search?{query}'
             self.db_connection().set_related_url(video.video_type, video.title, video.year, self.get_name(), url, video.season, video.episode)
         return url
 
@@ -173,10 +141,10 @@ class Scraper(scraper.Scraper):
         settings = super(cls, cls).get_settings()
         settings = scraper_utils.disable_sub_check(settings)
         name = cls.get_name()
-        settings.append('         <setting id="%s-username" type="text" label="     %s" default="" visible="eq(-3,true)"/>' % (name, i18n('username')))
-        settings.append('         <setting id="%s-password" type="text" label="     %s" option="hidden" default="" visible="eq(-4,true)"/>' % (name, i18n('password')))
-        settings.append('         <setting id="%s-result_limit" label="     %s" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>' % (name, i18n('result_limit')))
-        settings.append('         <setting id="%s-size_limit" label="     %s" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>' % (name, i18n('size_limit')))
+        settings.append(f'         <setting id="{name}-username" type="text" label="     {i18n("username")}" default="" visible="eq(-3,true)"/>')
+        settings.append(f'         <setting id="{name}-password" type="text" label="     {i18n("password")}" option="hidden" default="" visible="eq(-4,true)"/>')
+        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>')
+        settings.append(f'         <setting id="{name}-size_limit" label="     {i18n("size_limit")}" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>')
         return settings
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8):
@@ -190,21 +158,21 @@ class Scraper(scraper.Scraper):
                 js_result = json.loads(result)
             except (ValueError, TypeError):
                 if 'msg_key=session_invalid' in result:
-                    logger.log('Logging in for url (%s) (Session Expired)' % (url), log_utils.LOGDEBUG)
+                    logger.log(f'Logging in for url ({url}) (Session Expired)', log_utils.LOGDEBUG)
                     self.__login()
                     js_result = self._http_get(url, data=data, retry=False, allow_redirect=allow_redirect, cache_limit=0)
                 else:
-                    logger.log('Invalid JSON returned: %s: %s' % (url, result), log_utils.LOGWARNING)
+                    logger.log(f'Invalid JSON returned: {url}: {result}', log_utils.LOGWARNING)
                     js_result = {}
             else:
                 if js_result.get('status') == 'error':
                     error = js_result.get('error', 'Unknown Error')
-                    if retry and any(e for e in ['access denied', 'session has expired', 'clear cookies'] if e in error):
-                        logger.log('Logging in for url (%s) - (%s)' % (url, error), log_utils.LOGDEBUG)
+                    if retry and any(e in error for e in ['access denied', 'session has expired', 'clear cookies']):
+                        logger.log(f'Logging in for url ({url}) - ({error})', log_utils.LOGDEBUG)
                         self.__login()
                         js_result = self._http_get(url, data=data, retry=False, allow_redirect=allow_redirect, cache_limit=0)
                     else:
-                        logger.log('Error received from furk.net (%s)' % (error), log_utils.LOGWARNING)
+                        logger.log(f'Error received from furk.net ({error})', log_utils.LOGWARNING)
                         js_result = {}
             
         return js_result
@@ -214,9 +182,10 @@ class Scraper(scraper.Scraper):
         data = {'login': self.username, 'pwd': self.password}
         result = self._http_get(url, data=data, cache_limit=0)
         if result.get('status') != 'ok':
-            raise Exception('furk.net login failed: %s' % (result.get('error', 'Unknown Error')))
-    
+            raise Exception(f'furk.net login failed: {result.get("error", "Unknown Error")}')
+        
     def __translate_search(self, url):
         query = {'moderated': 'yes', 'offset': 0, 'limit': self.max_results, 'match': 'all', 'cached': 'yes', 'attrs': 'name'}
-        query['q'] = scraper_utils.parse_query(url)['query']
+        parsed_query = scraper_utils.parse_query(url)
+        query['q'] = parsed_query.get('query', '')
         return query
