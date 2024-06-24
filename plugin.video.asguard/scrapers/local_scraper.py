@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,12 +19,12 @@ import re
 import xbmc
 import kodi
 import log_utils  # @UnusedImport
-from asguard_lib import scraper_utils
-from asguard_lib.constants import FORCE_NO_MATCH
+from asguard_lib import scraper_utils, control
+from asguard_lib.constants import FORCE_NO_MATCH, SORT_KEYS, VIDEO_TYPES, QUALITIES
 from asguard_lib.constants import SORT_KEYS
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import QUALITIES
-import scraper
+from . import scraper
 
 logger = log_utils.Logger.get_logger()
 BASE_URL = ''
@@ -129,6 +129,8 @@ class Scraper(scraper.Scraper):
         return results
     
     def __normalize_title(self, title):
+        if isinstance(title, bytes):
+            title = title.decode('utf-8')
         norm_title = re.sub('[^A-Za-z0-9 ]', ' ', title)
         return re.sub('\s+', ' ', norm_title)
     
