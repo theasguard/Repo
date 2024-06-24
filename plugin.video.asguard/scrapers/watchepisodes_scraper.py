@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,18 +16,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
-import urlparse
 import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
+from asguard_lib import cloudflare
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH
-from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import QUALITIES
+from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import XHR
-import scraper
+from . import scraper
 
-BASE_URL = 'https://www.watchepisodes4.com'
+BASE_URL = 'https://swatchseries.is'
+LOCAL_UA = 'Asguard for Kodi/%s' % (kodi.get_version())
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -42,86 +43,65 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return 'WatchEpisodes'
+        return 'WatchSeries'
 
+    def resolve_link(self, link):
+        if not link.startswith('http'):
+            url = scraper_utils.urljoin(self.base_url, link)
+            html = self._http_get(url, cache_limit=0)
+            for attrs, content in dom_parser2.parse_dom(html, 'a', req='href'):
+                if re.search('Click Here To Play', content, re.I):
+                    return attrs['href']
+        else:
+            return link
+    
     def get_sources(self, video):
-        hosters = []
         source_url = self.get_url(video)
+        hosters = []
         if not source_url or source_url == FORCE_NO_MATCH: return hosters
         page_url = scraper_utils.urljoin(self.base_url, source_url)
-        html = self._http_get(page_url, cache_limit=.5)
-        for _attrs, link in dom_parser2.parse_dom(html, 'div', {'class': 'ldr-item'}):
-            stream_url = dom_parser2.parse_dom(link, 'a', req='data-actuallink')
-            
-            try:
-                watched = dom_parser2.parse_dom(link, 'div', {'class': 'click-count'})
-                match = re.search(' (\d+) ', watched[0].content)
-                views = match.group(1)
-            except:
-                views = None
-                    
-            try:
-                score = dom_parser2.parse_dom(link, 'div', {'class': 'point'})
-                score = int(score[0].content)
-                rating = score * 10 if score else None
-            except:
-                rating = None
-            
-            if stream_url:
-                stream_url = stream_url[0].attrs['data-actuallink'].strip()
-                host = urlparse.urlparse(stream_url).hostname
-                quality = scraper_utils.blog_get_quality(video, stream_url, host)
-                hoster = {'multi-part': False, 'host': host, 'class': self, 'quality': quality, 'views': views, 'rating': rating, 'url': stream_url, 'direct': False}
+        headers = {'User-Agent': LOCAL_UA}
+        html = self._http_get(page_url, headers=headers, cache_limit=.5)
+        for _attrs, table in dom_parser2.parse_dom(html, 'div', {'id': 'linktable'}):
+            for _attrs, row in dom_parser2.parse_dom(table, 'tr'):
+                td = dom_parser2.parse_dom(row, 'td')
+                stream_url = dom_parser2.parse_dom(row, 'a', req='href')
+                if not td or not stream_url: continue
+                
+                host = td[0].content
+                host = re.sub('<!--.*?-->', '', host)
+                host = re.sub('<([^\s]+)[^>]*>.*?</\\1>', '', host)
+                host = host.strip()
+                stream_url = stream_url[0].attrs['href']
+                quality = scraper_utils.get_quality(video, host, QUALITIES.HIGH)
+                hoster = {'multi-part': False, 'host': host, 'class': self, 'quality': quality, 'views': None, 'rating': None, 'url': stream_url, 'direct': False}
                 hosters.append(hoster)
-
         return hosters
 
     def _get_episode_url(self, show_url, video):
-        url = scraper_utils.urljoin(self.base_url, show_url)
-        html = self._http_get(url, cache_limit=2)
-        if html:
-            force_title = scraper_utils.force_title(video)
-            episodes = dom_parser2.parse_dom(html, 'div', {'class': 'el-item'})
-            if not force_title:
-                episode_pattern = 'href="([^"]*-[sS]%02d[eE]%02d(?!\d)[^"]*)' % (int(video.season), int(video.episode))
-                match = re.search(episode_pattern, html)
-                if match:
-                    return scraper_utils.pathify_url(match.group(1))
-                
-                if kodi.get_setting('airdate-fallback') == 'true' and video.ep_airdate:
-                    airdate_pattern = '%02d-%02d-%d' % (video.ep_airdate.day, video.ep_airdate.month, video.ep_airdate.year)
-                    for episode in episodes:
-                        episode = episode.content
-                        ep_url = dom_parser2.parse_dom(episode, 'a', req='href')
-                        ep_airdate = dom_parser2.parse_dom(episode, 'div', {'class': 'date'})
-                        if ep_url and ep_airdate:
-                            ep_airdate = ep_airdate[0].content.strip()
-                            if airdate_pattern == ep_airdate:
-                                return scraper_utils.pathify_url(ep_url[0].attrs['href'])
-
-            if (force_title or kodi.get_setting('title-fallback') == 'true') and video.ep_title:
-                norm_title = scraper_utils.normalize_title(video.ep_title)
-                for episode in episodes:
-                    episode = episode.content
-                    ep_url = dom_parser2.parse_dom(episode, 'a', req='href')
-                    ep_title = dom_parser2.parse_dom(episode, 'div', {'class': 'e-name'})
-                    if ep_url and ep_title and norm_title == scraper_utils.normalize_title(ep_title[0].content):
-                        return scraper_utils.pathify_url(ep_url[0].attrs['href'])
-
-    def resolve_link(self, link):
-        return link
-
+        episode_pattern = 'href="([^"]*s0*%s_e0*%s(?!\d)[^"]*)' % (video.season, video.episode)
+        show_url = scraper_utils.urljoin(self.base_url, show_url)
+        html = self._http_get(show_url, cache_limit=2)
+        fragment = dom_parser2.parse_dom(html, 'ul', {'class': 'nav'})
+        return self._default_get_episode_url(fragment, video, episode_pattern)
+    
     def search(self, video_type, title, year, season=''):  # @UnusedVariable
         results = []
-        search_url = scraper_utils.urljoin(self.base_url, '/search/ajax_search')
-        html = self._http_get(search_url, params={'q': title}, headers=XHR, cache_limit=1)
-        js_result = scraper_utils.parse_json(html, search_url)
-        match_year = ''
-        for series in js_result.get('series', []):
-            match_url = series.get('seo')
-            match_title = series.get('label')
-            if match_url and match_title and (not year or not match_year or year == match_year):
-                result = {'url': scraper_utils.pathify_url('/' + match_url), 'title': scraper_utils.cleanse_title(match_title), 'year': match_year}
+        search_url = scraper_utils.urljoin(self.base_url, '/search/')
+        headers = {'User-Agent': LOCAL_UA}
+        headers.update(XHR)
+        html = self._http_get(str(search_url), headers=headers, cache_limit=8)  # Ensure URL is a string
+        for attrs, match_title in dom_parser2.parse_dom(html, 'a', req='href'):
+            match_url = attrs['href']
+            match_title = re.sub('</?[^>]*>', '', match_title)
+            match = re.search('\((\d{4})\)$', match_url)
+            if match:
+                match_year = match.group(1)
+            else:
+                match_year = ''
+
+            if not year or not match_year or year == match_year:
+                result = {'url': scraper_utils.pathify_url(match_url), 'title': scraper_utils.cleanse_title(match_title), 'year': match_year}
                 results.append(result)
 
         return results
