@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,15 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
-import urllib
+import urllib.parse
 import base64
 import kodi
 import log_utils  # @UnusedImport
-from asguard_lib import scraper_utils
-from asguard_lib.constants import FORCE_NO_MATCH
-from asguard_lib.constants import VIDEO_TYPES
+from asguard_lib import scraper_utils, control
+from asguard_lib.constants import FORCE_NO_MATCH, VIDEO_TYPES
 from asguard_lib.utils2 import i18n
-import scraper
+from . import scraper
 
 logger = log_utils.Logger.get_logger()
 BASE_URL = 'https://members.easynews.com'
@@ -44,7 +43,8 @@ class Scraper(scraper.Scraper):
         self.max_results = int(kodi.get_setting('%s-result_limit' % (self.get_name())))
         self.max_gb = kodi.get_setting('%s-size_limit' % (self.get_name()))
         self.max_bytes = int(self.max_gb) * 1024 * 1024 * 1024
-        self.auth = 'Basic ' + base64.b64encode('%s:%s' % (self.username, self.password))
+        auth_str = '%s:%s' % (self.username, self.password)
+        self.auth = 'Basic ' + base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
 
     @classmethod
     def provides(cls):
@@ -70,11 +70,11 @@ class Scraper(scraper.Scraper):
                 if 'episode' in params:
                     sxe += 'E%02d' % (int(params['episode']))
                 if sxe: query = '%s %s' % (query, sxe)
-            query = urllib.quote_plus(query)
+            query = urllib.parse.quote_plus(query)
             query_url = '/search?query=%s' % (query)
             hosters = self.__get_links(query_url, video)
             if not hosters and video.video_type == VIDEO_TYPES.EPISODE and params['air_date']:
-                query = urllib.quote_plus('%s %s' % (params['title'], params['air_date'].replace('-', '.')))
+                query = urllib.parse.quote_plus('%s %s' % (params['title'], params['air_date'].replace('-', '.')))
                 query_url = '/search?query=%s' % (query)
                 hosters = self.__get_links(query_url, video)
 
@@ -101,8 +101,8 @@ class Scraper(scraper.Scraper):
                 logger.log('EasyNews Post excluded: %s - |%s|' % (checks, item), log_utils.LOGDEBUG)
                 continue
             
-            stream_url = down_url + urllib.quote('/%s/%s/%s%s/%s%s' % (dl_farm, dl_port, post_hash, ext, post_title, ext))
-            stream_url = stream_url + '|Authorization=%s' % (urllib.quote(self.auth))
+            stream_url = down_url + urllib.parse.quote('/%s/%s/%s%s/%s%s' % (dl_farm, dl_port, post_hash, ext, post_title, ext))
+            stream_url = stream_url + '|Authorization=%s' % (urllib.parse.quote(self.auth))
             host = scraper_utils.get_direct_hostname(self, stream_url)
             quality = None
             if 'width' in item:
@@ -141,9 +141,9 @@ class Scraper(scraper.Scraper):
             logger.log('Got local related url: |%s|%s|%s|%s|%s|' % (video.video_type, video.title, video.year, self.get_name(), url), log_utils.LOGDEBUG)
         else:
             if video.video_type == VIDEO_TYPES.MOVIE:
-                query = 'title=%s&year=%s' % (urllib.quote_plus(video.title), video.year)
+                query = 'title=%s&year=%s' % (urllib.parse.quote_plus(video.title), video.year)
             else:
-                query = 'title=%s&season=%s&episode=%s&air_date=%s' % (urllib.quote_plus(video.title), video.season, video.episode, video.ep_airdate)
+                query = 'title=%s&season=%s&episode=%s&air_date=%s' % (urllib.parse.quote_plus(video.title), video.season, video.episode, video.ep_airdate)
             url = '/search?%s' % (query)
             self.db_connection().set_related_url(video.video_type, video.title, video.year, self.get_name(), url, video.season, video.episode)
         return url
