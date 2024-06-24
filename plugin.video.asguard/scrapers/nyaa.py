@@ -1,47 +1,23 @@
-"""
-    SALTS Addon
-    Copyright (C) 2024 MrBlamo
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 import re
-import json
-import itertools
-import urllib.parse
-import urllib.request
-import urllib.error
-import kodi
-from bs4 import BeautifulSoup
-from asguard_lib.utils2 import i18n
-import xbmcgui
-import log_utils
-from asguard_lib import scraper_utils, control
-from asguard_lib.constants import QUALITIES, VIDEO_TYPES
-from . import scraper
-
 import logging
-try:
-    import resolveurl
-except ImportError:
-    kodi.notify(msg=i18n('smu_failed'), duration=5000)
+import urllib.parse
+from bs4 import BeautifulSoup, SoupStrainer
+from functools import partial
+import resolveurl
+import log_utils
+from asguard_lib import scraper_utils
+from asguard_lib.utils2 import i18n
+from asguard_lib.constants import VIDEO_TYPES, QUALITIES
+import kodi
+from asguard_lib import utils2
+from . import scraper
 
 logging.basicConfig(level=logging.DEBUG)
 
 logger = log_utils.Logger.get_logger()
-BASE_URL = 'https://animetosho.org'
-SEARCH_URL = '/search'
-QUALITY_MAP = {'1080p': QUALITIES.HD1080, '720p': QUALITIES.HD720, '3D': QUALITIES.HD1080}
+BASE_URL = 'https://nyaa.si'
+SEARCH_URL = '/?f=0&c=1_2&q=%s&s=downloads&o=desc'
+QUALITY_MAP = {'1080p': QUALITIES.HD1080, '720p': QUALITIES.HD720, '480p': QUALITIES.HIGH, '360p': QUALITIES.MEDIUM}
 
 class Scraper(scraper.Scraper):
     base_url = BASE_URL
@@ -58,7 +34,7 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return 'Animetosho'
+        return 'Nyaa'
 
     def resolve_link(self, link):
         logging.debug("Resolving link: %s", link)
@@ -67,26 +43,24 @@ class Scraper(scraper.Scraper):
     def get_sources(self, video):
         hosters = []
         query = self._build_query(video)
-        search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL)
-        logging.debug("Retrieved show from database: %s", search_url)
-        html = self._http_get(search_url, data=urllib.parse.urlencode(query).encode('utf-8'), require_debrid=True)
-        logging.debug("Retrieved html: %s", html)
-        soup = BeautifulSoup(html, "html.parser")
-        soup_all = soup.find('div', id='content').find_all('div', class_='home_list_entry')
-        logging.debug("Retrieved soup_all: %s", soup_all)
+        search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL % urllib.parse.quote_plus(query))
+        logging.debug("Search URL: %s", search_url)
+        html = self._http_get(search_url, require_debrid=True)
+        logging.debug("Retrieved HTML: %s", html)
+        soup = BeautifulSoup(html, "html.parser", parse_only=SoupStrainer('div', {'class': 'table-responsive'}))
+        logging.debug("Parsed HTML: %s", soup)
 
-
-        for entry in soup_all:
+        for entry in soup.select("tr.danger,tr.default,tr.success"):
             try:
-                name = entry.find('div', class_='link').a.text
+                name = entry.find_all('a', {'class': None})[1].get('title')
                 logging.debug("Retrieved name: %s", name)
                 magnet = entry.find('a', {'href': re.compile(r'(magnet:)+[^"]*')}).get('href')
                 logging.debug("Retrieved magnet: %s", magnet)
-                size = entry.find('div', class_='size').text
+                size = entry.find_all('td', {'class': 'text-center'})[1].text.replace('i', '')
                 logging.debug("Retrieved size: %s", size)
-                torrent = entry.find('a', class_='dllink').get('href')
-                logging.debug("Retrieved torrent: %s", torrent)
-                # Extract quality from the name
+                downloads = int(entry.find_all('td', {'class': 'text-center'})[-1].text)
+                logging.debug("Retrieved downloads: %s", downloads)
+
                 quality_match = re.search(r'\b(1080p|720p|480p|360p)\b', name)
                 if quality_match:
                     quality = QUALITY_MAP.get(quality_match.group(0), QUALITIES.HD1080)
@@ -94,15 +68,15 @@ class Scraper(scraper.Scraper):
                     quality = QUALITIES.HD1080
                 logging.debug("Retrieved quality: %s", quality)
 
-                host = scraper_utils.get_direct_hostname(self, name)
+                host = scraper_utils.get_direct_hostname(self, magnet)
                 source_label = f"{name}"
                 hosters.append({
-                    'class': self,
                     'name': name,
                     'multi-part': False,
+                    'class': self,
                     'url': magnet,
                     'size': size,
-                    'torrent': torrent,
+                    'downloads': downloads,
                     'quality': quality,
                     'host': source_label,
                     'direct': False,
@@ -110,50 +84,42 @@ class Scraper(scraper.Scraper):
                 })
                 logging.debug("Retrieved sources: %s", hosters[-1])
             except AttributeError as e:
-                logging.error("Failed to append source: %s", str(e)) 
+                logging.error("Failed to append source: %s", str(e))
                 continue
 
         return self._filter_sources(hosters, video)
 
     def _build_query(self, video):
-        query = {'q': video.title}
-        logging.debug("Retrieved query: %s", query)
+        query = video.title
+        logging.debug("Initial query: %s", query)
         if video.video_type == VIDEO_TYPES.EPISODE:
-            query['q'] += f' S{int(video.season):02d}E{int(video.episode):02d}'
-            logging.debug("Retrieved query: %s", query)
+            query += f' S{int(video.season):02d}E{int(video.episode):02d}'
+            logging.debug("Episode query: %s", query)
         elif video.video_type == VIDEO_TYPES.MOVIE:
-            query['q'] += f' {video.year}'
-            logging.debug("Retrieved query: %s", query)
-        query['q'] = query['q'].replace(' ', '+').replace('+-', '-')
-        query['qx'] = 1
-        logging.debug("Retrieved query: %s", query)
+            query += f' {video.year}'
+            logging.debug("Movie query: %s", query)
+        query = query.replace(' ', '+').replace('+-', '-')
+        logging.debug("Final query: %s", query)
         return query
 
     def _filter_sources(self, hosters, video):
-        logging.debug("Retrieved sources: %s", hosters)
+        logging.debug("Filtering sources: %s", hosters)
         filtered_sources = []
         for source in hosters:
             if video.video_type == VIDEO_TYPES.EPISODE:
                 if not self._match_episode(source['name'], video.season, video.episode):
                     continue
             filtered_sources.append(source)
-            logging.debug("Retrieved filtered_sources: %s", filtered_sources)
+            logging.debug("Filtered source: %s", source)
         return filtered_sources
 
     def _match_episode(self, title, season, episode):
         regex_ep = re.compile(r'\bS(\d+)E(\d+)\b')
         match = regex_ep.search(title)
         if match:
-            # Convert extracted values to integers
             season_num = int(match.group(1))
             episode_num = int(match.group(2))
-            
-            # Convert expected values to integers
-            season = int(season)
-            episode = int(episode)
-            
-            # Perform comparison
-            if season_num == season and episode_num == episode:
+            if season_num == int(season) and episode_num == int(episode):
                 return True
         return False
 
@@ -167,7 +133,7 @@ class Scraper(scraper.Scraper):
         try:
             headers = {'User-Agent': scraper_utils.get_ua()}
             req = urllib.request.Request(url, data=data, headers=headers)
-            logging.debug("Retrieved req: %s", req)
+            logging.debug("HTTP request: %s", req)
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 return response.read().decode('utf-8')
         except urllib.error.HTTPError as e:
@@ -175,7 +141,7 @@ class Scraper(scraper.Scraper):
         except urllib.error.URLError as e:
             logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
         return ''
-
+    
     @classmethod
     def get_settings(cls):
         settings = super(cls, cls).get_settings()
