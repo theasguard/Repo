@@ -2150,3 +2150,200 @@ msgstr ""
 msgctxt "#30735"
 msgid "Show Orion Supported Sources in ..."
 msgstr ""
+
+msgctxt "#30736"
+msgid "Prune Cache Now..."
+msgstr ""
+
+msgctxt "#30737"
+msgid "Prune Interval"
+msgstr ""
+
+msgctxt "#30738"
+msgid "Prune Cache During Playback?"
+msgstr ""
+
+msgctxt "#30739"
+msgid "Prune Cache Enabled"
+msgstr ""
+
+msgctxt "#30740"
+msgid "Show Prune Settings"
+msgstr ""
+
+msgctxt "#30308"
+msgid "TMDB Search"
+msgstr ""
+
+msgctxt "#30309"
+msgid "TMDB TV Search"
+msgstr ""
+
+msgctxt "#30310"
+msgid "Accounts"
+msgstr ""
+
+msgctxt "#30311"
+msgid "Alldebrid API Key"
+msgstr ""
+
+msgctxt "#30318"
+msgid "Scrapers 1"
+msgstr ""
+
+msgctxt "#30319"
+msgid "Scrapers 2"
+msgstr ""
+
+msgctxt "#30320"
+msgid "Scrapers 3"
+msgstr ""
+
+msgctxt "#30321"
+msgid "Scrapers 4"
+msgstr ""
+
+msgctxt "#30323"
+msgid "Scrapers 5"
+msgstr ""
+
+msgctxt "#30324"
+msgid "Debug Addon"
+msgstr ""
+
+msgctxt "#30400"
+msgid "Animetosho Enabled"
+msgstr ""
+
+msgctxt "#30401"
+msgid "DDLValley Enabled"
+msgstr ""
+
+msgctxt "#30402"
+msgid "EasyNews Enabled"
+msgstr ""
+
+msgctxt "#30403"
+msgid "Furk.net Enabled"
+msgstr ""
+
+msgctxt "#30404"
+msgid "Local Enabled"
+msgstr ""
+
+msgctxt "#30405"
+msgid "Orion Enabled"
+msgstr ""
+
+msgctxt "#30406"
+msgid "Premiumize.me Enabled"
+msgstr ""
+
+msgctxt "#30407"
+msgid "Premiumize.V2 Enabled"
+msgstr ""
+
+msgctxt "#30408"
+msgid "RMZ Enabled"
+msgstr ""
+
+msgctxt "#30409"
+msgid "scene-rls Enabled"
+msgstr ""
+
+msgctxt "#30410"
+msgid "TorrentGalaxy Enabled"
+msgstr ""
+
+msgctxt "#30411"
+msgid "LosMovies Enabled"
+msgstr ""
+
+msgctxt "#30412"
+msgid "Torrentio Enabled"
+msgstr ""
+
+msgctxt "#30413"
+msgid "Bitlord Enabled"
+msgstr ""
+
+msgctxt "#30414"
+msgid "Aniwave Enabled"
+msgstr ""
+
+msgctxt "#30415"
+msgid "Binged Enabled"
+msgstr ""
+
+msgctxt "#30416"
+msgid "SeriesOnline Enabled"
+msgstr ""
+
+msgctxt "#30417"
+msgid "TRAKT TV"
+msgstr ""
+
+msgctxt "#30418"
+msgid "Nyaa Enabled"
+msgstr ""
+
+msgctxt "#30419"
+msgid "1337X Enabled"
+msgstr ""
+
+
+msgctxt "#40334"
+msgid "Accounts"
+msgstr ""
+
+msgctxt "#40335"
+msgid "Real-Debrid"
+msgstr ""
+
+msgctxt "#40336"
+msgid "Enable Real-Debrid..."
+msgstr ""
+
+msgctxt "#40337"
+msgid "Real-Debrid Username"
+msgstr ""
+
+msgctxt "#40338"
+msgid "Authorize Real-Debrid..."
+msgstr ""
+
+msgctxt "#40339"
+msgid "Real-Debrid Priority"
+msgstr ""
+
+msgctxt "#40340"
+msgid "AllDebrid Timeout"
+msgstr ""
+
+msgctxt "#40341"
+msgid "Enable AllDebrid..."
+msgstr ""
+
+msgctxt "#40342"
+msgid "AllDebrid Username"
+msgstr ""
+
+msgctxt "#40343"
+msgid "Authorize AllDebrid..."
+msgstr ""
+
+msgctxt "#40344"
+msgid "All-Debrid Priority"
+msgstr ""
+
+msgctxt "#40481"
+msgid "Manual File Selection"
+msgstr ""
+
+msgctxt "#40482"
+msgid "Enable Manual File Selection for Batch Torrents"
+msgstr ""
+
+msgctxt "#40483"
+msgid "Bypass Filter"
+msgstr ""

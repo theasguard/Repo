@@ -2119,3 +2119,138 @@ msgctxt "#30732"
 msgid "Image Proxy Port"
 msgstr "Image Proxy Port"
 
+msgctxt "#30308"
+msgid "TMDB Search"
+msgstr ""
+
+msgctxt "#30309"
+msgid "TMDB TV Search"
+msgstr ""
+
+msgctxt "#30310"
+msgid "Alldebrid"
+msgstr ""
+
+msgctxt "#30311"
+msgid "Alldebrid API Key"
+msgstr ""
+
+msgctxt "#30317"
+msgid "TRAKT TV"
+msgstr ""
+
+msgctxt "#30318"
+msgid "Scrapers 1"
+msgstr ""
+
+msgctxt "#30319"
+msgid "Scrapers 2"
+msgstr ""
+
+msgctxt "#30320"
+msgid "Scrapers 3"
+msgstr ""
+
+msgctxt "#30321"
+msgid "Scrapers 4"
+msgstr ""
+
+msgctxt "#30323"
+msgid "Scrapers 5"
+msgstr ""
+
+msgctxt "#30400"
+msgid "Animetosho Enabled"
+msgstr ""
+
+msgctxt "#30401"
+msgid "DDLValley Enabled"
+msgstr ""
+
+msgctxt "#30402"
+msgid "EasyNews Enabled"
+msgstr ""
+
+msgctxt "#30403"
+msgid "Furk.net Enabled"
+msgstr "Furk.net Enabled"
+
+msgctxt "#30404"
+msgid "Local Enabled"
+msgstr "Local Enabled"
+
+msgctxt "#30405"
+msgid "Orion Enabled"
+msgstr "Orion Enabled"
+
+msgctxt "#30406"
+msgid "Premiumize.me Enabled"
+msgstr "Premiumize.me Enabled"
+
+msgctxt "#30407"
+msgid "Premiumize.V2 Enabled"
+msgstr "Premiumize.V2 Enabled"
+
+msgctxt "#30408"
+msgid "RMZ Enabled"
+msgstr "RMZ Enabled"
+
+msgctxt "#30409"
+msgid "scene-rls Enabled"
+msgstr "scene-rls Enabled"
+
+msgctxt "#30410"
+msgid "TorrentGalaxy Enabled"
+msgstr "TorrentGalaxy Enabled"
+
+msgctxt "#40334"
+msgid "Accounts"
+msgstr "Accounts"
+
+msgctxt "#40335"
+msgid "Real-Debrid"
+msgstr ""
+
+msgctxt "#40336"
+msgid "Enable Real-Debrid..."
+msgstr ""
+
+msgctxt "#40337"
+msgid "Real-Debrid Username"
+msgstr ""
+
+msgctxt "#40338"
+msgid "Authorize Real-Debrid..."
+msgstr ""
+
+msgctxt "#40339"
+msgid "Real-Debrid Priority"
+msgstr ""
+
+msgctxt "#40340"
+msgid "AllDebrid"
+msgstr ""
+
+msgctxt "#40341"
+msgid "Enable AllDebrid..."
+msgstr ""
+
+msgctxt "#40342"
+msgid "AllDebrid Username"
+msgstr ""
+
+msgctxt "#40343"
+msgid "Authorize AllDebrid..."
+msgstr ""
+
+msgctxt "#40344"
+msgid "All-Debrid Priority"
+msgstr ""
+
+msgctxt "#40481"
+msgid "Manual File Selection"
+msgstr ""
+
+msgctxt "#40482"
+msgid "Enable Manual File Selection for Batch Torrents"
+msgstr ""
