@@ -4,24 +4,27 @@
  # "THE BEER-WARE LICENSE" (Revision 42):
  # @Daddy_Blamo wrote this file.  As long as you retain this notice you
  # can do whatever you want with this stuff. If we meet some day, and you think
- # this stuff is worth it, you can buy me a beer in return. - Thor
+ # this stuff is worth it, you can buy me a beer in return. - MrBlamo
  # ----------------------------------------------------------------------------
 #######################################################################
 
 # Addon Name: Asguard
 # Addon id: plugin.video.asguard
-# Addon Provider: Thor
+# Addon Provider: MrBlamo
 
 
 import os
 import re
 import time
-
+import six
+from scrapers import scraper
+from scrapers import proxy
 import kodi
 import log_utils  # @UnusedImport
 from asguard_lib import utils2
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
+from asguard_lib import control
 
 files = os.listdir(os.path.dirname(__file__))
 __all__ = [filename[:-3] for filename in files if not filename.startswith('__') and filename.endswith('.py')]
@@ -34,13 +37,11 @@ class ScraperVideo:
     def __init__(self, video_type, title, year, trakt_id, season='', episode='', ep_title='', ep_airdate=''):
         assert(video_type in (VIDEO_TYPES.__dict__[k] for k in VIDEO_TYPES.__dict__ if not k.startswith('__')))
         self.video_type = video_type
-        if isinstance(title, unicode): self.title = title.encode('utf-8')
-        else: self.title = title
+        self.title = title.decode('utf-8') if isinstance(title, bytes) else title
         self.year = str(year)
         self.season = season
         self.episode = episode
-        if isinstance(ep_title, unicode): self.ep_title = ep_title.encode('utf-8')
-        else: self.ep_title = ep_title
+        self.ep_title = ep_title.decode('utf-8') if isinstance(ep_title, bytes) else ep_title
         self.trakt_id = trakt_id
         self.ep_airdate = utils2.to_datetime(ep_airdate, "%Y-%m-%d").date() if ep_airdate else None
 
@@ -51,13 +52,13 @@ def update_xml(xml, new_settings, cat_count):
     new_settings.insert(0, '<category label="Scrapers %s">' % (cat_count))
     new_settings.append('    </category>')
     new_settings = '\n'.join(new_settings)
-    match = re.search('(<category label="Scrapers %s">.*?</category>)' % (cat_count), xml, re.DOTALL | re.I)
+    match = re.search(r'(<category label="Scrapers %s">.*?</category>)' % (cat_count), xml, re.DOTALL | re.I)
     if match:
         old_settings = match.group(1)
         if old_settings != new_settings:
             xml = xml.replace(old_settings, new_settings)
     else:
-        logger.log('Unable to match category: %s' % (cat_count), log_utils.LOGWARNING)
+        xml = xml.replace('</settings>', '%s\n</settings>' % (new_settings))
     return xml
 
 def update_settings():
@@ -97,34 +98,37 @@ def update_settings():
 
 
 def update_all_scrapers():
-        try: last_check = int(kodi.get_setting('last_list_check'))
-        except: last_check = 0
-        now = int(time.time())
-        list_url = kodi.get_setting('scraper_url')
-        scraper_password = kodi.get_setting('scraper_password')
-        list_path = os.path.join(kodi.translate_path(kodi.get_profile()), 'scraper_list.txt')
-        exists = os.path.exists(list_path)
-        if list_url and scraper_password and (not exists or (now - last_check) > 15 * 60):
-            _etag, scraper_list = utils2.get_and_decrypt(list_url, scraper_password)
-            if scraper_list:
-                try:
-                    with open(list_path, 'w') as f:
-                        f.write(scraper_list)
-    
-                    kodi.set_setting('last_list_check', str(now))
-                    kodi.set_setting('scraper_last_update', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now)))
-                    for line in scraper_list.split('\n'):
-                        line = line.replace(' ', '')
-                        if line:
-                            scraper_url, filename = line.split(',')
-                            if scraper_url.startswith('http'):
-                                update_scraper(filename, scraper_url)
-                except Exception as e:
-                    logger.log('Exception during scraper update: %s' % (e), log_utils.LOGWARNING)
-    
+    try:
+        last_check = int(kodi.get_setting('last_list_check'))
+    except:
+        last_check = 0
+    now = int(time.time())
+    list_url = kodi.get_setting('scraper_url')
+    scraper_password = kodi.get_setting('scraper_password')
+    list_path = os.path.join(kodi.translate_path(kodi.get_profile()), 'scraper_list.txt')
+    exists = os.path.exists(list_path)
+    if list_url and scraper_password and (not exists or (now - last_check) > 15 * 60):
+        _etag, scraper_list = utils2.get_and_decrypt(list_url, scraper_password)
+        if scraper_list:
+            try:
+                with open(list_path, 'w') as f:
+                    f.write(scraper_list)
+
+                kodi.set_setting('last_list_check', str(now))
+                kodi.set_setting('scraper_last_update', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now)))
+                for line in scraper_list.split('\n'):
+                    line = line.replace(' ', '')
+                    if line:
+                        scraper_url, filename = line.split(',')
+                        if scraper_url.startswith('http'):
+                            update_scraper(filename, scraper_url)
+            except Exception as e:
+                logger.log('Exception during scraper update: %s' % (e), log_utils.LOGWARNING)
+
 def update_scraper(filename, scraper_url):
     try:
-        if not filename: return
+        if not filename:
+            return
         py_path = os.path.join(kodi.get_path(), 'scrapers', filename)
         exists = os.path.exists(py_path)
         scraper_password = kodi.get_setting('scraper_password')
@@ -134,7 +138,7 @@ def update_scraper(filename, scraper_url):
             if exists:
                 with open(py_path, 'r') as f:
                     old_py = f.read()
-                    match = re.search('^#\s+Last-Modified:\s*(.*)', old_py)
+                    match = re.search(r'^#\s+Last-Modified:\s*(.*)', old_py)
                     if match:
                         old_lm = match.group(1).strip()
 
