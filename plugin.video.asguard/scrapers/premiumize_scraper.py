@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,20 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
-import urllib
-import urlparse
+import urllib.parse
+import urllib.request
 import xbmcgui
 import hashlib
 import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
-from asguard_lib import scraper_utils
-from asguard_lib.constants import FORCE_NO_MATCH
-from asguard_lib.constants import VIDEO_TYPES
-from asguard_lib.constants import QUALITIES
-from asguard_lib.constants import DELIM
+from asguard_lib import scraper_utils, control
+from asguard_lib.constants import FORCE_NO_MATCH, VIDEO_TYPES, QUALITIES, DELIM
 from asguard_lib.utils2 import i18n
-import scraper
+from . import scraper
 
 logger = log_utils.Logger.get_logger()
 
@@ -113,7 +110,7 @@ class Scraper(scraper.Scraper):
     
     def __get_videos(self, content):
         videos = []
-        for item in content.itervalues():
+        for item in content.values():
             if item['type'].lower() == 'dir':
                 videos += self.__get_videos(item['children'])
             else:
@@ -160,7 +157,7 @@ class Scraper(scraper.Scraper):
     
     def __get_movie_sources(self, source_url):
         hosters = []
-        query = kodi.parse_query(urlparse.urlparse(source_url).query)
+        query = kodi.parse_query(urllib.parse.urlparse(source_url).query)
         movie_id = query.get('movie_id') or self.__get_movie_id(source_url)
         if not movie_id: return hosters
         
@@ -195,10 +192,10 @@ class Scraper(scraper.Scraper):
     def __get_hash_data(self, hashes):
         new_data = {}
         if hashes:
-            check_url = CHECKHASH_URL + urllib.urlencode([('hashes[]', hashes)], doseq=True)
+            check_url = CHECKHASH_URL + urllib.parse.urlencode([('hashes[]', hashes)], doseq=True)
             check_url = scraper_utils.urljoin(self.base_url, check_url)
             new_data = hash_data = self._json_get(check_url, cache_limit=.1)
-            new_data['hashes'] = dict((file_id.lower(), hash_data['hashes'][file_id]) for file_id in hash_data.get('hashes', {}))
+            new_data['hashes'] = {file_id.lower(): hash_data['hashes'][file_id] for file_id in hash_data.get('hashes', {})}
         return new_data
     
     def _get_episode_url(self, show_url, video):
@@ -213,7 +210,7 @@ class Scraper(scraper.Scraper):
             magnet_link, magnet_title = attrs['href'], attrs['title']
             match = re.search('urn:btih:(.*?)(?:&|$)', magnet_link, re.I)
             if match:
-                magnet_title = re.sub(re.compile('\s+magnet\s+link', re.I), '', magnet_title)
+                magnet_title = re.sub(re.compile(r'\s+magnet\s+link', re.I), '', magnet_title)
                 hashes.append((match.group(1), magnet_title))
         
         episode_pattern = 'S%02d\s*E%02d' % (int(video.season), int(video.episode))
