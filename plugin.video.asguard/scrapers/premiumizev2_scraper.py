@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,13 +18,10 @@
 import re
 import kodi
 import log_utils  # @UnusedImport
-from asguard_lib import scraper_utils
+from asguard_lib import scraper_utils, control
 from asguard_lib.utils2 import i18n
-from asguard_lib.constants import FORCE_NO_MATCH
-from asguard_lib.constants import VIDEO_TYPES
-from asguard_lib.constants import QUALITIES
-from asguard_lib.constants import DELIM
-import scraper
+from asguard_lib.constants import FORCE_NO_MATCH, VIDEO_TYPES, QUALITIES, DELIM
+from . import scraper
 
 logger = log_utils.Logger.get_logger()
 
