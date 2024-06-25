@@ -206,31 +206,31 @@ msgid "Error"
 msgstr ""
 
 msgctxt "#32049"
-msgid "Scraping"
+msgid "Connection"
 msgstr ""
 
 msgctxt "#32050"
-msgid "Scraping Mode"
+msgid "Custom Connection"
 msgstr ""
 
 msgctxt "#32051"
-msgid "Scraping Timeout"
+msgid "Connection Timeout"
 msgstr ""
 
 msgctxt "#32052"
-msgid "Minimum Streams"
+msgid "File Languages"
 msgstr ""
 
 msgctxt "#32053"
-msgid "Exclusive"
+msgid "File Keywords"
 msgstr ""
 
 msgctxt "#32054"
-msgid "Sequential"
+msgid "Keywords"
 msgstr ""
 
 msgctxt "#32055"
-msgid "Parallel"
+msgid "File Match"
 msgstr ""
 
 msgctxt "#32056"
@@ -266,7 +266,7 @@ msgid "Streams Retrieved"
 msgstr ""
 
 msgctxt "#32064"
-msgid "Temporary Problems"
+msgid "Server Error"
 msgstr ""
 
 msgctxt "#32065"
@@ -282,7 +282,7 @@ msgid "Filters"
 msgstr ""
 
 msgctxt "#32068"
-msgid "Sorting"
+msgid "Sort"
 msgstr ""
 
 msgctxt "#32069"
@@ -334,7 +334,7 @@ msgid "Descending"
 msgstr ""
 
 msgctxt "#32081"
-msgid "Limits"
+msgid "Limit"
 msgstr ""
 
 msgctxt "#32082"
@@ -438,19 +438,19 @@ msgid "Sources"
 msgstr ""
 
 msgctxt "#32107"
-msgid "Premiumize Cache"
+msgid "Torrent Cache"
 msgstr ""
 
 msgctxt "#32108"
-msgid "OffCloud Cache"
+msgid "Usenet Cache"
 msgstr ""
 
 msgctxt "#32109"
-msgid "RealDebrid Cache"
+msgid "Hoster Cache"
 msgstr ""
 
 msgctxt "#32110"
-msgid "Season Packs"
+msgid "File Packs"
 msgstr ""
 
 msgctxt "#32111"
@@ -742,7 +742,7 @@ msgid "Launch the addon"
 msgstr ""
 
 msgctxt "#32183"
-msgid "Custom Settings"
+msgid "Custom"
 msgstr ""
 
 msgctxt "#32184"
@@ -758,31 +758,31 @@ msgid "Advanced"
 msgstr ""
 
 msgctxt "#32187"
-msgid "Server Connection"
+msgid "Connection Mode"
 msgstr ""
 
 msgctxt "#32188"
-msgid "Main Domain Name"
+msgid "Main Domain"
 msgstr ""
 
 msgctxt "#32189"
-msgid "Main IP Address"
+msgid "Main IP"
 msgstr ""
 
 msgctxt "#32190"
-msgid "Custom Domain Name"
+msgid "Custom Domain"
 msgstr ""
 
 msgctxt "#32191"
-msgid "Custom IP Address"
+msgid "Custom IP"
 msgstr ""
 
 msgctxt "#32192"
-msgid "Domain Name"
+msgid "Connection Domain"
 msgstr ""
 
 msgctxt "#32193"
-msgid "IP Address"
+msgid "Connection IP"
 msgstr ""
 
 msgctxt "#32194"
@@ -902,11 +902,11 @@ msgid "Days"
 msgstr ""
 
 msgctxt "#32223"
-msgid "Link Multiplier"
+msgid "Link Boost"
 msgstr ""
 
 msgctxt "#32224"
-msgid "Hash Multiplier"
+msgid "Hash Boost"
 msgstr ""
 
 msgctxt "#32225"
@@ -1102,15 +1102,15 @@ msgid "Enter Voucher Code"
 msgstr ""
 
 msgctxt "#32273"
-msgid "Login with [B]API Key[/B]"
+msgid "[B]Login[/B] with [B]API Key[/B]"
 msgstr ""
 
 msgctxt "#32274"
-msgid "Login with [B]Email[/B] and [B]Password[/B]"
+msgid "[B]Login[/B] with [B]Email[/B] and [B]Password[/B]"
 msgstr ""
 
 msgctxt "#32275"
-msgid "Login with [B]Username[/B] and [B]Password[/B]"
+msgid "[B]Login[/B] with [B]Username[/B] and [B]Password[/B]"
 msgstr ""
 
 msgctxt "#32276"
@@ -1242,7 +1242,7 @@ msgid "Attachment Removed"
 msgstr ""
 
 msgctxt "#32308"
-msgid "[COLOR FFB48800][B]Best (Premium)[/B][/COLOR]"
+msgid "Overall Best"
 msgstr ""
 
 msgctxt "#32309"
@@ -1254,7 +1254,83 @@ msgid "Access"
 msgstr ""
 
 msgctxt "#32311"
-msgid "Cache Lookup (Premium)"
+msgid "Cache Lookup"
+msgstr ""
+
+msgctxt "#32312"
+msgid "Container Boost"
+msgstr ""
+
+msgctxt "#32313"
+msgid "Promotion Boost"
+msgstr ""
+
+msgctxt "#32314"
+msgid "Promotions"
+msgstr ""
+
+msgctxt "#32315"
+msgid "Promotion"
+msgstr ""
+
+msgctxt "#32316"
+msgid "Now"
+msgstr ""
+
+msgctxt "#32317"
+msgid "Indefinitely"
+msgstr ""
+
+msgctxt "#32318"
+msgid "[B]Create[/B] instant [B]Free[/B] account"
+msgstr ""
+
+msgctxt "#32319"
+msgid "[B]Revoke[/B] current [B]Authentication[/B]"
+msgstr ""
+
+msgctxt "#32320"
+msgid "Connection Error"
+msgstr ""
+
+msgctxt "#32321"
+msgid "Anonymous"
+msgstr ""
+
+msgctxt "#32322"
+msgid "Premium"
+msgstr ""
+
+msgctxt "#32323"
+msgid "Profile"
+msgstr ""
+
+msgctxt "#32324"
+msgid "Unknown Error"
+msgstr ""
+
+msgctxt "#32325"
+msgid "Lookup Services"
+msgstr ""
+
+msgctxt "#32326"
+msgid "Add Custom"
+msgstr ""
+
+msgctxt "#32327"
+msgid "Custom Value"
+msgstr ""
+
+msgctxt "#32328"
+msgid "Stream Type"
+msgstr ""
+
+msgctxt "#32329"
+msgid "Stream"
+msgstr ""
+
+msgctxt "#32330"
+msgid "Custom Filters"
 msgstr ""
 
 ##############################################################################
@@ -1290,7 +1366,7 @@ msgid "Orion is temporarily unreachable. Try again later."
 msgstr ""
 
 msgctxt "#33008"
-msgid "This setting is dynamically updated with new options from API searches. If a new option arrives, it is automatically enabled and added to the list. You can manually disable these options, but do it sparingly, since changed options slow down the search."
+msgid "This setting is dynamically updated with new options from API searches. If a new option arrives, it is automatically enabled and added to the list. You can manually disable these options, but do it sparingly, since custom options slow down the search."
 msgstr ""
 
 msgctxt "#33009"
@@ -1394,7 +1470,7 @@ msgid "Your Premium Subscription Expired"
 msgstr ""
 
 msgctxt "#33033"
-msgid "You can use a free anonymous account with %s daily links without having to register an account. Register a free account on our website to get %s daily links."
+msgid "You can instantly create a free anonymous account with %s daily links without having to register. Register a free account on our website to get %s daily links."
 msgstr ""
 
 msgctxt "#33034"
@@ -1453,7 +1529,7 @@ msgctxt "#33047"
 msgid "You currently have an anonymous account. If something goes wrong with your Kodi setup, you will loose access to the account and subscription. It is recommended to register a new account on the website, enter the new API key in the addon settings, and only then redeem the voucher. Do you want to continue redeeming the voucher to the anonymous account and risk loosing access to it?"
 msgstr ""
 
-msgctxt "#33048"
+msgctxt "#33048"7
 msgid "The voucher was successfully redeemed. Your account was recharged with the %s package for %s."
 msgstr ""
 
@@ -1533,6 +1609,74 @@ msgctxt "#33067"
 msgid "Starting playback of link submitted from Orion's website."
 msgstr ""
 
+msgctxt "#33068"
+msgid "The current promotion offers a [B]%dx[/B] limit boost."
+msgstr ""
+
+msgctxt "#33069"
+msgid "There are currently no promotions running."
+msgstr ""
+
+msgctxt "#33070"
+msgid "Account Authentication Revoked"
+msgstr ""
+
+msgctxt "#33071"
+msgid "Internet Connection Problems"
+msgstr ""
+
+msgctxt "#33072"
+msgid "Domain Or IP Resolving Problems"
+msgstr ""
+
+msgctxt "#33073"
+msgid "Unknown Connection Problems"
+msgstr ""
+
+msgctxt "#33074"
+msgid "Online Backups For Premium Users Only"
+msgstr ""
+
+msgctxt "#33075"
+msgid "OR"
+msgstr ""
+
+msgctxt "#33076"
+msgid "Scan the QR code with your phone and complete the authentication in a browser."
+msgstr ""
+
+msgctxt "#33077"
+msgid "Visit the link below in a browser on any device, enter the code, and complete the authentication."
+msgstr ""
+
+msgctxt "#33078"
+msgid "Link:"
+msgstr ""
+
+msgctxt "#33079"
+msgid "Code:"
+msgstr ""
+
+msgctxt "#33080"
+msgid "Do not close this dialog. It will automatically close once you completed the authentication."
+msgstr ""
+
+msgctxt "#33081"
+msgid "Waiting For Authentication Approval"
+msgstr ""
+
+msgctxt "#33082"
+msgid "[B]Login[/B] with [B]Code[/B] or [B]QR[/B]"
+msgstr ""
+
+msgctxt "#33083"
+msgid "Add a custom value if it is not automatically added. Custom values are not guaranteed to work if the spelling differs to values on Orion."
+msgstr ""
+
+msgctxt "#33084"
+msgid "Old Settings Incompatible With New Version"
+msgstr ""
+
 ##############################################################################
 # HELP
 ##############################################################################
@@ -1554,15 +1698,15 @@ msgid "The number of seconds to wait for the Orion API to respond. Do not set th
 msgstr ""
 
 msgctxt "#34005"
-msgid "The order in which providers should be scraped. Query Orion alone, in parallel with other providers, or first check Orion and if not enough links were found, scrape the other providers. The addon calling Orion must implement this feature for the setting to work."
+msgid "Settings related to the general operation of the addon."
 msgstr ""
 
 msgctxt "#34006"
-msgid "The minimum number of streams that must be returned from Orion in order to skip the scraping of other providers. The addon calling Orion must have implemented this feature for the setting to work."
+msgid "Settings related to the account and subscription."
 msgstr ""
 
 msgctxt "#34007"
-msgid "Authenticate your Orion account using your API key, email address, or username. The API key can be found under the account section of registered users on the Orion website."
+msgid "Authenticate your Orion account using a QR code, API key, email address, or username. The API key can be found under the account section on the Orion website."
 msgstr ""
 
 msgctxt "#34008"
@@ -1578,7 +1722,7 @@ msgid "If your filters are too restrictive, no results might be returned. In suc
 msgstr ""
 
 msgctxt "#34011"
-msgid "The attribute to sort streams by. Either retrieve the best available streams, randomly shuffle the results, or sort by a specific attribute. The popularity is the frequency at which streams are accessed by users. The added and updated time is when the stream was first added to Orion and the last time it was updated by a user, respectively."
+msgid "The attribute to sort streams by. Either retrieve the best available streams, randomly shuffle the results, or sort by a specific attribute. The popularity is the frequency at which streams are accessed by users. The added and updated time is when the stream was first added to Orion and the last time it was updated by a user, respectively. The best sorting feature will deduct additional points from the daily limit."
 msgstr ""
 
 msgctxt "#34012"
@@ -1586,7 +1730,7 @@ msgid "The order to sort streams by. The order can either be in increasing or de
 msgstr ""
 
 msgctxt "#34013"
-msgid "The minimum popularity percentage of streams. Popularity is determined by the number of users who access a specific stream. Higher percentages indicates that the stream is more popular amongst the community. Set the value to 0 to disable the popularity threshold."
+msgid "The minimum popularity percentage of streams. Popularity is determined by the number of users who access a specific stream. Higher percentages indicates that the stream is more popular among the community. Set the value to 0 to disable the popularity threshold."
 msgstr ""
 
 msgctxt "#34014"
@@ -1602,7 +1746,7 @@ msgid "The source the stream comes from. Sources are dynamically added by API re
 msgstr ""
 
 msgctxt "#34017"
-msgid "Show notifications for news updates and maintenance announcements."
+msgid "Show notifications for news updates, promotions, and maintenance announcements."
 msgstr ""
 
 msgctxt "#34018"
@@ -1614,23 +1758,23 @@ msgid "The maximum number of days since the usenet NZB was created. Set the valu
 msgstr ""
 
 msgctxt "#34020"
-msgid "The availability of the stream, either in the debrid cache, directly accessible without an account, or otherwise indirectly accessible hoster links. The cached status might be incorrect if the stream was not updated in a long time. Some hosters have direct links that can be immediately played without going through a URL resolver or premium service. Indirect links are all other hoster links which might require a premium service, URL resolver, or captcha input."
+msgid "The availability of the stream, either cached on a debrid server, directly accessible without any account, or otherwise indirectly accessible through hosters. The cached status might be outdated if the stream was not updated in a long time. Some hosters have direct links that can be played immediately without going through a URL resolver or premium service. Indirect links are all other hoster links which might require a premium service, URL resolver, or captcha input."
 msgstr ""
 
 msgctxt "#34021"
-msgid "The cached status of the stream on Premiumize. Only enable this option if you have a Premiumize account."
+msgid "The debrid cached status of torrent streams. Only enable debrid services that you have an account for."
 msgstr ""
 
 msgctxt "#34022"
-msgid "The cached status of the stream on OffCloud. Only enable this option if you have an OffCloud account."
+msgid "The debrid cached status of usenet streams. Only enable debrid services that you have an account for."
 msgstr ""
 
 msgctxt "#34023"
-msgid "The cached status of the stream on RealDebrid. Only enable this option if you have a RealDebrid account."
+msgid "The debrid cached status of hoster streams. Only enable debrid services that you have an account for."
 msgstr ""
 
 msgctxt "#34024"
-msgid "The streams that are part of a season pack. Set this option to [I]include[/I] to return all links, [I]exclude[/I] to ignore season packs, and [I]require[/I] to only return season packs."
+msgid "The streams that are part of a show, season, or episode pack. Set this option to [I]include[/I] to return all links, [I]exclude[/I] to ignore file packs, and [I]require[/I] to only return file packs."
 msgstr ""
 
 msgctxt "#34025"
@@ -1714,11 +1858,11 @@ msgid "The file hoster the stream is hosted on. Hosters are dynamically added by
 msgstr ""
 
 msgctxt "#34045"
-msgid "The minimum video quality of streams that must be returned from Orion in order to skip the scraping of other providers. The addon calling Orion must have implemented this feature for the setting to work."
+msgid "Settings related to the filtering and sorting of streams."
 msgstr ""
 
 msgctxt "#34046"
-msgid "Use custom settings for the addon instead of using the default universal settings."
+msgid "Use custom filters for the addon instead of using the universal filters."
 msgstr ""
 
 msgctxt "#34047"
@@ -1730,7 +1874,7 @@ msgid "Automatically backup the addon settings and restore them if they become c
 msgstr ""
 
 msgctxt "#34049"
-msgid "This section is for advanced users only. Use these options if you know what you are doing, since changing them might cause the addon to stop working."
+msgid "Specify a custom API connection. These options are for advanced users only and changing them might cause the addon to stop working."
 msgstr ""
 
 msgctxt "#34050"
@@ -1770,7 +1914,7 @@ msgid "The protocol of hoster links. Hoster files are retrieved over HTTP(S) or 
 msgstr ""
 
 msgctxt "#34059"
-msgid "The file name of the stream. Either require streams to have a file name or optionally allow streams with or without a file name."
+msgid "The file name of the stream. Either require streams to have a file name or allow streams with or without a file name. Alternatively, a custom list of keywords can be passed that are matched against the file name."
 msgstr ""
 
 msgctxt "#34060"
@@ -1786,19 +1930,71 @@ msgid "Show notifications when the support team replies to one of your tickets."
 msgstr ""
 
 msgctxt "#34063"
-msgid "Does a fresh lookup and return the latest debrid cache status. Authorize your debrid account on Orion's website. Enabling this option will take more time and should only be enabled if no local cache lookup is done."
+msgid "Does a fresh lookup and return the latest debrid cache status. Authorize your debrid account on Orion's website. Enabling this option will take more time and should only be enabled if no local cache lookup is done. This feature will deduct additional points from the daily limit."
 msgstr ""
 
 msgctxt "#34064"
-msgid "Does a fresh cache lookup on Premiumize. Only enable this option if you have a Premiumize account."
+msgid "The debrid services for which a fresh cache lookup should be done. Only enable debrid services that you have an account for."
 msgstr ""
 
 msgctxt "#34065"
-msgid "Does a fresh cache lookup on OffCloud. Only enable this option if you have a OffCloud account."
+msgid "Refresh the account status and data."
 msgstr ""
 
 msgctxt "#34066"
-msgid "Does a fresh cache lookup on RealDebrid. Only enable this option if you have a RealDebrid account."
+msgid "The account subscription status."
+msgstr ""
+
+msgctxt "#34067"
+msgid "The account verification status."
+msgstr ""
+
+msgctxt "#34068"
+msgid "The account username."
+msgstr ""
+
+msgctxt "#34069"
+msgid "The account email address."
+msgstr ""
+
+msgctxt "#34070"
+msgid "The account subscription package."
+msgstr ""
+
+msgctxt "#34071"
+msgid "The account remaining subscription time."
+msgstr ""
+
+msgctxt "#34072"
+msgid "The account daily stream limit."
+msgstr ""
+
+msgctxt "#34073"
+msgid "The account daily hash limit."
+msgstr ""
+
+msgctxt "#34074"
+msgid "The account daily container limit."
+msgstr ""
+
+msgctxt "#34075"
+msgid "The maximum number of streams to retrieve per movie requests. Set the limit to your package's daily limit divided by the number of movies you watch per day."
+msgstr ""
+
+msgctxt "#34076"
+msgid "The maximum number of streams to retrieve per show requests. Set the limit to your package's daily limit divided by the number of episodes you watch per day."
+msgstr ""
+
+msgctxt "#34077"
+msgid "Either the audio or the subtitle language of the stream. This will return more links for the given language, compared to specifying the audio and subtitle languages separately, since most streams only have the audio or the subtitles in a given language, not necessarily both."
+msgstr ""
+
+msgctxt "#34078"
+msgid "Match a custom list of keyword against the file name. Keywords are comma-separated and case-intensive. All keywords must appear in the file name, except if it starts with a minus (-), which requires the keyword not to be present. This matches any substring within the file name, not only full words. For full-word or advanced matching, use the [I]File Match[/I] filter instead."
+msgstr ""
+
+msgctxt "#34079"
+msgid "Match a custom regular expression against the file name. This allows for full-word detection and advanced pattern matching. This feature will deduct additional points from the daily limit. A full explanation on how to use this parameter, including short-hand replacements, is given in the API documentation on the website."
 msgstr ""
 
 ##############################################################################
@@ -1842,13 +2038,16 @@ msgid "Do you want to retrieve [B]hoster[/B] content? Some hosters can be access
 msgstr ""
 
 msgctxt "#35010"
-msgid "You have Gaia installed. Do you want to scrape Orion at the same time as the native Gaia providers (parallel), or do you want to first scrape Orion and only use the native Gaia providers if Orion did not return enough links (sequential)?"
-msgstr ""
-
-msgctxt "#35011"
 msgid "Some addons support Orion natively, while others require manual integration. During the integration, Orion will insert code into these addons. Do you want to continue with the code integration?"
 msgstr ""
 
-msgctxt "#35012"
+msgctxt "#35011"
 msgid "Orion is now configured. You can always adjust the filters manually in the settings dialog."
 msgstr ""
+
+##############################################################################
+# INTEGRATION
+##############################################################################
+
+# Dynamically added labels from OrionSettings.externalLabel()
+
