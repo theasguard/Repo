@@ -80,6 +80,11 @@ class OrionInterface:
 	BrowseDirectoryWrite = 3
 	BrowseDefault = BrowseFile
 
+	IdNone = 9999
+	IdBusyDialog = 10138
+	IdBusyDialogNoCancel = 10160
+	IdAddonSettings = 10140
+
 	##############################################################################
 	# FONT
 	##############################################################################
@@ -223,12 +228,40 @@ class OrionInterface:
 		return title
 
 	@classmethod
-	def _dialogId(self):
+	def dialogId(self):
 		return xbmcgui.getCurrentWindowDialogId()
 
 	@classmethod
-	def _dialogVisible(self, id):
-		return self._dialogId() == id
+	def dialogVisible(self, id = None, loader = None):
+		current = self.dialogId()
+		if current and current <= OrionInterface.IdNone:
+			current = None
+		elif not loader and (current == OrionInterface.IdBusyDialog or current == OrionInterface.IdBusyDialogNoCancel):
+			if loader is None:
+				for i in range(5):
+					current = self.dialogId()
+					if current and current <= OrionInterface.IdNone:
+						current = None
+					elif current == OrionInterface.IdBusyDialog or current == OrionInterface.IdBusyDialogNoCancel:
+						current = None
+						OrionTools.sleep(0.1)
+					else:
+						break
+			else:
+				current = None
+		return bool(current) if id is None else id == current
+
+	@classmethod
+	def dialogWait(self, id = None, open = True, close = True, loader = None):
+		interval = 0.25
+		if open:
+			for i in range(20 if open is True else int(open * interval)):
+				if self.dialogVisible(id = id, loader = loader): break
+				else: OrionTools.sleep(interval)
+		if close:
+			for i in range(100000 if close is True else int(close * interval)):
+				if self.dialogVisible(id = id, loader = loader): OrionTools.sleep(interval)
+				else: break
 
 	@classmethod
 	def dialogConfirm(self, message, title = None):
@@ -243,13 +276,13 @@ class OrionInterface:
 		return xbmcgui.Dialog().yesno(self._dialogTitle(title), OrionTools.translate(message), yeslabel = labelConfirm, nolabel = labelDeny)
 
 	@classmethod
-	def dialogOptions(self, items, multiple = False, preselect = [], title = None):
+	def dialogOptions(self, items, multiple = False, select = None, title = None):
 		items = [OrionTools.translate(item) for item in items]
 		if multiple:
-			try: return xbmcgui.Dialog().multiselect(self._dialogTitle(title), items, preselect = preselect)
+			try: return xbmcgui.Dialog().multiselect(self._dialogTitle(title), items, preselect = [] if select is None else select)
 			except: return xbmcgui.Dialog().multiselect(self._dialogTitle(title), items)
 		else:
-			return xbmcgui.Dialog().select(self._dialogTitle(title), items)
+			return xbmcgui.Dialog().select(self._dialogTitle(title), items, preselect = -1 if select is None else select)
 
 	@classmethod
 	def dialogNotification(self, message, icon = None, time = 5000, sound = False, title = None, titleless = False):
@@ -344,3 +377,12 @@ class OrionInterface:
 				mask[i] = '.' + mask[i]
 		mask = '|'.join(mask)
 		return xbmcgui.Dialog().browse(type, self._dialogTitle(title), 'files', mask, True, False, default, multiple)
+
+	##############################################################################
+	# WINDOW
+	##############################################################################
+
+	@classmethod
+	def window(self, file, path = None, skin = 'default', resolution = '720p'):
+		if path is None: path = OrionTools.addonPath()
+		return xbmcgui.WindowXMLDialog(file, path, skin, resolution)

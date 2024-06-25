@@ -270,6 +270,14 @@ class OrionStream:
 		try: return self.mData['access']['realdebrid']
 		except: return default
 
+	def accessDebridlink(self, default = None):
+		try: return self.mData['access']['debridlink']
+		except: return default
+
+	def accessAlldebrid(self, default = None):
+		try: return self.mData['access']['alldebrid']
+		except: return default
+
 	##############################################################################
 	# FILE
 	##############################################################################

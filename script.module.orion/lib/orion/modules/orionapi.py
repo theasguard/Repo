@@ -39,28 +39,33 @@ class OrionApi:
 
 	# Used by OrionSettings.
 	# Determines which API results to not show a notification for.
-	TypesEssential = ['userlogin', 'abuseregister']
+	TypesEssential = ['userkey', 'userlogin', 'userauth', 'userauthexpired', 'userauthinvalid', 'userauthinreject', 'abuseregister', 'abuselogin']
 	TypesNonessential = ['exception', 'success', 'streammissing']
-	TypesBlock = ['streamvoteabuse', 'streamremoveabuse']
+	TypesBlock = ['streamvoteabuse', 'streamremoveabuse', 'streamupdate']
+	TypesAuthentication = ['userkey', 'userlogin']
+	TypesSubscription = ['subscriptionexpired', 'subscriptionstreams', 'subscriptionhashes', 'subscriptioncontainers']
 
 	ParameterMode = 'mode'
 	ParameterAction = 'action'
 	ParameterKeyApp = 'keyapp'
 	ParameterKeyUser = 'keyuser'
 	ParameterKey = 'key'
+	ParameterToken = 'token'
+	ParameterCode = 'code'
+	ParameterVersion = 'version'
 	ParameterId = 'id'
 	ParameterEmail = 'email'
 	ParameterUser = 'user'
 	ParameterPassword = 'password'
 	ParameterLink = 'link'
 	ParameterLinks = 'links'
+	ParameterHash = 'hash'
 	ParameterResult = 'result'
 	ParameterQuery = 'query'
 	ParameterStatus = 'status'
 	ParameterType = 'type'
 	ParameterItem = 'item'
 	ParameterStream = 'stream'
-	ParameterToken = 'token'
 	ParameterDescription = 'description'
 	ParameterMessage = 'message'
 	ParameterData = 'data'
@@ -73,13 +78,21 @@ class OrionApi:
 	ParameterVersion = 'version'
 	ParameterCategory = 'category'
 	ParameterSubject = 'subject'
+	ParameterFile = 'file'
 	ParameterFiles = 'files'
 	ParameterAll = 'all'
-
-	StatusUnknown = 'unknown'
-	StatusBusy = 'busy'
-	StatusSuccess = 'success'
-	StatusError = 'error'
+	ParameterAutomatic = 'automatic'
+	ParameterIdItem = 'iditem'
+	ParameterIdStream = 'idstream'
+	ParameterRefresh = 'refresh'
+	ParameterOutput = 'output'
+	ParameterIp = 'ip'
+	ParameterGlobal = 'global'
+	ParameterContainer = 'container'
+	ParameterContainerData = 'containerdata'
+	ParameterContainerName = 'containername'
+	ParameterContainerType = 'containertype'
+	ParameterContainerSize = 'containersize'
 
 	ModeStream = 'stream'
 	ModeContainer = 'container'
@@ -87,10 +100,11 @@ class OrionApi:
 	ModeUser = 'user'
 	ModeTicket = 'ticket'
 	ModeNotification = 'notification'
+	ModePromotion = 'promotion'
 	ModeServer = 'server'
 	ModeAddon = 'addon'
+	ModeDebrid = 'debrid'
 	ModeCoupon = 'coupon'
-	ModeFlare = 'flare'
 
 	ActionAdd = 'add'
 	ActionUpdate = 'update'
@@ -98,6 +112,7 @@ class OrionApi:
 	ActionAnonymous = 'anonymous'
 	ActionDownload = 'download'
 	ActionLogin = 'login'
+	ActionAuthenticate = 'authenticate'
 	ActionRemove = 'remove'
 	ActionIdentifier = 'identifier'
 	ActionSegment = 'segment'
@@ -107,11 +122,18 @@ class OrionApi:
 	ActionRedeem = 'redeem'
 	ActionVersion = 'version'
 	ActionStatus = 'status'
+	ActionSupport = 'support'
+	ActionLookup = 'lookup'
+	ActionResolve = 'resolve'
+
+	StatusUnknown = 'unknown'
+	StatusBusy = 'busy'
+	StatusSuccess = 'success'
+	StatusError = 'error'
+	StatusConnection = 'connection'
 
 	TypeMovie = 'movie'
 	TypeShow = 'show'
-
-	AddonKodi = 'kodi'
 
 	StreamTorrent = 'torrent'
 	StreamUsenet = 'usenet'
@@ -126,9 +148,29 @@ class OrionApi:
 	VoteUp = 'up'
 	VoteDown = 'down'
 
+	DebridPremiumize = 'premiumize'
+	DebridOffcloud = 'offcloud'
+	DebridRealdebrid = 'realdebrid'
+	DebridDebridlink = 'debridlink'
+	DebridAlldebrid = 'alldebrid'
+
+	FileOriginal = 'original'
+	FileStream = 'stream'
+	FileSequential = 'sequential'
+
+	OutputList = 'list'
+	OutputChoice = 'choice'
+	OutputExpression = 'expression'
+	OutputDomain = 'domain'
+
 	DataJson = 'json'
 	DataRaw = 'raw'
 	DataBoth = 'both'
+
+	AddonKodi = 'kodi'
+
+	Last = None
+	Error = {}
 
 	##############################################################################
 	# CONSTRUCTOR
@@ -153,22 +195,32 @@ class OrionApi:
 	##############################################################################
 
 	@classmethod
-	def _keyInternal(self):
-		key = OrionSettings.getString('internal.api.orion', raw = True, obfuscate = True)
-		if not key:
+	def _keyInternal(self, key = None):
+		value = OrionSettings.getString('internal.api.orion', raw = True, obfuscate = True)
+		if not value:
 			if OrionSettings.adapt():
-				key = OrionSettings.getString('internal.api.orion', raw = True, obfuscate = True)
-			if not key:
+				value = OrionSettings.getString('internal.api.orion', raw = True, obfuscate = True)
+			if not value:
 				OrionInterface.dialogConfirm(message = 33038)
 				OrionTools.quit()
-		return key
+		if key: return key == value
+		else: return value
+
+	@classmethod
+	def _keyWeb(self, key):
+		value = '0' * 8
+		return key and key.startswith(value) and key.endswith(value)
+
+	@classmethod
+	def _keyHidden(self, key):
+		return self._keyInternal(key = key) or self._keyWeb(key = key)
 
 	def _logMessage(self):
 		result = []
-		if not self.mStatus == None: result.append(self.mStatus)
-		if not self.mType == None: result.append(self.mType)
-		if not self.mDescription == None: result.append(self.mDescription)
-		if not self.mMessage == None: result.append(self.mMessage)
+		if not self.mStatus is None: result.append(self.mStatus)
+		if not self.mType is None: result.append(self.mType)
+		if not self.mDescription is None: result.append(self.mDescription)
+		if not self.mMessage is None: result.append(self.mMessage)
 		return ' | '.join(result)
 
 	##############################################################################
@@ -184,41 +236,82 @@ class OrionApi:
 
 		result = None
 		networker = None
+		identifier = ''
+
+		debug = not OrionSettings.silentDebug()
+		if mode == OrionApi.ModeStream and action == OrionApi.ActionUpdate: debug = False
 
 		try:
-			if not mode == None: parameters[OrionApi.ParameterMode] = mode
-			if not action == None: parameters[OrionApi.ParameterAction] = action
+			app = [OrionTools.addonId(id = False), OrionTools.addonVersion(id = False), OrionTools.addonName(id = False)]
+			app = ' | '.join([i if i else '' for i in app])
+
+			if not mode is None: parameters[OrionApi.ParameterMode] = mode
+			if not action is None: parameters[OrionApi.ParameterAction] = action
 
 			from orion.modules.orionapp import OrionApp
 			keyApp = OrionApp.instance().key()
-			if keyApp == None and mode == OrionApi.ModeApp and action == OrionApi.ActionRetrieve: keyApp = self._keyInternal()
-			if not keyApp == None and not keyApp == '': parameters[OrionApi.ParameterKeyApp] = keyApp
+
+			# Use the internal API key for retrieving settings backups.
+			# Otherwise if Orion is authenticated from a third-party addon and then asked if the online settings should be imported, the import fails since the current addon's API key is used which probably does not have permission for this.
+			if (keyApp is None and mode == OrionApi.ModeApp and action == OrionApi.ActionRetrieve) or mode == OrionApi.ModeAddon: keyApp = self._keyInternal()
+			if not keyApp is None and not keyApp == '': parameters[OrionApi.ParameterKeyApp] = keyApp
 
 			from orion.modules.orionuser import OrionUser
-			keyUser = OrionUser.instance().key()
-			if not keyUser == None and not keyUser == '': parameters[OrionApi.ParameterKeyUser] = keyUser
+			user = OrionUser.instance()
+			keyUser = user.key()
+			if not keyUser is None and not keyUser == '':
+				# Do not add the user API key when authenticating using a QR code.
+				# This can happen when a user has already authenticated an account previously (the previous API key is still available), and wants to reauthenticate  the account or authenticate a new account.
+				# When adding a user API key in such a case, the API will assume it is an API call from the user entering the code on the website, and not an API call from Kodi that checks if the authentication was completed in intervals (OrionNavigator.settingsAccountCode()).
+				# The API will then return an 'The authentication process failed.' error, causing the QR dialog to close.
+				if not(mode == OrionApi.ModeUser and action == OrionApi.ActionAuthenticate):
+					parameters[OrionApi.ParameterKeyUser] = keyUser
+			else:
+				token = user.token()
+				if not token is None and not token == '': parameters[OrionApi.ParameterToken] = token
 
-			if not OrionSettings.silent():
+			parameters[OrionApi.ParameterVersion] = OrionTools.addonVersion()
+
+			if debug:
 				query = copy.deepcopy(parameters)
 				if query:
-					truncate = [OrionApi.ParameterId, OrionApi.ParameterPassword, OrionApi.ParameterKey, OrionApi.ParameterKeyApp, OrionApi.ParameterKeyUser, OrionApi.ParameterData, OrionApi.ParameterLink, OrionApi.ParameterLinks, OrionApi.ParameterFiles]
+					truncate = [OrionApi.ParameterId, OrionApi.ParameterPassword, OrionApi.ParameterKey, OrionApi.ParameterKeyApp, OrionApi.ParameterKeyUser, OrionApi.ParameterToken, OrionApi.ParameterData, OrionApi.ParameterLink, OrionApi.ParameterLinks, OrionApi.ParameterFiles, OrionApi.ParameterItem, OrionApi.ParameterHash, OrionApi.ParameterContainer, OrionApi.ParameterContainerData]
 					for key, value in OrionTools.iterator(query):
 						if key in truncate: query[key] = '-- truncated --'
-				OrionTools.log('ORION API REQUEST: ' + OrionTools.jsonTo(query))
+				queryString = OrionTools.jsonTo(query)
+				identifier = ' [' + OrionTools.hash(queryString)[:5] + ']'
+				OrionTools.log('Orion API Request' + identifier + ': ' + queryString)
+
+			timeout = 90
+			if OrionSettings.getBoolean('general.connection.custom'):
+				timeout = max(20, OrionSettings.getInteger('general.connection.timeout'))
 
 			networker = OrionNetworker(
 				link = OrionTools.linkApi(),
 				parameters = parameters,
-				timeout = max(30, OrionSettings.getInteger('general.scraping.timeout')),
+				headers = {'Premium' : 1 if user.subscriptionPackagePremium() else 0, 'App' : app},
+				timeout = timeout,
 				agent = OrionNetworker.AgentOrion,
-				debug = not OrionSettings.silent()
+				debug = debug
 			)
 
 			result = networker.request()
+
+			# No internet connection or domain name issues.
+			if not result and networker.errorTypeNetwork():
+				if not silent and OrionSettings.silentAllow(self.mType):
+					if networker.errorCodeConnection(): message = 33071
+					elif networker.errorCodeResolve(): message = 33072
+					else: message = 33073
+					OrionInterface.dialogNotification(title = 32320, message = message, icon = OrionInterface.IconError)
+				self.mStatus = OrionApi.StatusError
+				OrionApi.Last = {'status' : self.mStatus, 'type' : OrionApi.StatusConnection, 'description' : None, 'message' : None}
+				return self.statusSuccess()
+
 			if data == self.DataBoth:
 				if not OrionTools.jsonIs(result): return result
 			elif data == self.DataRaw:
-				return {'status' : networker.status(), 'headers' : networker.headers(), 'body' : result, 'response' : networker.response()}
+				return {'status' : networker.status(), 'headers' : networker.headersResponse(), 'body' : result, 'response' : networker.response()}
 			json = OrionTools.jsonFrom(result)
 
 			result = json[OrionApi.ParameterResult]
@@ -226,57 +319,72 @@ class OrionApi:
 			if OrionApi.ParameterType in result: self.mType = result[OrionApi.ParameterType]
 			if OrionApi.ParameterDescription in result: self.mDescription = result[OrionApi.ParameterDescription]
 			if OrionApi.ParameterMessage in result: self.mMessage = result[OrionApi.ParameterMessage]
+			OrionApi.Last = {'status' : self.mStatus, 'type' : self.mType, 'description' : self.mDescription, 'message' : self.mMessage}
 
 			if OrionApi.ParameterData in json: self.mData = json[OrionApi.ParameterData]
 
+			time = OrionTools.timestamp()
+			notify = not silent and OrionSettings.silentAllow(self.mStatus)
 			if self.mStatus == OrionApi.StatusError:
-				if not OrionSettings.silent():
-					OrionTools.log('ORION API ERROR: ' + self._logMessage())
+				if debug:
+					OrionTools.log('Orion API Error' + identifier + ': ' + self._logMessage())
 				if not silent and OrionSettings.silentAllow(self.mType):
-					OrionInterface.dialogNotification(title = 32048, message = self.mDescription, icon = OrionInterface.IconError)
+					allow = True
+
+					# Do not show multiple notifications if multiple debrid lookups or resolves are done within 60 seconds.
+					# Multiple debrid lookups: multiple threads with chunks of hashes.
+					# Multiple debrid resolves: sequential playback.
+					if mode == OrionApi.ModeDebrid and (action == OrionApi.ActionLookup or action == OrionApi.ActionResolve):
+						if mode in OrionApi.Error and action in OrionApi.Error[mode]:
+							if time - OrionApi.Error[mode][action]['time'] < (60 if action == OrionApi.ActionLookup else 15): allow = False
+
+					if allow: OrionInterface.dialogNotification(title = 32048, message = self.mDescription, icon = OrionInterface.IconError)
+				if not mode in OrionApi.Error: OrionApi.Error[mode] = {}
+				OrionApi.Error[mode][action] = {'status' : self.mStatus, 'type' : self.mType, 'description' : self.mDescription, 'message' : self.mMessage, 'time' : time}
 			elif self.mStatus == OrionApi.StatusSuccess:
-				if not OrionSettings.silent():
-					OrionTools.log('ORION API SUCCESS: ' + self._logMessage())
-				if not silent and OrionSettings.silentAllow(self.mStatus):
-					if mode == OrionApi.ModeStream:
-						if action == OrionApi.ActionVote:
-							OrionInterface.dialogNotification(title = 32202, message = 33029, icon = OrionInterface.IconSuccess)
-						elif action == OrionApi.ActionRemove:
-							OrionInterface.dialogNotification(title = 32203, message = 33030, icon = OrionInterface.IconSuccess)
-						elif action == OrionApi.ActionRetrieve:
-							count = self.mData[OrionApi.ParameterCount]
-							message = OrionTools.translate(32062) + ': ' + str(count[OrionApi.ParameterTotal]) + ' • ' + OrionTools.translate(32063) + ': ' + str(count[OrionApi.ParameterRetrieved])
-							OrionTools.log('ORION STREAMS FOUND: ' + message)
+				if debug:
+					OrionTools.log('Orion API Success' + identifier + ': ' + self._logMessage())
+				if mode == OrionApi.ModeStream:
+					if action == OrionApi.ActionVote:
+						if notify: OrionInterface.dialogNotification(title = 32202, message = 33029, icon = OrionInterface.IconSuccess)
+					elif action == OrionApi.ActionRemove:
+						if notify: OrionInterface.dialogNotification(title = 32203, message = 33030, icon = OrionInterface.IconSuccess)
+					elif action == OrionApi.ActionRetrieve:
+						count = self.mData[OrionApi.ParameterCount]
+						message = OrionTools.translate(32062) + ': ' + str(count[OrionApi.ParameterTotal]) + ' • ' + OrionTools.translate(32063) + ': ' + str(count[OrionApi.ParameterRetrieved])
+						if debug: OrionTools.log('Orion Streams Found' + identifier + ': ' + message)
+						if notify:
 							notifications = []
 							if self.mDescription: notifications.append({'title' : self.mDescription, 'message' : self.mMessage, 'icon' : OrionInterface.IconInformation})
 							notifications.append({'title' : 32060, 'message' : message, 'icon' : OrionInterface.IconSuccess})
 							thread = threading.Thread(target = self._notification, args = (notifications,))
 							thread.start()
-					elif mode == OrionApi.ModeContainer:
-						if action == OrionApi.ActionRetrieve:
-							count = self.mData[OrionApi.ParameterCount]
-							message = OrionTools.translate(32232) + ': ' + str(count[OrionApi.ParameterRequested]) + ' • ' + OrionTools.translate(32233) + ': ' + str(count[OrionApi.ParameterRetrieved])
-							OrionTools.log('ORION CONTAINERS FOUND: ' + message)
-						elif action == OrionApi.ActionHash:
-							count = self.mData[OrionApi.ParameterCount]
-							message = OrionTools.translate(32228) + ': ' + str(count[OrionApi.ParameterRequested]) + ' • ' + OrionTools.translate(32229) + ': ' + str(count[OrionApi.ParameterRetrieved])
-							OrionTools.log('ORION HASHES FOUND: ' + message)
-							# Do not show a notification if hashes are found, especailly if they are requested in chunks, too many popups.
-							#OrionInterface.dialogNotification(title = 32227, message = message, icon = OrionInterface.IconSuccess)
+				elif mode == OrionApi.ModeContainer:
+					if action == OrionApi.ActionRetrieve:
+						count = self.mData[OrionApi.ParameterCount]
+						message = OrionTools.translate(32232) + ': ' + str(count[OrionApi.ParameterRequested]) + ' • ' + OrionTools.translate(32233) + ': ' + str(count[OrionApi.ParameterRetrieved])
+						if debug: OrionTools.log('Orion Containers Found' + identifier + ': ' + message)
+					elif action == OrionApi.ActionHash:
+						count = self.mData[OrionApi.ParameterCount]
+						message = OrionTools.translate(32228) + ': ' + str(count[OrionApi.ParameterRequested]) + ' • ' + OrionTools.translate(32229) + ': ' + str(count[OrionApi.ParameterRetrieved])
+						if debug: OrionTools.log('Orion Hashes Found' + identifier + ': ' + message)
+						# Do not show a notification if hashes are found, especailly if they are requested in chunks, too many popups.
+						#if notify: OrionInterface.dialogNotification(title = 32227, message = message, icon = OrionInterface.IconSuccess)
 		except:
 			try:
 				self.mStatus = OrionApi.StatusError
-				if not networker == None and networker.error() and not silent and not OrionSettings.silent():
+				if not networker is None and networker.error() and not silent and debug:
 					if not(mode == OrionApi.ModeStream and action == OrionApi.ActionUpdate):
-						OrionInterface.dialogNotification(title = 32064, message = 33007, icon = OrionInterface.IconError)
+						OrionInterface.dialogNotification(title = 32064, message = 33007, icon = OrionInterface.IconNativeWarning)
 				else:
-					if not OrionSettings.silent():
-						OrionTools.error('ORION API EXCEPTION')
-						OrionTools.log('ORION API DATA: ' + str(result))
+					if debug:
+						OrionTools.error('Orion API Exception' + identifier + '')
+						OrionTools.log('Orion API Data' + identifier + ': ' + str(result))
 					if not silent and OrionSettings.silentAllow('exception'):
 						OrionInterface.dialogNotification(title = 32061, message = 33006, icon = OrionInterface.IconError)
+				OrionApi.Last = {'status' : self.mStatus, 'type' : OrionApi.StatusConnection, 'description' : None, 'message' : None}
 			except:
-				OrionTools.error('ORION UNKNOWN API EXCEPTION')
+				OrionTools.error('Orion Unknown API Exception' + identifier)
 
 		return self.statusSuccess()
 
@@ -293,6 +401,60 @@ class OrionApi:
 			if not single: OrionTools.sleep(time / 1000.0)
 
 	##############################################################################
+	# LAST
+	##############################################################################
+
+	@classmethod
+	def last(self):
+		try: return OrionApi.Last
+		except: return None
+
+	@classmethod
+	def lastStatus(self):
+		try: return OrionApi.Last['status']
+		except: return None
+
+	@classmethod
+	def lastStatusSuccess(self):
+		try: return OrionApi.Last['status'] == OrionApi.StatusSuccess
+		except: return None
+
+	@classmethod
+	def lastStatusError(self):
+		try: return OrionApi.Last['status'] == OrionApi.StatusError
+		except: return None
+
+	@classmethod
+	def lastType(self):
+		try: return OrionApi.Last['type']
+		except: return None
+
+	@classmethod
+	def lastTypeConnection(self):
+		try: return OrionApi.Last['type'] == OrionApi.StatusConnection
+		except: return None
+
+	@classmethod
+	def lastTypeAuthentication(self):
+		try: return OrionApi.Last['type'] in OrionApi.TypesAuthentication
+		except: return None
+
+	@classmethod
+	def lastTypeSubscription(self):
+		try: return OrionApi.Last['type'] in OrionApi.TypesSubscription
+		except: return None
+
+	@classmethod
+	def lastDescription(self):
+		try: return OrionApi.Last['description']
+		except: return None
+
+	@classmethod
+	def lastMessage(self):
+		try: return OrionApi.Last['message']
+		except: return None
+
+	##############################################################################
 	# STATUS
 	##############################################################################
 
@@ -300,13 +462,20 @@ class OrionApi:
 		return self.mStatus
 
 	def statusHas(self):
-		return not self.mStatus == None
+		return not self.mStatus is None
 
 	def statusSuccess(self):
 		return self.mStatus == OrionApi.StatusSuccess
 
 	def statusError(self):
 		return self.mStatus == OrionApi.StatusError
+
+	##############################################################################
+	# ERROR
+	##############################################################################
+
+	def errorUserKey(self):
+		return self.statusError() and self.type() == OrionApi.ErrorUserKey
 
 	##############################################################################
 	# TYPE
@@ -316,7 +485,7 @@ class OrionApi:
 		return self.mType
 
 	def typeHas(self):
-		return not self.mType == None
+		return not self.mType is None
 
 	##############################################################################
 	# DESCRIPTION
@@ -326,7 +495,7 @@ class OrionApi:
 		return self.mDescription
 
 	def descriptionHas(self):
-		return not self.mDescription == None
+		return not self.mDescription is None
 
 	##############################################################################
 	# MESSAGE
@@ -336,7 +505,7 @@ class OrionApi:
 		return self.mMessage
 
 	def messageHas(self):
-		return not self.mMessage == None
+		return not self.mMessage is None
 
 	##############################################################################
 	# DATA
@@ -346,7 +515,7 @@ class OrionApi:
 		return self.mData
 
 	def dataHas(self):
-		return not self.mData == None
+		return not self.mData is None
 
 	##############################################################################
 	# RANGE
@@ -357,10 +526,10 @@ class OrionApi:
 		if OrionTools.isArray(value):
 			result = ''
 			if len(value) == 0: return result
-			if len(value) > 1 and not value[0] == None: result += str(value[0])
+			if len(value) > 1 and not value[0] is None: result += str(value[0])
 			result += '_'
-			if len(value) > 1 and not value[1] == None: result += str(value[1])
-			else: result += str(value[0])
+			if len(value) > 1 and not value[1] is None: result += str(value[1])
+			elif len(value) == 1: result += str(value[0])
 			return result
 		else:
 			return str(value)
@@ -371,10 +540,10 @@ class OrionApi:
 
 	def appRetrieve(self, id = None, key = None):
 		single = False
-		if not id == None:
+		if not id is None:
 			single = OrionTools.isString(id)
 			result = self._request(mode = OrionApi.ModeApp, action = OrionApi.ActionRetrieve, parameters = {OrionApi.ParameterId : id})
-		elif not key == None:
+		elif not key is None:
 			single = OrionTools.isString(key)
 			result = self._request(mode = OrionApi.ModeApp, action = OrionApi.ActionRetrieve, parameters = {OrionApi.ParameterKey : key})
 		else:
@@ -395,6 +564,11 @@ class OrionApi:
 	def userLogin(self, user, password):
 		return self._request(mode = OrionApi.ModeUser, action = OrionApi.ActionLogin, parameters = {OrionApi.ParameterUser : user, OrionApi.ParameterPassword : password})
 
+	def userAuthenticate(self, code = None):
+		parameters = {}
+		if code: parameters[OrionApi.ParameterCode] = code
+		return self._request(mode = OrionApi.ModeUser, action = OrionApi.ActionAuthenticate, parameters = parameters)
+
 	def userAnonymous(self):
 		x = [OrionTools.randomInteger(1,9) for i in range(3)]
 		return self._request(mode = OrionApi.ModeUser, action = OrionApi.ActionAnonymous, parameters = {OrionApi.ParameterKey : str(str(x[0])+str(x[1])+str(x[2])+str(x[0]+x[1]*x[2]))[::-1]}, silent = False)
@@ -405,17 +579,17 @@ class OrionApi:
 
 	def ticketRetrieve(self, id = None):
 		parameters = {}
-		if not id == None: parameters[OrionApi.ParameterId] = id
+		if not id is None: parameters[OrionApi.ParameterId] = id
 		return self._request(mode = OrionApi.ModeTicket, action = OrionApi.ActionRetrieve, parameters = parameters)
 
 	def ticketAdd(self, category, subject, message, files = None):
 		parameters = {OrionApi.ParameterCategory : category, OrionApi.ParameterSubject : subject, OrionApi.ParameterMessage : message}
-		if not files == None: parameters[OrionApi.ParameterFiles] = files
+		if not files is None: parameters[OrionApi.ParameterFiles] = files
 		return self._request(mode = OrionApi.ModeTicket, action = OrionApi.ActionAdd, parameters = parameters)
 
 	def ticketUpdate(self, id, message, files = None):
 		parameters = {OrionApi.ParameterId : id, OrionApi.ParameterMessage : message}
-		if not files == None: parameters[OrionApi.ParameterFiles] = files
+		if not files is None: parameters[OrionApi.ParameterFiles] = files
 		return self._request(mode = OrionApi.ModeTicket, action = OrionApi.ActionUpdate, parameters = parameters)
 
 	def ticketClose(self, id):
@@ -429,8 +603,8 @@ class OrionApi:
 	# COUPON
 	##############################################################################
 
-	def couponRedeem(self, token):
-		return self._request(mode = OrionApi.ModeCoupon, action = OrionApi.ActionRedeem, parameters = {OrionApi.ParameterToken : token})
+	def couponRedeem(self, code):
+		return self._request(mode = OrionApi.ModeCoupon, action = OrionApi.ActionRedeem, parameters = {OrionApi.ParameterCode : code})
 
 	##############################################################################
 	# ADDON
@@ -455,11 +629,11 @@ class OrionApi:
 	def streamUpdate(self, item):
 		return self._request(mode = OrionApi.ModeStream, action = OrionApi.ActionUpdate, parameters = {OrionApi.ParameterData : item})
 
-	def streamVote(self, item, stream, vote = VoteUp, silent = True):
-		return self._request(mode = OrionApi.ModeStream, action = OrionApi.ActionVote, parameters = {OrionApi.ParameterItem : item, OrionApi.ParameterStream : stream, OrionApi.ParameterDirection : vote}, silent = silent)
+	def streamVote(self, item, stream, vote = VoteUp, automatic = False, silent = True):
+		return self._request(mode = OrionApi.ModeStream, action = OrionApi.ActionVote, parameters = {OrionApi.ParameterItem : item, OrionApi.ParameterStream : stream, OrionApi.ParameterDirection : vote, OrionApi.ParameterAutomatic : automatic}, silent = silent)
 
-	def streamRemove(self, item, stream, silent = True):
-		return self._request(mode = OrionApi.ModeStream, action = OrionApi.ActionRemove, parameters = {OrionApi.ParameterItem : item, OrionApi.ParameterStream : stream}, silent = silent)
+	def streamRemove(self, item, stream, automatic = False, silent = True):
+		return self._request(mode = OrionApi.ModeStream, action = OrionApi.ActionRemove, parameters = {OrionApi.ParameterItem : item, OrionApi.ParameterStream : stream, OrionApi.ParameterAutomatic : automatic}, silent = silent)
 
 	##############################################################################
 	# CONTAINER
@@ -482,15 +656,65 @@ class OrionApi:
 		return None if OrionTools.isBoolean(data) else data
 
 	##############################################################################
+	# DEBRID
+	##############################################################################
+
+	def debridSupport(self, idItem = None, idStream = None, link = None, type = None, status = None, globally = None, output = None):
+		parameters = {}
+		if idItem: parameters[OrionApi.ParameterIdItem] = idItem
+		if idStream: parameters[OrionApi.ParameterIdStream] = idStream
+		if link: parameters[OrionApi.ParameterLink] = link
+		if type: parameters[OrionApi.ParameterType] = type
+		if status: parameters[OrionApi.ParameterStatus] = status
+		if globally: parameters[OrionApi.ParameterGlobal] = globally
+		if output: parameters[OrionApi.ParameterOutput] = output
+		return self._request(mode = OrionApi.ModeDebrid, action = OrionApi.ActionSupport, parameters = parameters)
+
+	def debridLookup(self, idItem = None, idStream = None, link = None, hash = None, item = None, type = None, refresh = False):
+		parameters = {OrionApi.ParameterRefresh : refresh}
+		if idItem: parameters[OrionApi.ParameterIdItem] = idItem
+		if idStream: parameters[OrionApi.ParameterIdStream] = idStream
+		if link: parameters[OrionApi.ParameterLink] = link
+		if hash: parameters[OrionApi.ParameterHash] = hash
+		if item: parameters[OrionApi.ParameterItem] = item
+		if type: parameters[OrionApi.ParameterType] = type
+		return self._request(mode = OrionApi.ModeDebrid, action = OrionApi.ActionLookup, parameters = parameters)
+
+	def debridResolve(self, idItem = None, idStream = None, link = None, type = None, file = None, output = None, ip = None, container = None, containerData = None, containerName = None, containerType = None, containerSize = None):
+		parameters = {}
+		if idItem: parameters[OrionApi.ParameterIdItem] = idItem
+		if idStream: parameters[OrionApi.ParameterIdStream] = idStream
+		if link: parameters[OrionApi.ParameterLink] = link
+		if type: parameters[OrionApi.ParameterType] = type
+		if file: parameters[OrionApi.ParameterFile] = file
+		if output: parameters[OrionApi.ParameterOutput] = output
+		if ip: parameters[OrionApi.ParameterIp] = ip
+
+		if containerData: parameters[OrionApi.ParameterContainerData] = OrionTools.base64To(containerData)
+		elif container: parameters[OrionApi.ParameterContainer] = OrionTools.base64To(container)
+		if containerName: parameters[OrionApi.ParameterContainerName] = containerName
+		if containerType: parameters[OrionApi.ParameterContainerType] = containerType
+		if containerSize: parameters[OrionApi.ParameterContainerSize] = containerSize
+
+		return self._request(mode = OrionApi.ModeDebrid, action = OrionApi.ActionResolve, parameters = parameters)
+
+	##############################################################################
 	# NOTIFICATION
 	##############################################################################
 
 	def notificationRetrieve(self, time = None, count = None):
 		parameters = {}
 		parameters[OrionApi.ParameterVersion] = OrionTools.addonVersion()
-		if not time == None: parameters[OrionApi.ParameterTime] = time
-		if not count == None: parameters[OrionApi.ParameterCount] = count
+		if not time is None: parameters[OrionApi.ParameterTime] = time
+		if not count is None: parameters[OrionApi.ParameterCount] = count
 		return self._request(mode = OrionApi.ModeNotification, action = OrionApi.ActionRetrieve, parameters = parameters)
+
+	##############################################################################
+	# PROMOTION
+	##############################################################################
+
+	def promotionRetrieve(self):
+		return self._request(mode = OrionApi.ModePromotion, action = OrionApi.ActionRetrieve)
 
 	##############################################################################
 	# SERVER
@@ -498,15 +722,8 @@ class OrionApi:
 
 	def serverRetrieve(self, time = None):
 		parameters = {}
-		if not time == None: parameters[OrionApi.ParameterTime] = time
+		if not time is None: parameters[OrionApi.ParameterTime] = time
 		return self._request(mode = OrionApi.ModeServer, action = OrionApi.ActionRetrieve, parameters = parameters)
 
 	def serverTest(self):
 		return self._request(mode = OrionApi.ModeServer, action = OrionApi.ActionTest)
-
-	##############################################################################
-	# FLARE
-	##############################################################################
-
-	def flare(self, link):
-		return self._request(mode = OrionApi.ModeFlare, parameters = {OrionApi.ParameterLink : link}, data = self.DataRaw)

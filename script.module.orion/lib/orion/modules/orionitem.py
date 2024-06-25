@@ -76,10 +76,22 @@ class OrionItem:
 	AccessRealdebridTorrent = 'realdebridtorrent'
 	AccessRealdebridUsenet = 'realdebridusenet'
 	AccessRealdebridHoster = 'realdebridhoster'
+	AccessDebridlink = 'debridlink'
+	AccessDebridlinkTorrent = 'debridlinktorrent'
+	AccessDebridlinkUsenet = 'debridlinkusenet'
+	AccessDebridlinkHoster = 'debridlinkhoster'
+	AccessAlldebrid = 'alldebrid'
+	AccessAlldebridTorrent = 'alldebridtorrent'
+	AccessAlldebridUsenet = 'alldebridusenet'
+	AccessAlldebridHoster = 'alldebridhoster'
+	Accesses = [AccessPremiumize, AccessOffcloud, AccessRealdebrid, AccessDebridlink, AccessAlldebrid]
 
 	LookupPremiumize = 'premiumize'
 	LookupOffcloud = 'offcloud'
 	LookupRealdebrid = 'realdebrid'
+	LookupDebridlink = 'debridlink'
+	LookupAlldebrid = 'alldebrid'
+	Lookups = [LookupPremiumize, LookupOffcloud, LookupRealdebrid, LookupDebridlink, LookupAlldebrid]
 
 	FilterNone = None
 	FilterSettings = -1
@@ -98,7 +110,7 @@ class OrionItem:
 	SortIds = [SortNone, SortBest, SortShuffle, SortPopularity, SortTimeAdded, SortTimeUpdated, SortVideoQuality, SortAudioChannels, SortFileSize, SortStreamSeeds, SortStreamAge]
 
 	OrderAscending = 'ascending'
-	OrderDescending = 'descendig'
+	OrderDescending = 'descending'
 	OrderIds = [OrderAscending, OrderDescending]
 
 	VoteUp = OrionApi.VoteUp
@@ -124,6 +136,7 @@ class OrionItem:
 	def __init__(self, data = {}):
 		self.mData = None
 		self.mStreams = None
+		self.mInvalid = None
 		self.dataSet(data = data)
 
 	##############################################################################
@@ -160,7 +173,7 @@ class OrionItem:
 		if access:
 			streams = []
 			for stream in self.mData['streams']:
-				if not 'id' in stream or not stream['id']:
+				if not 'id' in stream or not stream['id'] or ('force' in stream and stream['force']):
 					streams.append(stream)
 				elif 'id' in stream and stream['id']:
 					try:
@@ -187,13 +200,13 @@ class OrionItem:
 
 	def update(self):
 		try:
-			if self.mStreams == None or self.mStreams == []: return False
+			if not self.mStreams and not self.mInvalid: return False
 			if not self.mData['type']: return False
 
 			if self.mData['type'] == OrionItem.TypeMovie:
-				if not self._valid(self.mData['movie']['id']['imdb']): return False
+				if not any(self._valid(self.mData['movie']['id'].get(id)) for id in [OrionItem.IdImdb, OrionItem.IdTrakt, OrionItem.IdTmdb, OrionItem.IdTvdb]): return False
 			elif self.mData['type'] == OrionItem.TypeShow:
-				if not self._valid(self.mData['show']['id']['imdb']): return False
+				if not any(self._valid(self.mData['show']['id'].get(id)) for id in [OrionItem.IdImdb, OrionItem.IdTrakt, OrionItem.IdTmdb, OrionItem.IdTvdb]): return False
 				if not self._valid(self.mData['episode']['number']['season']): return False
 				if not self._valid(self.mData['episode']['number']['episode']): return False
 			else:
@@ -205,12 +218,12 @@ class OrionItem:
 				link = stream['links']
 				if OrionTools.isArray(link):
 					for i in link:
-						if not OrionTools.linkIsMagnet(link):
+						if not OrionTools.linkIsMagnet(i):
 							link = i
 							break
 					if OrionTools.isArray(link):
 						link = link[0]
-				if link == None or link == '': continue
+				if not link: continue
 				magnet = OrionTools.linkIsMagnet(link)
 
 				# Not a standard torrent magnet of HTTP/FTP link
@@ -222,7 +235,9 @@ class OrionItem:
 					if not '.' in link.split('://')[1].split('/')[0]: continue
 
 					# Streams with cookie/session/headers
-					if '|' in link: continue
+					if '|' in link:
+						data = link.split('|')[-1].lower()
+						if 'cookie' in data or 'auth' in data: continue
 
 					# Very long links which are most likely invalid or contain other cookie/session/headers data
 					if len(link) > OrionItem.LimitLink: continue
@@ -230,9 +245,11 @@ class OrionItem:
 				if len(link) > OrionItem.LimitMagnet: continue
 
 				streams.append(stream)
+
 			self.mData['streams'] = streams
+			self.mData['invalid'] = self.mInvalid
 			self._accessLoad()
-			if len(self.mData['streams']) == 0: return False
+			if not self.mData['streams'] and not self.mData['invalid']: return False
 			return OrionApi().streamUpdate(self.mData)
 		except:
 			OrionTools.error()
@@ -292,8 +309,10 @@ class OrionItem:
 
 				filePack = FilterSettings,
 				fileName = FilterSettings,
+				fileMatch = FilterSettings,
 				fileSize = FilterSettings,
 				fileUnknown = FilterSettings,
+				fileLanguages = FilterSettings,
 
 				metaRelease = FilterSettings,
 				metaUploader = FilterSettings,
@@ -317,13 +336,13 @@ class OrionItem:
 
 		try:
 			app = OrionApp.instance().id()
-			if not OrionSettings.getFiltersEnabled(app): app = None
+			if not OrionSettings.getFiltersCustomEnabled(app): app = None
 
-			def pick(app, function):
+			def pick(app, function, include = True, exclude = True):
 				include = getattr(OrionSettings, function)(app, True, False)
-				if include == None: include = []
+				if include is None: include = []
 				exclude = getattr(OrionSettings, function)(app, False, True)
-				if exclude == None: exclude = []
+				if exclude is None: exclude = []
 				if len(exclude) > len(include): return include
 				else: return [('-' + value) for value in exclude]
 
@@ -390,44 +409,49 @@ class OrionItem:
 				if protocol in (1, 4, 5, 9): protocolHoster.append(OrionItem.ProtocolFtps)
 			if access is OrionItem.FilterSettings:
 				access = []
-				accessSettings = OrionSettings.getFiltersInteger('filters.access', app)
+				accessSettings = OrionSettings.getFiltersInteger('filters.access.status', app)
 				if accessSettings in (1, 3, 5): access.append(OrionItem.AccessDirect)
 				if accessSettings in (4, 5): access.append(OrionItem.AccessIndirect)
 				if accessSettings in (1, 2, 4, 5):
-					value = OrionSettings.getFiltersInteger('filters.access.premiumize', app)
-					if value == 1: access.append(OrionItem.AccessPremiumize)
-					if value in (2, 3, 5): access.append(OrionItem.AccessPremiumizeTorrent)
-					if value in (2, 4, 6): access.append(OrionItem.AccessPremiumizeUsenet)
-					if value in (3, 4, 7): access.append(OrionItem.AccessPremiumizeHoster)
-				if accessSettings in (1, 2, 4, 5):
-					value = OrionSettings.getFiltersInteger('filters.access.offcloud', app)
-					if value == 1: access.append(OrionItem.AccessOffcloud)
-					if value in (2, 3, 5): access.append(OrionItem.AccessOffcloudTorrent)
-					if value in (2, 4, 6): access.append(OrionItem.AccessOffcloudUsenet)
-					if value in (3, 4, 7): access.append(OrionItem.AccessOffcloudHoster)
-				if accessSettings in (1, 2, 4, 5):
-					value = OrionSettings.getFiltersInteger('filters.access.realdebrid', app)
-					if value == 1: access.append(OrionItem.AccessRealdebrid)
-					if value in (2, 3, 5): access.append(OrionItem.AccessRealdebridTorrent)
-					if value in (2, 4, 6): access.append(OrionItem.AccessRealdebridUsenet)
-					if value in (3, 4, 7): access.append(OrionItem.AccessRealdebridHoster)
-			if lookup is OrionItem.FilterSettings:
-				lookup = []
-				if OrionSettings.getFiltersBoolean('filters.lookup', app):
-					if OrionSettings.getFiltersBoolean('filters.lookup.premiumize', app): lookup.append(OrionItem.LookupPremiumize)
-					if OrionSettings.getFiltersBoolean('filters.lookup.offcloud', app): lookup.append(OrionItem.LookupOffcloud)
-					if OrionSettings.getFiltersBoolean('filters.lookup.realdebrid', app): lookup.append(OrionItem.LookupRealdebrid)
+					accessTorrent = OrionSettings.getFiltersAccessTorrent(type = app, include = True)
+					if OrionItem.AccessPremiumize in accessTorrent: access.append(OrionItem.AccessPremiumizeTorrent)
+					if OrionItem.AccessOffcloud in accessTorrent: access.append(OrionItem.AccessOffcloudTorrent)
+					if OrionItem.AccessRealdebrid in accessTorrent: access.append(OrionItem.AccessRealdebridTorrent)
+					if OrionItem.AccessDebridlink in accessTorrent: access.append(OrionItem.AccessDebridlinkTorrent)
+					if OrionItem.AccessAlldebrid in accessTorrent: access.append(OrionItem.AccessAlldebridTorrent)
+					accessUsenet = OrionSettings.getFiltersAccessUsenet(type = app, include = True)
+					if OrionItem.AccessPremiumize in accessUsenet: access.append(OrionItem.AccessPremiumizeUsenet)
+					if OrionItem.AccessOffcloud in accessUsenet: access.append(OrionItem.AccessOffcloudUsenet)
+					if OrionItem.AccessRealdebrid in accessUsenet: access.append(OrionItem.AccessRealdebridUsenet)
+					if OrionItem.AccessDebridlink in accessUsenet: access.append(OrionItem.AccessDebridlinkUsenet)
+					if OrionItem.AccessAlldebrid in accessUsenet: access.append(OrionItem.AccessAlldebridUsenet)
+					accessHoster = OrionSettings.getFiltersAccessHoster(type = app, include = True)
+					if OrionItem.AccessPremiumize in accessHoster: access.append(OrionItem.AccessPremiumizeHoster)
+					if OrionItem.AccessOffcloud in accessHoster: access.append(OrionItem.AccessOffcloudHoster)
+					if OrionItem.AccessRealdebrid in accessHoster: access.append(OrionItem.AccessRealdebridHoster)
+					if OrionItem.AccessDebridlink in accessHoster: access.append(OrionItem.AccessDebridlinkHoster)
+					if OrionItem.AccessAlldebrid in accessHoster: access.append(OrionItem.AccessAlldebridHoster)
+			if lookup is OrionItem.FilterSettings: lookup = OrionSettings.getFiltersLookup(type = app, include = True)
 			if filePack is OrionItem.FilterSettings: filePack = OrionItem.ChoiceIds[OrionSettings.getFiltersInteger('filters.file.pack', app)]
-			if fileName is OrionItem.FilterSettings: fileName = OrionItem.ChoiceIds[OrionSettings.getFiltersInteger('filters.file.name', app)]
-			if fileSize is OrionItem.FilterSettings: fileSize = [OrionSettings.getFiltersInteger('filters.file.size.minimum', app), OrionSettings.getFiltersInteger('filters.file.size.maximum', app)] if OrionSettings.getFiltersBoolean('filters.file.size', app) else OrionItem.FilterNone
+			if fileSize is OrionItem.FilterSettings: fileSize = [OrionSettings.getFiltersInteger('filters.file.size.minimum', app) or None, OrionSettings.getFiltersInteger('filters.file.size.maximum', app) or None] if OrionSettings.getFiltersBoolean('filters.file.size', app) else OrionItem.FilterNone
 			if fileUnknown is OrionItem.FilterSettings: fileUnknown = OrionSettings.getFiltersBoolean('filters.file.size.unknown', app)
+			if fileName is OrionItem.FilterSettings:
+				fileName = OrionSettings.getFiltersInteger('filters.file.name', app)
+				if fileName < 3: fileName = OrionItem.ChoiceIds[fileName]
+				elif fileName == 3: fileName = OrionSettings.getFiltersString('filters.file.name.keyword', app)
+				else: fileName = OrionItem.FilterNone
+			if fileMatch is OrionItem.FilterSettings:
+				if fileName == OrionItem.ChoiceInclude or fileName == OrionItem.ChoiceRequire: fileMatch = OrionSettings.getFiltersString('filters.file.name.match', app)
+				else: fileMatch = OrionItem.FilterNone
+			if fileLanguages is OrionItem.FilterSettings: fileLanguages = pick(app, 'getFiltersFileLanguages')
 			if metaRelease is OrionItem.FilterSettings: metaRelease = pick(app, 'getFiltersMetaRelease')
 			if metaUploader is OrionItem.FilterSettings: metaUploader = pick(app, 'getFiltersMetaUploader')
 			if metaEdition is OrionItem.FilterSettings: metaEdition = pick(app, 'getFiltersMetaEdition')
 			if videoQuality is OrionItem.FilterSettings:
+				# Test with min SD and max None.
 				minimum = OrionSettings.getFiltersInteger('filters.video.quality.minimum', app)
 				maximum = OrionSettings.getFiltersInteger('filters.video.quality.maximum', app)
-				videoQuality = [OrionItem.QualityOrder[min(minimum, maximum)], OrionItem.QualityOrder[max(minimum, maximum)]] if OrionSettings.getFiltersBoolean('filters.video.quality', app) else OrionItem.FilterNone
+				videoQuality = [OrionItem.QualityOrder[min(minimum, maximum) if (minimum > 0 and maximum > 0) else minimum], OrionItem.QualityOrder[max(minimum, maximum) if (minimum > 0 and maximum > 0) else maximum]] if OrionSettings.getFiltersBoolean('filters.video.quality', app) else OrionItem.FilterNone
 			if videoCodec is OrionItem.FilterSettings: videoCodec = pick(app, 'getFiltersVideoCodec')
 			if video3D is OrionItem.FilterSettings: video3D = OrionItem.ChoiceIds[OrionSettings.getFiltersInteger('filters.video.3d', app)]
 			if audioType is OrionItem.FilterSettings: audioType = pick(app, 'getFiltersAudioType')
@@ -436,7 +460,7 @@ class OrionItem:
 			if audioChannels is OrionItem.FilterSettings:
 				minimum = OrionSettings.getFiltersInteger('filters.audio.channels.minimum', app)
 				maximum = OrionSettings.getFiltersInteger('filters.audio.channels.maximum', app)
-				audioChannels = [OrionItem.ChannelsOrder[min(minimum, maximum)], OrionItem.ChannelsOrder[max(minimum, maximum)]] if OrionSettings.getFiltersBoolean('filters.audio.channels', app) else OrionItem.FilterNone
+				audioChannels = [OrionItem.ChannelsOrder[min(minimum, maximum) if (minimum > 0 and maximum > 0) else minimum], OrionItem.ChannelsOrder[max(minimum, maximum) if (minimum > 0 and maximum > 0) else maximum]] if OrionSettings.getFiltersBoolean('filters.audio.channels', app) else OrionItem.FilterNone
 			if audioLanguages is OrionItem.FilterSettings: audioLanguages = pick(app, 'getFiltersAudioLanguages')
 
 			if not limitCount is OrionItem.FilterNone:
@@ -447,7 +471,7 @@ class OrionItem:
 				if limitRetry > 5000: limitRetry == 5000
 			if sortValue is OrionItem.FilterNone:
 				sortOrder = OrionItem.FilterNone
-			elif sortValue <= 0:
+			elif sortValue == OrionItem.SortNone:
 				sortValue = OrionItem.SortNone
 				sortOrder = OrionItem.FilterNone
 			if not popularityPercent is OrionItem.FilterNone:
@@ -506,22 +530,32 @@ class OrionItem:
 				if fileName is OrionItem.ChoiceInclude: fileName = OrionItem.FilterNone
 				elif fileName is OrionItem.ChoiceRequire: fileName = True
 				elif fileName is OrionItem.ChoiceExclude: fileName = False
-				elif OrionTools.isString(videoCodec) and not fileName == '': fileName = [fileName]
+				elif OrionTools.isString(fileName) and not fileName == '': pass
 				elif OrionTools.isList(fileName):
 					if len(fileName) == 0: fileName = OrionItem.FilterNone
 				else: fileName = OrionItem.FilterNone
+			if not fileMatch is OrionItem.FilterNone:
+				if OrionTools.isString(fileMatch) and not fileMatch == '': pass
+				elif OrionTools.isList(fileMatch):
+					if len(fileMatch) == 0: fileMatch = OrionItem.FilterNone
+				else: fileMatch = OrionItem.FilterNone
 			if not fileSize is OrionItem.FilterNone:
 				# If given in MB.
 				try:
 					if OrionTools.isNumber(fileSize):
-						if fileSize < 1048576: fileSize *= 1048576
+						if fileSize and fileSize < 1048576: fileSize *= 1048576
 					else:
 						for i in range(len(fileSize)):
-							if fileSize[i] < 1048576: fileSize[i] *= 1048576
-				except: pass
+							if fileSize[i] and fileSize[i] < 1048576: fileSize[i] *= 1048576
+				except: OrionTools.error()
 				fileSize = OrionApi.range(fileSize)
 			if not fileUnknown is OrionItem.FilterNone:
 				fileUnknown = bool(fileUnknown)
+			if not fileLanguages is OrionItem.FilterNone:
+				if OrionTools.isString(fileLanguages) and not fileLanguages == '': fileLanguages = [fileLanguages]
+				if OrionTools.isList(fileLanguages):
+					if len(fileLanguages) == 0: fileLanguages = OrionItem.FilterNone
+				else: fileLanguages = OrionItem.FilterNone
 			if not metaRelease is OrionItem.FilterNone:
 				if OrionTools.isString(metaRelease) and not metaRelease == '': metaRelease = [metaRelease]
 				if OrionTools.isList(metaRelease):
@@ -661,12 +695,14 @@ class OrionItem:
 				if OrionTools.isString(lookup): lookup = [lookup]
 				filters['lookup'] = lookup
 
-			if not filePack == None or not fileName == None or not fileSize == None or not fileUnknown == None:
+			if not filePack == None or not fileName == None or not fileMatch == None or not fileSize == None or not fileUnknown == None or not fileLanguages == None:
 				filters['file'] = {}
 				if not filePack == None: filters['file']['pack'] = filePack
 				if not fileName == None: filters['file']['name'] = fileName
+				if not fileMatch == None: filters['file']['match'] = fileMatch
 				if not fileSize == None: filters['file']['size'] = fileSize
 				if not fileUnknown == None: filters['file']['unknown'] = fileUnknown
+				if not fileLanguages == None: filters['file']['languages'] = fileLanguages
 
 			if not metaRelease == None or not metaUploader == None or not metaEdition == None:
 				filters['meta'] = {}
@@ -695,8 +731,15 @@ class OrionItem:
 
 			api = OrionApi()
 			api.streamRetrieve(filters)
+			data = api.data()
+
+			try:
+				from orion.modules.orionuser import OrionUser
+				OrionUser.instance().requestsStreamsUpdate(data = data['requests'])
+			except: pass
+
 			if api.statusSuccess():
-				item = OrionItem(data = api.data())
+				item = OrionItem(data = data)
 				item._accessSave()
 				return item
 			else: return None
@@ -715,11 +758,33 @@ class OrionItem:
 		try:
 			self.mData = data
 			self.mStreams = []
-			streams = self.mData['streams']
-			for stream in streams:
-				self.mStreams.append(OrionStream(data = stream))
-			if len(self.mStreams) > 0:
-				OrionSettings.setFilters(self.mStreams)
+			self.mInvalid = []
+
+			streams = self.mData.get('streams')
+			if streams:
+				for stream in streams:
+					self.mStreams.append(OrionStream(data = stream))
+				if len(self.mStreams) > 0:
+					OrionSettings.setFilters(self.mStreams)
+
+			invalid = self.mData.get('invalid')
+			if invalid: self.mInvalid = invalid
+
+			return True
+		except:
+			OrionTools.error()
+			return False
+
+	##############################################################################
+	# INVALID
+	##############################################################################
+
+	def invalid(self):
+		return self.mInvalid
+
+	def invalidSet(self, invalid):
+		try:
+			self.mInvalid = invalid
 			return True
 		except:
 			OrionTools.error()
@@ -805,12 +870,12 @@ class OrionItem:
 		return self.popularityPercent(select = OrionItem.SelectEpisode, default = default)
 
 	@classmethod
-	def _popularityVote(self, idItem, idStream, vote = VoteUp, notification = False):
-		return OrionApi().streamVote(item = idItem, stream = idStream, vote = vote, silent = not notification)
+	def _popularityVote(self, idItem, idStream, vote = VoteUp, automatic = False, notification = False):
+		return OrionApi().streamVote(item = idItem, stream = idStream, vote = vote, automatic = automatic, silent = not notification)
 
 	@classmethod
-	def popularityVote(self, idItem, idStream, vote = VoteUp, notification = False, wait = False):
-		thread = threading.Thread(target = self._popularityVote, args = (idItem, idStream, vote, notification))
+	def popularityVote(self, idItem, idStream, vote = VoteUp, automatic = False, notification = False, wait = False):
+		thread = threading.Thread(target = self._popularityVote, args = (idItem, idStream, vote, automatic, notification))
 		thread.start()
 		if wait: thread.join()
 
@@ -819,12 +884,12 @@ class OrionItem:
 	##############################################################################
 
 	@classmethod
-	def _remove(self, idItem, idStream, notification = False):
-		return OrionApi().streamRemove(item = idItem, stream = idStream, silent = not notification)
+	def _remove(self, idItem, idStream, automatic = False, notification = False):
+		return OrionApi().streamRemove(item = idItem, stream = idStream, automatic = automatic, silent = not notification)
 
 	@classmethod
-	def remove(self, idItem, idStream, notification = False, wait = False):
-		thread = threading.Thread(target = self._remove, args = (idItem, idStream, notification))
+	def remove(self, idItem, idStream, automatic = False, notification = False, wait = False):
+		thread = threading.Thread(target = self._remove, args = (idItem, idStream, automatic, notification))
 		thread.start()
 		if wait: thread.join()
 

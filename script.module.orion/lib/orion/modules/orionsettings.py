@@ -69,13 +69,25 @@ class OrionSettings:
 	ExternalStart = '<!-- ORION FILTERS - %s START -->'
 	ExternalEnd = '<!-- ORION FILTERS - %s END -->'
 
+	Addon = None
+
 	##############################################################################
 	# INTERNAL
 	##############################################################################
 
 	@classmethod
+	def _addon(self):
+		# NB: Do not use OrionTools.addon() to setSettings().
+		# For some reason, Kodi adds a bunch of <setting id="labelXXX" default="true" /> to the profile settings.xml.
+		# This can add 1000s of these default settings.
+		# On low-end devices, this can make Kodi unusable (especially during boot), since Kodi is constantly busy writing to disk to add these values.
+		# Now there are still a few of these settings left, but at least not 1000s.
+		if OrionSettings.Addon is None: OrionSettings.Addon = xbmcaddon.Addon(OrionTools.Id)
+		return OrionSettings.Addon
+
+	@classmethod
 	def _filtersAttribute(self, attribute, type = None):
-		if not type == None and not type == 'universal':
+		if not type is None and not type == 'universal':
 			attribute = attribute.replace('filters.', 'filters.' + type + '.')
 		return attribute
 
@@ -84,13 +96,22 @@ class OrionSettings:
 	##############################################################################
 
 	@classmethod
-	def launch(self, category = None, section = None, addon = None):
+	def launch(self, category = None, section = None, addon = None, app = None, wait = False):
 		OrionTools.execute('Addon.OpenSettings(%s)' % (OrionTools.addonId() if addon is None else addon))
+
+		if not app is None:
+			category = self.externalCategory(app = app, enabled = category == OrionSettings.CategoryFilters)
 		if OrionTools.kodiVersionNew():
-			if not category == None: OrionTools.execute('SetFocus(%i)' % (int(category) - 100))
+			if not category is None: OrionTools.execute('SetFocus(%i)' % (int(category) - 100))
 		else:
-			if not category == None: OrionTools.execute('SetFocus(%i)' % (int(category) + 100))
-			if not section == None: OrionTools.execute('SetFocus(%i)' % (int(section) + 200))
+			if not category is None: OrionTools.execute('SetFocus(%i)' % (int(category) + 100))
+			if not section is None: OrionTools.execute('SetFocus(%i)' % (int(section) + 200))
+
+		if wait: OrionInterface.dialogWait()
+
+	@classmethod
+	def launchFilters(self, app = None, wait = False):
+		self.launch(category = OrionSettings.CategoryFilters, app = app, wait = wait)
 
 	##############################################################################
 	# PATH
@@ -104,18 +125,9 @@ class OrionSettings:
 	def pathProfile(self):
 		return OrionTools.pathJoin(OrionTools.addonProfile(), 'settings.xml')
 
-	##############################################################################
-	# HELP
-	##############################################################################
-
 	@classmethod
-	def help(self, type = None):
-		help = not self.getBoolean('help.enabled.general')
-		data = OrionTools.fileRead(self.pathProfile())
-		if OrionTools.kodiVersionNew(): data = re.sub('(id="help.enabled\..*")(.*)(<\/setting>)', '\\1>%s</setting>' % OrionTools.toBoolean(help, string = True), data, flags = re.IGNORECASE)
-		else: data = re.sub('(id="help.enabled\..*?" )(.*)(\/>)', '\\1value="%s" />' % OrionTools.toBoolean(help, string = True), data, flags = re.IGNORECASE)
-		OrionTools.fileWrite(self.pathProfile(), data)
-		self.launch(category = type)
+	def pathStrings(self):
+		return OrionTools.pathJoin(OrionTools.addonPath(), 'resources', 'language', 'English', 'strings.po')
 
 	##############################################################################
 	# SILENT
@@ -123,14 +135,18 @@ class OrionSettings:
 
 	@classmethod
 	def silent(self):
-		from orion.modules.orionuser import OrionUser
 		global OrionSettingsSilent
-		return OrionSettingsSilent or not OrionUser.instance().enabled()
+		return OrionSettingsSilent or self.silentDebug()
 
 	@classmethod
 	def silentSet(self, silent = True):
 		global OrionSettingsSilent
 		OrionSettingsSilent = silent
+
+	@classmethod
+	def silentDebug(self):
+		from orion.modules.orionuser import OrionUser
+		return not OrionUser.instance().enabled()
 
 	@classmethod
 	def silentAllow(self, type = None):
@@ -149,14 +165,17 @@ class OrionSettings:
 
 	@classmethod
 	def data(self):
-		data = None
-		path = OrionTools.pathJoin(self.pathAddon())
-		with open(path, 'r') as file: data = file.read()
-		return OrionTools.unicodeString(data)
+		try:
+			path = OrionTools.pathJoin(self.pathAddon())
+			return OrionTools.fileRead(path)
+		except:
+			OrionTools.error()
+			return None
 
 	@classmethod
-	def _database(self, path = None):
-		return OrionDatabase.instance(OrionSettings.DatabaseSettings, default = OrionTools.pathJoin(OrionTools.addonPath(), 'resources'), path = path)
+	def _database(self, path = None, default = False):
+		if default: return OrionDatabase.instance(OrionSettings.DatabaseSettings, path = OrionTools.pathJoin(OrionTools.addonPath(), 'resources', OrionSettings.DatabaseSettings))
+		else: return OrionDatabase.instance(OrionSettings.DatabaseSettings, default = OrionTools.pathJoin(OrionTools.addonPath(), 'resources'), path = path)
 
 	@classmethod
 	def _commit(self):
@@ -187,7 +206,7 @@ class OrionSettings:
 		global OrionSettingsCache
 		if OrionSettingsCache == None:
 			OrionSettingsCache = {
-				'enabled' : OrionTools.toBoolean(OrionTools.addon().getSetting('general.settings.cache')),
+				'enabled' : OrionTools.toBoolean(self._addon().getSetting('general.settings.cache')),
 				'static' : {
 					'data' : None,
 					'values' : {},
@@ -212,12 +231,12 @@ class OrionSettings:
 	def cacheGet(self, id, raw, database = False, obfuscate = False):
 		cache = self.cache()
 		if raw:
-			if cache['static']['data'] == None: cache['static']['data'] = OrionTools.fileRead(self.pathAddon())
+			if cache['static']['data'] is None: cache['static']['data'] = OrionTools.fileRead(self.pathAddon())
 			data = cache['static']['data']
 			values = cache['static']['values']
 			parameter = OrionSettings.ParameterDefault
 		else:
-			if cache['dynamic']['data'] == None: cache['dynamic']['data'] = OrionTools.fileRead(self.pathProfile())
+			if cache['dynamic']['data'] is None: cache['dynamic']['data'] = OrionTools.fileRead(self.pathProfile())
 			data = cache['dynamic']['data']
 			values = cache['dynamic']['values']
 			parameter = OrionSettings.ParameterValue
@@ -231,7 +250,7 @@ class OrionSettings:
 			return result
 		else:
 			result = self.getRaw(id = id, parameter = parameter, data = data)
-			if result == None: result = OrionTools.addon().getSetting(id)
+			if result == None: result = self._addon().getSetting(id)
 			if obfuscate: result = OrionTools.obfuscate(result)
 			values[id] = result
 			return result
@@ -256,7 +275,7 @@ class OrionSettings:
 		else:
 			value = str(value)
 		self._lock()
-		OrionTools.addon().setSetting(id = id, value = value)
+		self._addon().setSetting(id = id, value = value)
 		if cached or self.cacheEnabled(): self.cacheSet(id = id, value = value)
 		self._unlock()
 		if commit and backup: self._backupAutomatic(force = True)
@@ -266,8 +285,8 @@ class OrionSettings:
 	##############################################################################
 
 	@classmethod
-	def _getDatabase(self, id):
-		try: return OrionTools.jsonFrom(self._database().selectValue('SELECT data FROM %s WHERE id = "%s";' % (OrionSettings.DatabaseSettings, id)))
+	def _getDatabase(self, id, default = False):
+		try: return OrionTools.jsonFrom(self._database(default = default).selectValue('SELECT data FROM %s WHERE id = "%s";' % (OrionSettings.DatabaseSettings, id)))
 		except: return None
 
 	@classmethod
@@ -278,7 +297,7 @@ class OrionSettings:
 			return self.getRaw(id = id, obfuscate = obfuscate)
 		else:
 			self._backupAutomatic()
-			data = OrionTools.addon().getSetting(id)
+			data = self._addon().getSetting(id)
 			if obfuscate: data = OrionTools.obfuscate(data)
 			return data
 
@@ -286,69 +305,62 @@ class OrionSettings:
 	def getRaw(self, id, parameter = ParameterDefault, data = None, obfuscate = False):
 		try:
 			id = OrionTools.unicodeString(id)
+			if parameter == OrionSettings.ParameterValue and OrionTools.kodiVersionNew(): expression = 'id\s*=\s*"' + id + '"[^\/]*?>(.*?)<'
+			else: expression = 'id\s*=\s*"' + id + '".*?<' + parameter + '[^\/]*?>(.*?)<'
 			if data == None: data = self.data()
-			indexStart = data.find(id)
-			if indexStart < 0: return None
-			indexStart = data.find('"', indexStart)
-			if indexStart < 0: return None
-			indexEnd = data.find('/>', indexStart)
-			if indexEnd < 0: return None
-			data = data[indexStart : indexEnd]
-			indexStart = data.find(parameter)
-			if indexStart < 0: return None
-			indexStart = data.find('"', indexStart) + 1
-			indexEnd = data.find('"', indexStart)
-			data = data[indexStart : indexEnd]
-			if obfuscate: data = OrionTools.obfuscate(data)
-			return data
+			match = re.search(expression, data, re.IGNORECASE | re.DOTALL)
+			if match:
+				data = match.group(1)
+				if obfuscate: data = OrionTools.obfuscate(data)
+				return data
 		except:
 			OrionTools.error()
 			return None
 
 	@classmethod
-	def getString(self, id, raw = False, obfuscate = False):
-		return self.get(id = id, raw = raw, obfuscate = obfuscate)
+	def getString(self, id, raw = False, obfuscate = False, cached = True):
+		return self.get(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 
 	@classmethod
-	def getBoolean(self, id, raw = False, obfuscate = False):
-		return OrionTools.toBoolean(self.get(id = id, raw = raw, obfuscate = obfuscate))
+	def getBoolean(self, id, raw = False, obfuscate = False, cached = True):
+		return OrionTools.toBoolean(self.get(id = id, raw = raw, obfuscate = obfuscate, cached = cached))
 
 	@classmethod
-	def getBool(self, id, raw = False, obfuscate = False):
-		return self.getBoolean(id = id, raw = raw, obfuscate = obfuscate)
+	def getBool(self, id, raw = False, obfuscate = False, cached = True):
+		return self.getBoolean(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 
 	@classmethod
-	def getNumber(self, id, raw = False, obfuscate = False):
-		return self.getDecimal(id = id, raw = raw, obfuscate = obfuscate)
+	def getNumber(self, id, raw = False, obfuscate = False, cached = True):
+		return self.getDecimal(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 
 	@classmethod
-	def getDecimal(self, id, raw = False, obfuscate = False):
-		value = self.get(id = id, raw = raw, obfuscate = obfuscate)
+	def getDecimal(self, id, raw = False, obfuscate = False, cached = True):
+		value = self.get(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 		try: return float(value)
 		except: return 0
 
 	@classmethod
-	def getFloat(self, id, raw = False, obfuscate = False):
-		return self.getDecimal(id = id, raw = raw, obfuscate = obfuscate)
+	def getFloat(self, id, raw = False, obfuscate = False, cached = True):
+		return self.getDecimal(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 
 	@classmethod
-	def getInteger(self, id, raw = False, obfuscate = False):
-		value = self.get(id = id, raw = raw, obfuscate = obfuscate)
+	def getInteger(self, id, raw = False, obfuscate = False, cached = True):
+		value = self.get(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 		try: return int(value)
 		except: return 0
 
 	@classmethod
-	def getInt(self, id, raw = False, obfuscate = False):
-		return self.getInteger(id = id, raw = raw, obfuscate = obfuscate)
+	def getInt(self, id, raw = False, obfuscate = False, cached = True):
+		return self.getInteger(id = id, raw = raw, obfuscate = obfuscate, cached = cached)
 
 	@classmethod
-	def getList(self, id):
-		result = self._getDatabase(id)
+	def getList(self, id, default = False):
+		result = self._getDatabase(id, default = default)
 		return [] if result == None or result == '' else result
 
 	@classmethod
-	def getObject(self, id):
-		result = self._getDatabase(id)
+	def getObject(self, id, default = False):
+		result = self._getDatabase(id, default = default)
 		return None if result == None or result == '' else result
 
 	##############################################################################
@@ -356,13 +368,8 @@ class OrionSettings:
 	##############################################################################
 
 	@classmethod
-	def getApp(self, app):
-		try: return self.getBoolean('filters.' + app + '.app', raw = True)
-		except: return False
-
-	@classmethod
 	def getIntegration(self, app):
-		try: return self.getString('filters.' + app + '.integration')
+		try: return self.getString('integration.' + app)
 		except: return ''
 
 	@classmethod
@@ -382,22 +389,10 @@ class OrionSettings:
 		return self.getBoolean('general.notifications.tickets')
 
 	@classmethod
-	def getGeneralScrapingTimeout(self):
-		return self.getInteger('general.scraping.timeout')
-
-	@classmethod
-	def getGeneralScrapingMode(self):
-		return self.getInteger('general.scraping.mode')
-
-	@classmethod
-	def getGeneralScrapingCount(self):
-		return self.getInteger('general.scraping.count')
-
-	@classmethod
-	def getGeneralScrapingQuality(self, index = False):
-		quality = max(0, self.getInteger('general.scraping.quality') - 1)
-		if not index: quality = OrionStream.QualityOrder[quality]
-		return quality
+	def getFiltersGlobal(self, app = None, cached = False):
+		if app is None or app == 'universal': return True
+		elif not OrionTools.isString(app): app = app.id()
+		return not self.getBoolean('filters.' + app + '.enabled', cached = cached) # Do not use the cached value, since this setting might have been toggle during the same execution.
 
 	@classmethod
 	def getFiltersBoolean(self, attribute, type = None):
@@ -412,8 +407,8 @@ class OrionSettings:
 		return self.getString(self._filtersAttribute(attribute, type))
 
 	@classmethod
-	def getFiltersObject(self, attribute, type = None, include = False, exclude = False):
-		values = self.getObject(self._filtersAttribute(attribute, type))
+	def getFiltersObject(self, attribute, type = None, include = False, exclude = False, default = False):
+		values = self.getObject(self._filtersAttribute(attribute, type), default = default)
 		try:
 			if include: values = [key for key, value in OrionTools.iterator(values) if value['enabled']]
 		except: pass
@@ -423,8 +418,38 @@ class OrionSettings:
 		return values if values else [] if (include or exclude) else {}
 
 	@classmethod
-	def getFiltersEnabled(self, type = None):
-		return self.getFiltersBoolean('filters.enabled', type = type)
+	def getFiltersCustomApp(self, app):
+		try: return self.getBoolean('filters.' + app + '.app', raw = True)
+		except: return False
+
+	@classmethod
+	def getFiltersCustomEnabled(self, type = None):
+		return self.getFiltersBoolean('filters.custom.enabled', type = type)
+
+	@classmethod
+	def getFiltersLookup(self, type = None, include = False, exclude = False, default = False):
+		result = self.getFiltersObject('filters.lookup.service', type = type, include = include, exclude = exclude)
+		if not result and default: result = self.getFiltersObject('filters.lookup.service', type = type, include = include, exclude = exclude, default = default)
+		return result
+
+	@classmethod
+	def getFiltersAccess(self, stream, type = None, include = False, exclude = False, default = False):
+		id = 'filters.access.' + stream
+		result = self.getFiltersObject(id, type = type, include = include, exclude = exclude)
+		if not result and default: result = self.getFiltersObject(id, type = type, include = include, exclude = exclude, default = default)
+		return result
+
+	@classmethod
+	def getFiltersAccessTorrent(self, type = None, include = False, exclude = False, default = False):
+		return self.getFiltersAccess(stream = OrionStream.TypeTorrent, type = type, include = include, exclude = exclude, default = default)
+
+	@classmethod
+	def getFiltersAccessUsenet(self, type = None, include = False, exclude = False, default = False):
+		return self.getFiltersAccess(stream = OrionStream.TypeUsenet, type = type, include = include, exclude = exclude, default = default)
+
+	@classmethod
+	def getFiltersAccessHoster(self, type = None, include = False, exclude = False, default = False):
+		return self.getFiltersAccess(stream = OrionStream.TypeHoster, type = type, include = include, exclude = exclude, default = default)
 
 	@classmethod
 	def getFiltersStreamOrigin(self, type = None, include = False, exclude = False):
@@ -437,6 +462,10 @@ class OrionSettings:
 	@classmethod
 	def getFiltersStreamHoster(self, type = None, include = False, exclude = False):
 		return self.getFiltersObject('filters.stream.hoster', type = type, include = include, exclude = exclude)
+
+	@classmethod
+	def getFiltersFileLanguages(self, type = None, include = False, exclude = False):
+		return self.getFiltersObject('filters.file.languages', type = type, include = include, exclude = exclude)
 
 	@classmethod
 	def getFiltersMetaRelease(self, type = None, include = False, exclude = False):
@@ -484,7 +513,7 @@ class OrionSettings:
 
 	@classmethod
 	def setIntegration(self, app, value, commit = True):
-		return self.set('filters.' + app + '.integration', value, commit = commit)
+		return self.set('integration.' + app, value, commit = commit)
 
 	@classmethod
 	def setFilters(self, values, wait = False):
@@ -493,13 +522,24 @@ class OrionSettings:
 		if wait:
 			self.setFiltersUpdate(values)
 		else:
-			#thread = threading.Thread(target = self._setFiltersThread, args = (values,))
-			thread = threading.Thread(target = self.setFiltersUpdate, args = (values,))
+			# This is still and issues in Kodi 19 with Seren.
+			# Sometimes Seren freezes up when scraping Orion and after a while being frozen, Kodi crashes.
+			# This does not happen all the time, but the problem is sporadic (happens every 5 - 10 times).
+			# When tracking down the point at which Seren/Kodi freezes, it is in Orion's code, in OrionSettings.set(...) -> addon.setSetting(...).
+			# This is probably due to a poor locking implementation (or none at all) within Kodi's core code in setSetting(...).
+			# The locking in OrionSettings.set(...) will not always work, especially with Seren, since Seren starts two providers (hoster + torrent) in multiple threads.
+			# Hence, those two providers will call Orion separately and therefore not share the same lock.
+			# The only solution for now seems to update the settings in separate processes instead of threads.
+
+			thread = threading.Thread(target = self._setFiltersThread, args = (values,))
+			#thread = threading.Thread(target = self.setFiltersUpdate, args = (values,))
+
 			thread.start()
 
 	@classmethod
 	def _setFiltersThread(self, values):
 		# Do not pass the values as plugin parameters, since this immediately fills up the log, since Kodi prints the entire command.
+
 		database = self._database()
 		database.create('CREATE TABLE IF NOT EXISTS %s (data TEXT);' % OrionSettings.DatabaseTemp)
 		database.insert('INSERT INTO %s (data) VALUES(?);' % OrionSettings.DatabaseTemp, parameters = (OrionTools.jsonTo([value.data() for value in values]),))
@@ -514,27 +554,31 @@ class OrionSettings:
 	def setFiltersUpdate(self, values = None):
 		from orion.modules.orionapp import OrionApp
 		try:
-			if values == None:
+			if values is None:
+				# Only select the first row, since the _setFiltersThread function can be called multiple times from different threads, therefore inserting multiple rows.
 				database = self._database()
-				values = database.selectValue('SELECT data FROM  %s;' % OrionSettings.DatabaseTemp)
-				database.drop(OrionSettings.DatabaseTemp)
+				id = database.selectValue('SELECT rowid FROM %s LIMIT 1;' % OrionSettings.DatabaseTemp)
+				if id:
+					values = database.selectValue('SELECT data FROM %s WHERE rowid = %s;' % (OrionSettings.DatabaseTemp, id))
+					database.delete('DELETE FROM %s WHERE rowid = %s;' % (OrionSettings.DatabaseTemp, id))
 			if OrionTools.isString(values):
 				values = OrionTools.jsonFrom(values)
 				values = [OrionStream(value) for value in values]
 		except: pass
-		apps = [None] + [i.id() for i in OrionApp.instances()]
-		for app in apps:
-			self.setFiltersStreamOrigin(values, type = app, commit = False)
-			self.setFiltersStreamSource(values, type = app, commit = False)
-			self.setFiltersStreamHoster(values, type = app, commit = False)
-			self.setFiltersMetaRelease(values, type = app, commit = False)
-			self.setFiltersMetaUploader(values, type = app, commit = False)
-			self.setFiltersMetaEdition(values, type = app, commit = False)
-			self.setFiltersVideoCodec(values, type = app, commit = False)
-			self.setFiltersAudioType(values, type = app, commit = False)
-			self.setFiltersAudioSystem(values, type = app, commit = False)
-			self.setFiltersAudioCodec(values, type = app, commit = False)
-		self._commit()
+		if values:
+			apps = [None] + [i.id() for i in OrionApp.instances(orion = False)]
+			for app in apps:
+				self.setFiltersStreamOrigin(values, type = app, commit = False)
+				self.setFiltersStreamSource(values, type = app, commit = False)
+				self.setFiltersStreamHoster(values, type = app, commit = False)
+				self.setFiltersMetaRelease(values, type = app, commit = False)
+				self.setFiltersMetaUploader(values, type = app, commit = False)
+				self.setFiltersMetaEdition(values, type = app, commit = False)
+				self.setFiltersVideoCodec(values, type = app, commit = False)
+				self.setFiltersAudioType(values, type = app, commit = False)
+				self.setFiltersAudioSystem(values, type = app, commit = False)
+				self.setFiltersAudioCodec(values, type = app, commit = False)
+			self._commit()
 
 	@classmethod
 	def _setFilters(self, values, setting, functionStreams, functionGet, type = None, commit = True):
@@ -556,16 +600,24 @@ class OrionSettings:
 			items = values
 		if items: count = len([1 for key, value in OrionTools.iterator(items) if value['enabled']])
 		else: count = 0
-		self.set(self._filtersAttribute(setting, type), items, commit = commit)
-		self.set(self._filtersAttribute(setting + '.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		key = self._filtersAttribute(setting, type)
+		if not self.getObject(key) == items:
+			self.set(key, items, commit = commit)
+			self.set(self._filtersAttribute(setting + '.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
 
 	@classmethod
 	def _setFiltersLanguages(self, values, setting, functionStreams, functionGet, type = None, commit = True):
 		if not values: return
 		if values: count = len([1 for key, value in OrionTools.iterator(values) if value['enabled']])
 		else: count = 0
-		self.set(self._filtersAttribute(setting, type), values, commit = commit)
-		self.set(self._filtersAttribute(setting + '.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		key = self._filtersAttribute(setting, type)
+		if not self.getObject(key) == values:
+			self.set(key, values, commit = commit)
+			self.set(self._filtersAttribute(setting + '.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
 
 	@classmethod
 	def setFiltersLimitCount(self, value, type = None, commit = True):
@@ -576,6 +628,63 @@ class OrionSettings:
 		self.set(self._filtersAttribute('filters.limit.retry', type), value, commit = commit)
 
 	@classmethod
+	def setFiltersLookup(self, values, type = None, commit = True):
+		if not values: return
+		items = {}
+		try:
+			from orion.modules.orionitem import OrionItem
+			for attribute in OrionItem.Lookups:
+				attribute = attribute.lower()
+				try: value = values[attribute]['enabled']
+				except: value = True
+				items[attribute] = {'name' : attribute.upper(), 'enabled' : value}
+		except:
+			items = values
+		if items: count = len([1 for key, value in OrionTools.iterator(items) if value['enabled']])
+		else: count = 0
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		key = self._filtersAttribute('filters.lookup.service', type)
+		if not self.getObject(key) == items:
+			self.set(self._filtersAttribute('filters.lookup.service', type), items, commit = commit)
+			self.set(self._filtersAttribute('filters.lookup.service.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+	@classmethod
+	def setFiltersAccess(self, values, stream, type = None, commit = True):
+		if not values: return
+		items = {}
+		try:
+			from orion.modules.orionitem import OrionItem
+			for attribute in OrionItem.Accesses:
+				attribute = attribute.lower()
+				try: value = values[attribute]['enabled']
+				except: value = True
+				items[attribute] = {'name' : attribute.upper(), 'enabled' : value}
+		except:
+			items = values
+		if items: count = len([1 for key, value in OrionTools.iterator(items) if value['enabled']])
+		else: count = 0
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		id = 'filters.access.' + stream
+		key = self._filtersAttribute(id, type)
+		if not self.getObject(key) == items:
+			self.set(self._filtersAttribute(id, type), items, commit = commit)
+			self.set(self._filtersAttribute(id + '.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+	@classmethod
+	def setFiltersAccessTorrent(self, values, type = None, commit = True):
+		return self.setFiltersAccess(values = values, stream = OrionStream.TypeTorrent, type = type, commit = commit)
+
+	@classmethod
+	def setFiltersAccessUsenet(self, values, type = None, commit = True):
+		return self.setFiltersAccess(values = values, stream = OrionStream.TypeUsenet, type = type, commit = commit)
+
+	@classmethod
+	def setFiltersAccessHoster(self, values, type = None, commit = True):
+		return self.setFiltersAccess(values = values, stream = OrionStream.TypeHoster, type = type, commit = commit)
+
+	@classmethod
 	def setFiltersStreamOrigin(self, values, type = None, commit = True):
 		if not values: return
 		items = {}
@@ -583,7 +692,7 @@ class OrionSettings:
 			from orion.modules.orionstream import OrionStream
 			for value in values:
 				attribute = value.streamOrigin()
-				if not attribute == None and not attribute == '':
+				if not attribute is None and not attribute == '':
 					items[attribute.lower()] = {'name' : attribute.upper(), 'type' : value.streamType(), 'enabled' : True}
 			settings = self.getFiltersStreamOrigin(type = type)
 			if settings:
@@ -595,8 +704,12 @@ class OrionSettings:
 			items = values
 		if items: count = len([1 for key, value in OrionTools.iterator(items) if value['enabled']])
 		else: count = 0
-		self.set(self._filtersAttribute('filters.stream.origin', type), items, commit = commit)
-		self.set(self._filtersAttribute('filters.stream.origin.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		key = self._filtersAttribute('filters.stream.origin', type)
+		if not self.getObject(key) == items:
+			self.set(key, items, commit = commit)
+			self.set(self._filtersAttribute('filters.stream.origin.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
 
 	@classmethod
 	def setFiltersStreamSource(self, values, type = None, commit = True):
@@ -606,7 +719,7 @@ class OrionSettings:
 			from orion.modules.orionstream import OrionStream
 			for value in values:
 				attribute = value.streamSource()
-				if not attribute == None and not attribute == '':
+				if not attribute is None and not attribute == '':
 					items[attribute.lower()] = {'name' : attribute.upper(), 'type' : value.streamType(), 'enabled' : True}
 			settings = self.getFiltersStreamSource(type = type)
 			if settings:
@@ -618,8 +731,12 @@ class OrionSettings:
 			items = values
 		if items: count = len([1 for key, value in OrionTools.iterator(items) if value['enabled']])
 		else: count = 0
-		self.set(self._filtersAttribute('filters.stream.source', type), items, commit = commit)
-		self.set(self._filtersAttribute('filters.stream.source.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		key = self._filtersAttribute('filters.stream.source', type)
+		if not self.getObject(key) == items:
+			self.set(key, items, commit = commit)
+			self.set(self._filtersAttribute('filters.stream.source.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
 
 	@classmethod
 	def setFiltersStreamHoster(self, values, type = None, commit = True):
@@ -629,7 +746,7 @@ class OrionSettings:
 			from orion.modules.orionstream import OrionStream
 			for value in values:
 				attribute = value.streamHoster()
-				if not attribute == None and not attribute == '':
+				if not attribute is None and not attribute == '':
 					items[attribute.lower()] = {'name' : attribute.upper(), 'enabled' : True}
 			settings = self.getFiltersStreamHoster(type = type)
 			if settings:
@@ -641,8 +758,16 @@ class OrionSettings:
 			items = values
 		if items: count = len([1 for key, value in OrionTools.iterator(items) if value['enabled']])
 		else: count = 0
-		self.set(self._filtersAttribute('filters.stream.hoster', type), items, commit = commit)
-		self.set(self._filtersAttribute('filters.stream.hoster.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+		# Only do this if the data has not changed, since reading is fast (reads from cache), but writing is slow (write to file).
+		key = self._filtersAttribute('filters.stream.hoster', type)
+		if not self.getObject(key) == items:
+			self.set(self._filtersAttribute('filters.stream.hoster', type), items, commit = commit)
+			self.set(self._filtersAttribute('filters.stream.hoster.label', type), str(count) + ' ' + OrionTools.translate(32096), commit = commit)
+
+	@classmethod
+	def setFiltersFileLanguages(self, values, type = None, commit = True):
+		self._setFiltersLanguages(values, 'filters.file.languages', 'fileLanguages', 'getFiltersFileLanguages', type, commit = commit)
 
 	@classmethod
 	def setFiltersMetaRelease(self, values, type = None, commit = True):
@@ -685,8 +810,66 @@ class OrionSettings:
 		self._setFiltersLanguages(values, 'filters.subtitle.languages', 'subtitleLanguages', 'getFiltersSubtitleLanguages', type, commit = commit)
 
 	##############################################################################
+	# CLEAN
+	##############################################################################
+
+	# Remove old/unused settings from the profile XML that are not in the new adadon settings XML.
+	@classmethod
+	def clean(self):
+		data = OrionTools.fileRead(self.pathAddon())
+		idCurrent = re.findall('<setting\s+id\s*=\s*[\'"](.*?)[\'"]', data, flags = re.IGNORECASE)
+		idCurrent = {id : True for id in idCurrent}
+
+		# Exclude integration settings.
+		data = OrionTools.fileRead(self.pathProfile())
+		idXml = re.findall('<setting\s+id\s*=\s*[\'"]((?!integration\.).*?)[\'"]', data, flags = re.IGNORECASE)
+
+		# Clean XML.
+		# Ignore "labelXXX" since these are Kodi strings.po translations for the old settings format.
+		# Ignore "integration.XXX", since these are set, but are not in the addon settings.xml.
+		# UPDATE: The "labelXXX" problem has been fixed.
+		# UPDATE: "integration.XXX" should also be fixed, since those settings were now added to the default settings.xml, but still ignore them, since we might add a new integration, but forget to add an entry to settings.xml.
+		for id in idXml:
+			#if not(id.startswith('label') or id.startswith('integration.')) and not id in idCurrent:
+			if not(id.startswith('integration.')) and not id in idCurrent:
+				data = re.sub('([^\S\t\n\r]*<setting\s.*?id\s*=\s*[\'"]%s[\'"].*?(?:\/>|<\/setting>)[^\S\t\n\r]*[\n\r]*)' % id.replace('.', '\.'), '', data, flags = re.IGNORECASE)
+
+		# Clean database.
+		database = self._database()
+		idDatabase = database.selectValues('SELECT id FROM %s;' % OrionSettings.DatabaseSettings)
+		idDatabase = [id for id in idDatabase if not id in idCurrent]
+		if idDatabase:
+			database.delete('DELETE FROM %s WHERE %s;' % (OrionSettings.DatabaseSettings, ' OR '.join([('id = "%s"' % id) for id in idDatabase])))
+			database.compress()
+
+		OrionTools.fileWrite(self.pathProfile(), data)
+
+	@classmethod
+	def cleanTemporary(self):
+		# Sometimes the process executing setFiltersUpdate() does not finish.
+		# Eg: User canceles or restarts Kodi.
+		# This makes old temp values remain in the database, overwriting custom source/hoster settings specified by the user, once the user does a scrape.
+		# Automatically clear old values from service.py.
+		return self._database().delete('DELETE FROM %s;' % OrionSettings.DatabaseTemp)
+
+	##############################################################################
 	# BACKUP
 	##############################################################################
+
+	@classmethod
+	def _backupOutdated(self, settings):
+		# Older version of the settings which are incompatible with each other.
+		# These keys are from v4 and earlier. The new v5 does not have them anymore.
+		return bool(settings) and ('general.advanced.enabled' in settings or 'general.dummy' in settings or 'filters.dummy' in settings)
+
+	@classmethod
+	def _backupOnlineCheck(self, notification = True):
+		from orion.modules.orionuser import OrionUser
+		if OrionUser.instance().subscriptionPackagePremium(): return True
+
+		# This is blocked by the API as well. But save bandwidth by not even making the request.
+		if notification: OrionInterface.dialogNotification(title = 32322, message = 33074, icon = OrionInterface.IconWarning)
+		return False
 
 	@classmethod
 	def _backupExportOnline(self):
@@ -700,13 +883,14 @@ class OrionSettings:
 					settings[id] = self.get(id, database = True)
 
 				data = OrionTools.fileRead(path)
-				pattern = re.compile('id\s*=\s*"(.*?)"')
+				pattern = re.compile('<setting.*id\s*=\s*"(.*?)"')
 				ids = [id for id in re.findall(pattern, data)]
+
 				for id in ids:
 					if not id in settings:
 						settings[id] = self.get(id)
 
-				settings = {key : value for key, value in OrionTools.iterator(settings) if not key.startswith(('help', 'internal', 'account'))}
+				settings = {key : value for key, value in OrionTools.iterator(settings) if not key.startswith(('account', 'internal', 'integration'))}
 		except:
 			OrionTools.error()
 		return settings
@@ -715,6 +899,8 @@ class OrionSettings:
 	def _backupImportOnline(self, settings):
 		try:
 			if settings:
+				if self._backupOutdated(settings = settings): return None
+
 				for key, value in OrionTools.iterator(settings):
 					self.set(key, value, commit = False)
 				self._commit()
@@ -725,8 +911,9 @@ class OrionSettings:
 
 	@classmethod
 	def backupExportOnline(self):
+		if not self._backupOnlineCheck(): return False
+
 		from orion.modules.orionapi import OrionApi
-		from orion.modules.orionuser import OrionUser
 		OrionInterface.loaderShow()
 		data = self._backupExportOnline()
 		success = OrionApi().addonUpdate(data)
@@ -741,12 +928,15 @@ class OrionSettings:
 
 	@classmethod
 	def backupImportOnline(self, refresh = True):
+		if not self._backupOnlineCheck(): return False
+
 		from orion.modules.orionapi import OrionApi
 		from orion.modules.orionuser import OrionUser
 		OrionInterface.loaderShow()
 		api = OrionApi()
 		if api.addonRetrieve():
-			if self._backupImportOnline(api.data()):
+			success = self._backupImportOnline(api.data())
+			if success:
 				# Get updated user status
 				if refresh:
 					OrionUser.instance().update()
@@ -756,7 +946,7 @@ class OrionSettings:
 				return True
 			else:
 				OrionInterface.loaderHide()
-				OrionInterface.dialogNotification(title = 32170, message = 33016, icon = OrionInterface.IconError)
+				OrionInterface.dialogNotification(title = 32170, message = 33084 if success is None else 33016, icon = OrionInterface.IconError)
 				return False
 		else:
 			OrionInterface.loaderHide()
@@ -765,7 +955,7 @@ class OrionSettings:
 
 	@classmethod
 	def backupExportAutomaticOnline(self):
-		if self._backupSetting(online = True):
+		if self._backupOnlineCheck(notification = False) and self._backupSetting(online = True):
 			from orion.modules.orionapi import OrionApi
 			data = self._backupExportOnline()
 			current = OrionTools.hash(OrionTools.jsonTo(data))
@@ -779,7 +969,7 @@ class OrionSettings:
 	@classmethod
 	def backupImportAutomaticOnline(self):
 		global OrionSettingsBackupOnline
-		if not OrionSettingsBackupOnline and self._backupSetting(online = True):
+		if not OrionSettingsBackupOnline and self._backupOnlineCheck(notification = False) and self._backupSetting(online = True):
 			from orion.modules.orionapi import OrionApi
 			OrionSettingsBackupOnline = True
 			api = OrionApi()
@@ -800,7 +990,7 @@ class OrionSettings:
 
 	@classmethod
 	def _backupSetting(self, local = False, online = False):
-		try: setting = int(OrionTools.addon().getSetting(id = 'general.settings.backup'))
+		try: setting = int(self._addon().getSetting(id = 'general.settings.backup'))
 		except: setting = 0
 		if local and setting in [1, 3]: return True
 		elif online and setting in [1, 2]: return True
@@ -808,7 +998,8 @@ class OrionSettings:
 
 	@classmethod
 	def _backupAutomaticValid(self):
-		return OrionTools.toBoolean(OrionTools.addon().getSetting(id = 'account.valid'))
+		# Do not convert to bool, but instead check for empty string (default in the XML).
+		return not self._addon().getSetting(id = 'account.authentication.valid') == ''
 
 	@classmethod
 	def _backupAutomatic(self, force = False):
@@ -822,8 +1013,12 @@ class OrionSettings:
 				if local: success = self._backupAutomaticExport(force = force)
 			else:
 				if local: success = self._backupAutomaticImport() and self._backupAutomaticValid()
-				if not success and online: success = self.backupImportAutomaticOnline()
-				if success:
+				if not success and online:
+					# NB: Do not import an online backup automatically while the wizard runs.
+					# This happens if Orion is installed and launched for the first time.
+					# Otherwise the settings are imported during initial wizard setup, although the user has selected in ther wizard to NOT import them.
+					if OrionSettings.getBoolean('internal.initial'): success = self.backupImportAutomaticOnline()
+				if self._backupAutomaticValid():
 					from orion.modules.orionuser import OrionUser
 					OrionUser.instance().update()
 					self.cacheClear()
@@ -836,7 +1031,7 @@ class OrionSettings:
 			OrionSettingsBackupLocal = True
 			directory = OrionTools.addonProfile()
 			fileFrom = OrionTools.pathJoin(directory, 'settings.xml')
-			if 'account.valid' in OrionTools.fileRead(fileFrom):
+			if 'account.authentication.valid' in OrionTools.fileRead(fileFrom):
 				fileTo = OrionTools.pathJoin(directory, 'settings.' + OrionSettings.ExtensionAutomatic)
 				return OrionTools.fileCopy(fileFrom, fileTo, overwrite = True)
 		return False
@@ -952,20 +1147,29 @@ class OrionSettings:
 		return data
 
 	@classmethod
-	def externalCategory(self, app):
-		if app == None: return self.launch(OrionSettings.CategoryFilters)
+	def externalCategory(self, app, enabled = False):
+		if app is None or app == 'universal': return OrionSettings.CategoryFilters
 		elif not OrionTools.isString(app): app = app.id()
-		if app == 'universal': return self.launch(OrionSettings.CategoryFilters)
+
+		# If not enabled, default to the universal filters tab.
+		if enabled and not self.getBoolean('filters.' + app + '.enabled'): return OrionSettings.CategoryFilters
+
 		data = OrionTools.fileRead(self.pathAddon())
-		data = data[:data.find('filters.' + app)]
-		self.launch(data.count('<category') - 1)
+		index = data.find('filters.' + app)
+		if not index or index < 0: return OrionSettings.CategoryFilters # If not added to the settings yet, default to the universal filters tab.
+		data = data[:index]
+		return data.count('<category') - 1
+
+	@classmethod
+	def externalLaunch(self, app):
+		self.launch(category = self.externalCategory(app = app))
 
 	@classmethod
 	def externalInsert(self, app, check = False, settings = None, commit = True):
 		from orion.modules.orionapi import OrionApi
-		if not app.key() == OrionApi._keyInternal() and not OrionTools.addonName().lower() == app.name().lower(): # Check name as well, in case the key changes.
+		if not OrionApi._keyHidden(key = app.key()) and not OrionTools.addonName().lower() == app.name().lower() and not app.name().lower() == 'web': # Check name as well, in case the key changes.
 			appId = app.id()
-			if not check or not self.getApp(appId):
+			if not check or not self.getFiltersCustomApp(appId):
 				self.externalRemove(app)
 				data = OrionTools.fileRead(self.pathAddon())
 
@@ -975,21 +1179,16 @@ class OrionSettings:
 
 				subset = data[data.find(commentStart) + len(commentStart) : data.find(commentEnd)].strip('\n').strip('\r')
 
-				index = subset.find('filters.app')
-				subset = subset[:index] + subset[index:].replace('default="false"', 'default="true"', 1)
+				index = subset.find('filters.custom.app')
+				subset = subset[:index] + subset[index:].replace('<default>false</default>', '<default>true</default>', 1)
 
-				index = subset.find('filters.enabled')
-				subset = subset[:index] + subset[index:].replace('default="true"', 'default="false"', 1)
+				index = subset.find('filters.custom.enabled')
+				subset = subset[:index] + subset[index:].replace('<default>true</default>', '<default>false</default>', 1)
 
 				subset = subset.replace('&type=universal', '&type=' + appId)
-				subset = subset.replace('id="filters.', 'id="filters.' + appId + '.')
-				subset = subset.replace('id="help.filters.', 'id="help.filters.' + appId + '.')
-				subset = subset.replace('id="help.enabled.filters', 'id="help.enabled.filters.' + appId)
-				subset = subset.replace('id="help.enable.filters', 'id="help.enable.filters.' + appId)
-				subset = subset.replace('id="help.disable.filters', 'id="help.disable.filters.' + appId)
-				subset = subset.replace('action=settingsHelp&type=2', 'action=settingsHelp&type=' + str(data.count('<category')))
+				subset = subset.replace('filters.', 'filters.' + appId + '.')
 
-				appStart = '\n\n' + OrionSettings.ExternalStart % appComment + '\n<category label = "' + app.name() + '">'
+				appStart = '\n\n' + OrionSettings.ExternalStart % appComment + '\n<category id="filters.' + appId + '" label="' + self.externalLabel(label = app.name()) + '" help="34045">'
 				appEnd = '</category>\n' + OrionSettings.ExternalEnd % appComment + '\n'
 				subset = appStart + subset + appEnd
 
@@ -1008,7 +1207,9 @@ class OrionSettings:
 					settings = [(i[0], OrionTools.jsonFrom(i[1])) for i in settings]
 				for setting in settings:
 					if setting[0].startswith('filters.'):
-						OrionSettings.set(self._filtersAttribute(setting[0], appId), setting[1], commit = False)
+						id = self._filtersAttribute(setting[0], appId)
+						current = OrionSettings.getObject(id)
+						OrionSettings.set(id, current if current else setting[1], commit = False)
 				if commit: self._commit()
 
 	@classmethod
@@ -1025,25 +1226,51 @@ class OrionSettings:
 			OrionTools.fileWrite(self.pathAddon(), self._externalClean(data))
 
 	@classmethod
-	def externalClean(self):
-		# orionremove
-		# This is needed for old Orion versions that still used the addon name instead of the app ID.
-		# Otherwise each addon might have a double entry in Orion's custom filters.
-		# Can be removed in later versions, but leave in for now.
-		from orion.modules.orionapp import OrionApp
-		from orion.modules.orionintegration import OrionIntegration
-		ids = [OrionIntegration.id(i) for i in OrionIntegration.Addons]
-		self._database().delete('DELETE FROM %s WHERE %s;' % (OrionSettings.DatabaseSettings, ' OR '.join([('id LIKE "filters.%s.%%"' % i) for i in ids])))
-		for i in ids:
-			if self.getApp(i): self.externalRemove(i)
+	def externalLabel(self, label):
+		try:
+			# The new Kodi settings format cannot take a string as a setting's label attribute anymore, only a number for the strings translation file.
+			# Insert a new label into strings.po.
+			data = OrionTools.fileRead(self.pathStrings())
 
+			subdata = re.search('(\[ORIONSTART\].*\[ORIONEND\])', data, re.IGNORECASE | re.DOTALL)
+			if subdata:subdata = subdata.group(1)
+
+			if subdata:
+				# Already inserted.
+				match = re.search('msgctxt\s*"#(\d+)"\s*msgid\s*"%s"' % label, subdata, re.IGNORECASE | re.DOTALL)
+				if match:
+					match = match.group(1)
+					if match: return match
+
+			# Get last inserted ID.
+			id = re.search('.*msgctxt\s*"#(38\d+)"', subdata or data, re.IGNORECASE | re.DOTALL)
+			if id:
+				id = id.group(1)
+				if id: id = int(id)
+			if not id: id = 38000
+			id += 1
+
+			newdata = subdata.replace('[ORIONSTART]', '').replace('[ORIONEND]', '').strip('\n').strip(' ') if subdata else ''
+			newdata += '\n\nmsgctxt "#%i"\nmsgid "%s"\nmsgstr ""\n\n' % (id, label)
+			newdata = '\n\n[ORIONSTART]\n\n%s\n\n[ORIONEND]\n\n' % newdata.strip('\n')
+			if subdata: data = data.replace(subdata, newdata)
+			else: data += newdata
+
+			OrionTools.fileWrite(self.pathStrings(), data)
+
+			return str(id)
+		except:
+			OrionTools.error()
+			return label
+
+	@classmethod
+	def externalClean(self):
 		# NB: This has to remain here permanently.
 		# Re-insert the filters if the XML file is replaced during addon updates or if the default (universal) settings change in a new version.
-
+		from orion.modules.orionapp import OrionApp
 		database = self._database(path = OrionTools.pathJoin(OrionTools.addonPath(), 'resources', OrionSettings.DatabaseSettings + OrionDatabase.Extension))
 		settings = database.select('SELECT id, data FROM  %s;' % OrionSettings.DatabaseSettings)
 		settings = [(i[0], OrionTools.jsonFrom(i[1])) for i in settings]
-
 		for i in OrionApp.instances():
 			self.externalRemove(i)
 			self.externalInsert(i, check = True, settings = settings, commit = False)
@@ -1054,21 +1281,65 @@ class OrionSettings:
 	##############################################################################
 
 	@classmethod
-	def adapt(self):
+	def adapt(self, retries = 1):
 		path = OrionTools.pathJoin(OrionTools.addonPath(), 'resources', 'settings.xml')
+		pathBase = OrionTools.pathJoin(OrionTools.addonPath(), 'resources', 'settings.base')
 		exists = OrionTools.fileExists(path)
+
+		# The XML changed between versions.
+		if exists:
+			dataBase = OrionTools.fileRead(pathBase)
+			dataCurrent = OrionTools.fileRead(path)
+			if dataBase and dataCurrent:
+				tag = 'UNIVERSAL END'
+				dataBase = dataBase[:dataBase.find(tag)]
+				dataCurrent = dataCurrent[:dataCurrent.find(tag)]
+				dataBase = re.sub('\s', '', dataBase)
+				dataCurrent = re.sub('\s', '', dataCurrent)
+				if dataBase == dataCurrent:
+					OrionTools.log('The settings file exists and has not changed since the previous version. Keeping the current file.')
+				else:
+					OrionTools.log('The settings file exists, but has changed since the previous version. Making a new copy.')
+					exists = False
+		else:
+			OrionTools.log('The settings file does not exist. Making a new copy.')
+
 		if not exists:
-			version = OrionTools.kodiVersion(major = True)
-			# orionremove
-			'''
-			if version <= 17: pathOriginal = path + '.17'
-			elif version == 18: pathOriginal = path + '.18'
-			elif version >= 19: pathOriginal = path + '.19'
-			'''
-			if version <= 17: pathOriginal = path + '.17'
-			else: pathOriginal = path + '.18'
-			OrionTools.fileCopy(pathFrom = pathOriginal, pathTo = path, overwrite = True)
-			exists = OrionTools.fileExists(path)
+			# Try alternative copy methods (XBMC vs native Python, copy vs file r/w).
+			# Some Android devices seem to have problems copying the settings.xml file.
+			count = 0
+			while count < retries:
+				count += 1
+				if count > 1 and count < retries: OrionTools.sleep(2)
+
+				# Use XBMC copy functions.
+				OrionTools.fileCopy(pathFrom = pathBase, pathTo = path, overwrite = True, native = False, copy = True)
+				exists = OrionTools.fileExists(path)
+				if exists: break
+				OrionTools.log('The XBMC file copy mechanism failed. Retry: ' + str(count))
+				OrionTools.sleep(1)
+
+				# Use XBMC file r/w functions.
+				OrionTools.fileCopy(pathFrom = pathBase, pathTo = path, overwrite = True, native = False, copy = False)
+				exists = OrionTools.fileExists(path)
+				if exists: break
+				OrionTools.log('The XBMC file read/write mechanism failed. Retry: ' + str(count))
+				OrionTools.sleep(1)
+
+				# Use Python copy functions.
+				OrionTools.fileCopy(pathFrom = pathBase, pathTo = path, overwrite = True, native = True, copy = True)
+				exists = OrionTools.fileExists(path)
+				if exists: break
+				OrionTools.log('The Python file copy mechanism failed. Retry: ' + str(count))
+				OrionTools.sleep(1)
+
+				# Use Python file r/w functions.
+				OrionTools.fileCopy(pathFrom = pathBase, pathTo = path, overwrite = True, native = True, copy = False)
+				exists = OrionTools.fileExists(path)
+				if exists: break
+				OrionTools.log('The Python file read/write mechanism failed. Retry: ' + str(count))
+				OrionTools.sleep(1)
+
 		return exists
 
 	##############################################################################
@@ -1098,9 +1369,7 @@ class OrionSettings:
 			if choice: return
 			OrionUser.anonymous()
 		else:
-			while True:
-				if OrionNavigator.settingsAccountLogin(settings = False, refresh = False):
-					break
+			if not OrionNavigator.settingsAccountLogin(settings = False, refresh = False): return
 		OrionInterface.containerRefresh()
 
 		# Limit
@@ -1135,19 +1404,9 @@ class OrionSettings:
 		elif typeHoster: typeStream = 6
 		if not typeStream is None: self.set('filters.stream.type', typeStream)
 
-		# Gaia
-		if OrionTools.addonEnabled('plugin.video.gaia'):
-			choice = OrionInterface.dialogOption(title = title, message = 35010, labelConfirm = 32055, labelDeny = 32054)
-			self.set('general.scraping.mode', 2 if choice else 1)
-			if not choice:
-				count = limit * 0.1
-				count = OrionTools.roundDown(count, nearest = 10 if count >= 100 else 5 if count >= 50 else None)
-				count = min(200, max(5, count))
-				self.set('general.scraping.count', count)
-
 		# Integration
 		restart = False
-		choice = OrionInterface.dialogOption(title = title, message = 35011, labelConfirm = skip, labelDeny = next)
+		choice = OrionInterface.dialogOption(title = title, message = 35010, labelConfirm = skip, labelDeny = next)
 		if not choice:
 			while True:
 				addons = OrionIntegration.addons(sort = True) # Refresh to recheck integration.
@@ -1161,8 +1420,8 @@ class OrionSettings:
 					if not restart: restart = addons[choice]['restart']
 
 		# Finish
-		OrionInterface.dialogConfirm(title = title, message = OrionTools.translate(35012))
+		OrionInterface.dialogConfirm(title = title, message = OrionTools.translate(35011))
 
 		# Restart
 		if restart and OrionInterface.dialogOption(title = 32174, message = 33026, labelConfirm = 32261, labelDeny = 32262):
-			OrionTools.kodiRestart()
+			OrionTools.kodiRefresh()

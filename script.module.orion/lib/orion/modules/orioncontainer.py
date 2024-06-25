@@ -153,7 +153,7 @@ class OrionContainer:
 	def identifiers(self, links):
 		if links:
 			if OrionTools.isString(links): links = [links]
-			chunks = [links[i : i + OrionContainer.ChunkSize] for i in xrange(0, len(links), OrionContainer.ChunkSize)]
+			chunks = [links[i : i + OrionContainer.ChunkSize] for i in range(0, len(links), OrionContainer.ChunkSize)]
 			results = []
 			threads = []
 			for i in range(len(chunks)):
@@ -187,7 +187,7 @@ class OrionContainer:
 	def hashes(self, links):
 		if links:
 			if OrionTools.isString(links): links = [links]
-			chunks = [links[i : i + OrionContainer.ChunkSize] for i in xrange(0, len(links), OrionContainer.ChunkSize)]
+			chunks = [links[i : i + OrionContainer.ChunkSize] for i in range(0, len(links), OrionContainer.ChunkSize)]
 			results = []
 			threads = []
 			for i in range(len(chunks)):
@@ -221,7 +221,7 @@ class OrionContainer:
 	def segments(self, links):
 		if links:
 			if OrionTools.isString(links): links = [links]
-			chunks = [links[i : i + OrionContainer.ChunkSize] for i in xrange(0, len(links), OrionContainer.ChunkSize)]
+			chunks = [links[i : i + OrionContainer.ChunkSize] for i in range(0, len(links), OrionContainer.ChunkSize)]
 			results = []
 			threads = []
 			for i in range(len(chunks)):
@@ -255,7 +255,7 @@ class OrionContainer:
 	def retrieve(self, links):
 		if links:
 			if OrionTools.isString(links): links = [links]
-			chunks = [links[i : i + OrionContainer.ChunkSize] for i in xrange(0, len(links), OrionContainer.ChunkSize)]
+			chunks = [links[i : i + OrionContainer.ChunkSize] for i in range(0, len(links), OrionContainer.ChunkSize)]
 			results = []
 			threads = []
 			for i in range(len(chunks)):

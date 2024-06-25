@@ -114,10 +114,12 @@ class OrionPlayer:
 					except: pass
 
 				if image:
-					art['poster'] = art['thumb'] = image + 'poster'
-					fanart = art['fanart'] = image + 'background'
-					art['icon'] = art['clearlogo'] = image + 'logo'
-					art['clearart'] = image + 'art'
+					art['poster'] = art['thumb'] = image + '/poster'
+					fanart = art['fanart'] = image + '/background'
+					art['icon'] = art['clearlogo'] = image + '/logo'
+					art['clearart'] = image + '/art'
+
+				OrionTools.log(str(art))
 
 				entry = xbmcgui.ListItem()
 				entry.setInfo('video', meta)

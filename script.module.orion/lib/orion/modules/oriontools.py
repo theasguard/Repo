@@ -35,22 +35,19 @@ import shutil
 import datetime
 import random
 import hashlib
-import urllib
 import traceback
 import webbrowser
 import subprocess
 import xbmc
+import xbmcgui
 import xbmcaddon
 import xbmcvfs
 
-try: from urllib.parse import urlparse
-except: import urlparse
-
-try: from urllib.parse import urlencode
-except: from urllib import urlencode
-
-try: from urllib.parse import parse_qsl
-except: from urlparse import parse_qsl
+try:
+	from urllib.parse import urlparse, urlencode, parse_qs, parse_qsl
+except:
+	from urllib import urlencode
+	from urlparse import urlparse, parse_qs, parse_qsl
 
 class OrionTools:
 
@@ -62,16 +59,27 @@ class OrionTools:
 	# Otherwise Kodi uses the addon ID that is calling Orion.
 	Id = 'script.module.orion'
 
-	LogNotice = xbmc.LOGNOTICE
-	LogError = xbmc.LOGERROR
-	LogSevere = xbmc.LOGSEVERE
-	LogFatal = xbmc.LOGFATAL
-	LogDefault = LogNotice
+	try: # Old Kodi
+		LogInfo = xbmc.LOGNOTICE
+		LogError = xbmc.LOGERROR
+		LogWarning = xbmc.LOGSEVERE
+		LogFatal = xbmc.LOGFATAL
+	except: # Kodi 19
+		LogInfo = xbmc.LOGINFO
+		LogError = xbmc.LOGERROR
+		LogWarning = xbmc.LOGWARNING
+		LogFatal = xbmc.LOGFATAL
+	LogDefault = LogInfo
 
 	FormatDateTime = '%Y-%m-%d %H:%M:%S'
 	FormatDate = '%Y-%m-%d'
 	FormatTime = '%H:%M:%S'
 	FormatDateReadable = '%-d %B %Y'
+
+	RegexIgnoreCase = re.IGNORECASE
+	RegexDotAll = re.DOTALL
+	RegexMultiLine = re.MULTILINE
+	RegexDefault = RegexIgnoreCase
 
 	PrefixPlugin = 'plugin://'
 
@@ -83,6 +91,10 @@ class OrionTools:
 	# Eg: 1000 means valueues can be between 0 and 999.
 	VersionMain = 1000
 	VersionDev = 100 # Cannot divide by more than 100.
+
+	KodiVersion = {}
+
+	Addons = {}
 
 	ArchiveExtension = 'zip'
 
@@ -107,17 +119,17 @@ class OrionTools:
 		if message4: message += divider + self.unicodeString(message4)
 		if message5: message += divider + self.unicodeString(message5)
 		if name:
-			nameValue = self.addonName().upper()
+			nameValue = '[' + self.addonName().upper()
 			if not name == True:
 				nameValue += ' ' + name
-			nameValue += ' ' + self.addonVersion()
+			nameValue += ' ' + self.addonVersion() + ']'
 			if parameters:
-				nameValue += ' ['
+				nameValue += ' ('
 				if self.isString(parameters):
 					nameValue += parameters
 				else:
 					nameValue += ', '.join([self.unicodeString(parameter) for parameter in parameters])
-				nameValue += ']'
+				nameValue += ')'
 			nameValue += ': '
 			message = nameValue + message
 		xbmc.log(message, level)
@@ -198,14 +210,28 @@ class OrionTools:
 	@classmethod
 	def unicode(self, string):
 		try:
-			if string == None: return string
-			return unidecode(self.unicodeDecode(string))
+			#if string is None: return string
+			return self.unicodeDecode(string)
 		except:
-			try:
-				return self.unicodeDecode(string)
-			except:
-				try: return string.encode('ascii', 'ignore')
-				except: return string
+			try: return string.encode('ascii', 'ignore')
+			except: return string
+
+	##############################################################################
+	# REGEX
+	##############################################################################
+
+	@classmethod
+	def regexExtract(self, data, expression, group = 1, all = False, flags = RegexDefault):
+		try:
+			if all:
+				match = re.findall(expression, data, flags = flags)
+				if group is None: return match
+				else: return match[group]
+			else:
+				match = re.search(expression, data, flags = flags)
+				if group is None: return match.groups()
+				else: return match.group(group)
+		except: return None
 
 	##############################################################################
 	# RANDOM
@@ -252,7 +278,7 @@ class OrionTools:
 	@classmethod
 	def syntaxIndentation(self, code):
 		maximum = 64
-		indentation = re.search('\n*([ \t]*).*', code, re.IGNORECASE).group(1)
+		indentation = re.search('\n*([ \t]*).*', code, OrionTools.RegexIgnoreCase).group(1)
 		code = code.split('\n')
 		for i in range(maximum):
 			yield '\n'.join([c.replace(indentation, ' ' * i, 1) for c in code])
@@ -273,7 +299,8 @@ class OrionTools:
 
 	@classmethod
 	def pathResolve(self, path):
-		return self.unicodeEncode(xbmc.translatePath(path))
+		try: return self.unicodeEncode(xbmcvfs.translatePath(path)) # New Kodi
+		except: return self.unicodeEncode(xbmc.translatePath(path)) # Old Kodi
 
 	@classmethod
 	def pathHome(self): # OS user home directory
@@ -366,30 +393,62 @@ class OrionTools:
 			return True
 		except: return False
 
+	# native == False: copy with xbmc functions, native == True: copy with Python functions.
+	# copy == True: use copy functions, copy == False: use File reead/write to make a copy.
 	@classmethod
-	def fileCopy(self, pathFrom, pathTo, bytes = None, overwrite = False):
-		if not xbmcvfs.exists(pathFrom):
-			return False
-		if overwrite and xbmcvfs.exists(pathTo):
-			try: xbmcvfs.delete(pathTo)
-			except: pass
-		if bytes == None:
-			xbmcvfs.copy(pathFrom, pathTo)
-			return xbmcvfs.exists(pathTo)
-		else:
-			try:
-				fileFrom = xbmcvfs.File(pathFrom)
-				fileTo = xbmcvfs.File(pathTo, 'w')
-				chunk = min(bytes, 1048576) # 1 MB
-				while bytes > 0:
-					size = min(bytes, chunk)
-					fileTo.write(fileFrom.read(size))
-					bytes -= size
-				fileFrom.close()
-				fileTo.close()
-				return True
-			except:
+	def fileCopy(self, pathFrom, pathTo, overwrite = False, native = False, copy = True):
+		if native:
+			pathFrom = self.pathResolve(pathFrom)
+			pathTo = self.pathResolve(pathTo)
+			if not os.path.isfile(pathFrom):
 				return False
+			if overwrite and os.path.isfile(pathTo):
+				try:
+					os.chmod(pathTo, stat.S_IWRITE)
+					os.remove(pathTo)
+				except: pass
+			if copy:
+				try: shutil.copy2(pathFrom, pathTo)
+				except: pass
+				return os.path.isfile(pathTo)
+			else:
+				try:
+					with open(pathFrom, 'rb') as fileFrom, open(pathTo, 'wb+') as fileTo:
+						while True:
+							data = fileFrom.read(262144) # 256KB
+							if not data: break
+							fileTo.write(data)
+					return True
+				except:
+					return False
+		else:
+			if not xbmcvfs.exists(pathFrom):
+				return False
+			if overwrite and xbmcvfs.exists(pathTo):
+				try: xbmcvfs.delete(pathTo)
+				except: pass
+			if copy:
+				xbmcvfs.copy(pathFrom, pathTo)
+				return xbmcvfs.exists(pathTo)
+			else:
+				try:
+					fileFrom = xbmcvfs.File(pathFrom)
+					fileTo = xbmcvfs.File(pathTo, 'w')
+					bytes = self.fileSize(pathFrom)
+					chunk = min(bytes, 262144) # 256KB
+					while bytes > 0:
+						size = min(bytes, chunk)
+						fileTo.write(fileFrom.read(size))
+						bytes -= size
+					fileFrom.close()
+					fileTo.close()
+					return True
+				except:
+					try: fileFrom.close()
+					except: pass
+					try: fileTo.close()
+					except: pass
+					return False
 
 	@classmethod
 	def fileRead(self, path, binary = False):
@@ -416,8 +475,10 @@ class OrionTools:
 			self.error()
 			return False
 
+	# If group is set to an integer, the specific group is used for inserts/replacements, instead of the entire expression.
+	# This might require the RegexDotAll flag to be passsed in, to match over multiple lines.
 	@classmethod
-	def fileInsert(self, path, after, data, flags = None, validate = False, replace = False):
+	def fileInsert(self, path, after, data, flags = None, validate = False, replace = False, group = None):
 		content = self.fileRead(path)
 		if not self.isArray(after): after = [after]
 		if not self.isArray(data): data = [data]
@@ -429,7 +490,8 @@ class OrionTools:
 			except: flagsValue = None
 			try:
 				match = re.search(afterValue, content, flagsValue if flagsValue else 0)
-				index = (match.start(), match.end()) if replace else match.end()
+				if group: index = (match.start(group), match.end(group)) if replace else match.end(group)
+				else: index = (match.start(), match.end()) if replace else match.end()
 			except: index = -1
 
 			if replace:
@@ -456,7 +518,7 @@ class OrionTools:
 	@classmethod
 	def fileClean(self, path, expression, replace = ''):
 		content = self.fileRead(path)
-		content = re.sub(expression, replace, content, flags = re.S|re.M)
+		content = re.sub(expression, replace, content, flags = OrionTools.RegexDotAll | OrionTools.RegexMultiLine)
 		self.fileWrite(path, content)
 		return True
 
@@ -655,16 +717,25 @@ class OrionTools:
 		if id is False: # Get calling addon.
 			return xbmcaddon.Addon()
 		else:
+			# If an addon is not installed, or installed but not enabled, creating a xbmcaddon.Addon(id) object causes Kodi's core code to print an error in the log:
+			#	EXCEPTION: Unknown addon id 'xxxx'
+			# When checking the integration for all the supported addons, a lot of these errors are printed.
+			# Instead, only create a xbmcaddon.Addon() object if the addon is enabled.
+			# Checking if the addon is enabled in addonEnabled() is done via the JSON RPC, which works even if the addon is not enabled.
 			if id is None: id = OrionTools.Id
-			return xbmcaddon.Addon(id)
+			if not id in OrionTools.Addons: OrionTools.Addons[id] = xbmcaddon.Addon(id) if self.addonEnabled(id = id) else None
+			return OrionTools.Addons[id]
 
 	@classmethod
 	def addonEnabled(self, id = None):
 		try:
-			xbmcaddon.Addon(id).getAddonInfo('id')
-			return True
-		except:
-			return False
+			# Check if enabled via the JSON RPC.
+			# If the addon is not enabled, Kodi prints a 'EXCEPTION: Unknown addon id 'xxxx' error in the log.
+			# It does not break anything, but can print a lot to the log during integration checks.
+			# The alternative built-in function was only added in Kodi 19 and is therefore also not a good solution.
+			if id is None: id = OrionTools.Id
+			return self.executeJson(method = 'Addons.GetAddonDetails', addon = id, parameters = {'properties' : ['enabled']})['result']['addon']['enabled']
+		except: return False
 
 	@classmethod
 	def addonInstalled(self, id = None):
@@ -672,12 +743,17 @@ class OrionTools:
 		# https://github.com/xbmc/xbmc/pull/16707
 		try:
 			if id is None: id = self.addonId()
-			if self.kodiVersion(major = True) >= 19:
+			# xbmc.getCondVisibility does not work for IDs with capital letters (eg: plugin.video.KodiVerse).
+			'''if self.kodiVersion(major = True) >= 19:
 				return xbmc.getCondVisibility('System.HasAddon(%s)' % id) == 1
 			else:
-				return self.directoryExists(self.pathAddon(id))
+				return self.directoryExists(self.pathAddon(id))'''
+			return self.executeJson(method = 'Addons.GetAddonDetails', addon = id, parameters = {'properties' : ['installed']})['result']['addon']['installed']
 		except:
-			return False
+			try:
+				return self.directoryExists(self.pathAddon(id))
+			except:
+				return False
 
 	@classmethod
 	def addonId(self, id = None, default = None):
@@ -718,7 +794,7 @@ class OrionTools:
 	def addonPath(self, id = None):
 		try: addon = self.addon(id = id)
 		except: addon = None
-		if addon == None: return ''
+		if addon is None: return ''
 		else: return self.pathResolve(self.unicodeDecode(addon.getAddonInfo('path')))
 
 	@classmethod
@@ -771,9 +847,41 @@ class OrionTools:
 		return self.kodiInfo('Container.PluginName')
 
 	@classmethod
-	def kodiRestart(self):
-		# On both Linux and Windows, seems to close Kodi, but not start it up again.
-		self.execute('XBMC.RestartApp()')
+	def kodiRestart(self, loader = True):
+		self.kodiExecute(command = 'RestartApp', loader = loader)
+
+	@classmethod
+	def kodiReload(self, loader = True):
+		# This allows a full reload of addons, inclusing addon.xml and settings.xml, without requiring a full Kodi restart.
+		self.kodiExecute(command = 'LoadProfile(%s)' % self.kodiInfo('system.profilename'), loader = loader)
+
+	@classmethod
+	def kodiRefresh(self, loader = True):
+		# kodiReload() is prefered over kodiRestart(), since it does not require a full restart, but only reloads the Kodi profile and addons.
+		# However, kodiReload() sometimes throws an error:
+		# requests/__init__.py", line 48, in <module>\n    from charset_normalizer import __version__ as charset_normalizer_version\n', '  File "~/.local/lib/python3.10/site-packages/charset_normalizer/__init__.py", line 24, in <module>\n    from .api import from_bytes, from_fp, from_path, is_binary\n', '  File "~/.local/lib/python3.10/site-packages/charset_normalizer/api.py", line 5, in <module>\n    from .cd import (\n', '  File "~/.local/lib/python3.10/site-packages/charset_normalizer/cd.py", line 14, in <module>\n    from .md import is_suspiciously_successive_range\n', 'SystemError: initialization of md__mypyc did not return an extension module
+		# This happens with all addons that use the "requests" package addon, like Embuary, or those that have their own internal "requests" package, like Gaia.
+		# Hence, reload if these addons are not installed, otherwise do a full restart.
+		# UPDATE: Even if we can get Kodi to unload without freezing, once the profile has reloaded and Kodi launches all addons again, at least at this point Kodi freezes. For now, stick to restarting.
+		# Restarting seems to finally work again on Linux. Restarting does not hang and does not cause the requests error above.
+		#self.kodiReload(loader = loader)
+		self.kodiRestart(loader = loader)
+
+	@classmethod
+	def kodiExecute(self, function = None, command = None, loader = False):
+		# When calling kodiRestart() or kodiReload(), Kodi somtimes hangs.
+		# Using a thread seems to solve the issue.
+		# Probably because without a thread, Orion asks Kodi to reload, but the Orion process is still running, waiting on the reload execution to finish.
+		if loader:
+			from orion.modules.orioninterface import OrionInterface
+			OrionInterface.loaderShow()
+			self.sleep(0.5)
+		if not function and command:
+			def _kodiExecute(command):
+				self.sleep(0.5)
+				self.execute(command)
+			function = lambda : _kodiExecute(command)
+		self.thread(function = function, start = True, wait = False)
 
 	@classmethod
 	def kodiDebugging(self):
@@ -782,13 +890,22 @@ class OrionTools:
 
 	@classmethod
 	def kodiVersion(self, full = False, major = False):
+		if major and 'major' in OrionTools.KodiVersion: return OrionTools.KodiVersion['major']
+		elif full and 'full' in OrionTools.KodiVersion: return OrionTools.KodiVersion['full']
+		elif not full and 'short' in OrionTools.KodiVersion: return OrionTools.KodiVersion['short']
+
 		version = self.kodiInfo('System.BuildVersion')
+		OrionTools.KodiVersion['full'] = version
 		if not full or major:
-			try: version = float(re.search('^\d+\.?\d+', version).group(0))
+			try:
+				version = float(re.search('^\d+\.?\d+', version).group(0))
+				OrionTools.KodiVersion['short'] = version
 			except: pass
 		if major:
-			import math
-			try: version = int(math.floor(version))
+			try:
+				import math
+				version = int(math.floor(version))
+				OrionTools.KodiVersion['major'] = version
 			except: pass
 		return version
 
@@ -853,7 +970,7 @@ class OrionTools:
 	@classmethod
 	def executeScript(self, script, parameters = None):
 		command = 'RunScript(' + script
-		if parameters == None:
+		if parameters is None:
 			for parameter in parameters:
 				command += ',' + self.unicodeString(parameter)
 		command += ')'
@@ -861,12 +978,12 @@ class OrionTools:
 
 	@classmethod
 	def executePlugin(self, action = None, parameters = None, duplicates = False, run = True, execute = False, addon = None):
-		if parameters == None: parameters = {}
-		if not action == None: parameters['action'] = action
+		if parameters is None: parameters = {}
+		if not action is None: parameters['action'] = action
 		for key, value in self.iterator(parameters):
 			if self.isStructure(value): parameters[key] = self.jsonTo(value)
 		parameters = urlencode(parameters, doseq = duplicates)
-		if addon == None: addon = self.addonId()
+		if addon is None: addon = self.addonId()
 		command = '%s%s?%s' % (OrionTools.PrefixPlugin, addon, parameters)
 		if run: command = 'RunPlugin(%s)' % command
 		if execute: return self.execute(command)
@@ -875,8 +992,8 @@ class OrionTools:
 	@classmethod
 	def executeJson(self, query = None, method = None, parameters = None, version = '2.0', id = 1, addon = False, decode = True):
 		if query == None:
-			if parameters == None: parameters = {}
-			if addon == True: parameters['addonid'] = self.addonId()
+			if parameters is None: parameters = {}
+			if addon is True: parameters['addonid'] = self.addonId()
 			elif addon: parameters['addonid'] = addon
 			query = {}
 			query['jsonrpc'] = version
@@ -889,6 +1006,34 @@ class OrionTools:
 		return result
 
 	##############################################################################
+	# THREAD
+	##############################################################################
+
+	@classmethod
+	def thread(self, function, parameters = None, start = False, wait = False):
+		from threading import Thread
+		thread = Thread(target = function, kwargs = parameters)
+		if start: thread.start()
+		if wait: thread.join()
+		return thread
+
+	##############################################################################
+	# PROPERTY
+	##############################################################################
+
+	@classmethod
+	def property(self, id, window = 10000):
+		return xbmcgui.Window(window).getProperty(id)
+
+	@classmethod
+	def propertySet(self, id, value, window = 10000):
+		xbmcgui.Window(window).setProperty(id, self.unicodeString(value))
+
+	@classmethod
+	def propertyClear(self, id, window = 10000):
+		xbmcgui.Window(window).clearProperty(id)
+
+	##############################################################################
 	# TO
 	##############################################################################
 
@@ -897,9 +1042,9 @@ class OrionTools:
 		if string:
 			return 'true' if value else 'false'
 		else:
-			if value == None:
+			if value is None:
 				return False
-			elif value == True or value == False:
+			elif value is True or value is False:
 				return value
 			elif self.isNumber(value):
 				return value > 0
@@ -908,6 +1053,11 @@ class OrionTools:
 				return value == 'true' or value == 'yes' or value == 't' or value == 'y' or value == '1'
 			else:
 				return False
+
+	@classmethod
+	def toInteger(self, value, default = None):
+		try: return int(value)
+		except: return default
 
 	##############################################################################
 	# IS
@@ -969,6 +1119,11 @@ class OrionTools:
 	def hashFile(self, path):
 		return self.hash(self.fileRead(path))
 
+	# Quick hash function, but uses a random seed so hashes are different between executions.
+	@classmethod
+	def hashInternal(self, data):
+		return hash(data)
+
 	##############################################################################
 	# BASE64
 	##############################################################################
@@ -977,12 +1132,18 @@ class OrionTools:
 	def base64From(self, data, iterations = 1, url = False):
 		import base64
 		data = self.unicodeString(data)
-		if self.pythonNew(): data = bytes(data, 'utf-8')
+		pythonNew = self.pythonNew()
+		if pythonNew: data = bytes(data, 'utf-8')
 		for i in range(iterations):
 			if url:
-				for j in OrionTools.Base64Url:
-					data = data.replace(j[1], j[0])
+				if pythonNew:
+					for j in OrionTools.Base64Url:
+						data = data.replace(bytes(j[1], 'utf-8'), bytes(j[0], 'utf-8'))
+				else:
+					for j in OrionTools.Base64Url:
+						data = data.replace(j[1], j[0])
 			data = base64.b64decode(data)
+		if pythonNew: data = self.unicodeString(data)
 		return data
 
 	@classmethod
@@ -1012,27 +1173,13 @@ class OrionTools:
 	##############################################################################
 
 	@classmethod
-	def jsonClean(self, data):
-		if self.pythonNew():
-			for key, value in data.items():
-				if self.isString(value):
-					data[key] = self.unicodeString(value)
-				elif self.isDictionary(value):
-					data[key] = self.jsonClean(value)
-				elif self.isList(value):
-					for i in range(len(value)):
-						value[i] = self.jsonClean(value[i])
-					data[key] = value
-		return data
-
-	@classmethod
 	def jsonFrom(self, data):
 		try: return json.loads(data)
 		except: return None
 
 	@classmethod
 	def jsonTo(self, data):
-		try: return json.dumps(self.jsonClean(data))
+		try: return json.dumps(data)
 		except: return None
 
 	@classmethod
@@ -1074,6 +1221,11 @@ class OrionTools:
 		except: return struct.items()
 
 	@classmethod
+	def iteratorKeys(self, struct):
+		try: return struct.iterkeys()
+		except: return struct.keys()
+
+	@classmethod
 	def iteratorValues(self, struct):
 		try: return struct.itervalues()
 		except: return struct.values()
@@ -1084,7 +1236,10 @@ class OrionTools:
 
 	@classmethod
 	def sleep(self, seconds):
-		time.sleep(seconds)
+		# NB: Do not used time.sleep(), but instead xbmc.sleep().
+		# Kodi sometimes freezes when calling time.sleep().
+		#time.sleep(seconds)
+		xbmc.sleep(int(seconds * 1000))
 
 	@classmethod
 	def timestamp(self, fixed = None):
@@ -1132,6 +1287,7 @@ class OrionTools:
 
 	@classmethod
 	def thousands(self, value):
+		if value is None: return value
 		return "{:,}".format(value)
 
 	##############################################################################
@@ -1161,12 +1317,12 @@ class OrionTools:
 	def linkApi(self):
 		from orion.modules.orionsettings import OrionSettings
 		base = None
-		if OrionSettings.getBoolean('general.advanced.enabled'):
-			connection = OrionSettings.getInteger('general.advanced.connection')
-			if connection == 0: base = OrionSettings.getString('internal.domain', raw = True)
-			elif connection == 1: base = OrionSettings.getString('internal.ip', raw = True)
-			elif connection == 2: base = OrionSettings.getString('general.advanced.connection.domain')
-			elif connection == 3: base = OrionSettings.getString('general.advanced.connection.ip')
+		if OrionSettings.getBoolean('general.connection.custom'):
+			mode = OrionSettings.getInteger('general.connection.mode')
+			if mode == 0: base = OrionSettings.getString('internal.domain', raw = True)
+			elif mode == 1: base = OrionSettings.getString('internal.ip', raw = True)
+			elif mode == 2: base = OrionSettings.getString('general.connection.domain')
+			elif mode == 3: base = OrionSettings.getString('general.connection.ip')
 		else:
 			base = OrionSettings.getString('internal.domain', raw = True)
 		if base == 'localhost' or base == '127.0.0.1': return 'http://%s/orion/api' % base
@@ -1194,6 +1350,30 @@ class OrionTools:
 			except: pass
 		if not success: webbrowser.open(link, autoraise = front, new = 2)
 		if default and dialog: OrionInterface.dialogConfirm(message = self.translate(33002) + (OrionInterface.fontNewline() * 2) + OrionInterface.fontBold(link))
+
+	##############################################################################
+	# URL
+	##############################################################################
+
+	@classmethod
+	def urlEncode(self, data):
+		return urlencode(data)
+
+	@classmethod
+	def urlParse(self, data):
+		return urlparse(data)
+
+	@classmethod
+	def urlParseQs(self, data, single = False):
+		data = parse_qs(data)
+		if single: data = {k : (v[0] if v and len(v) == 1 else v) for k, v in self.iterator(data)}
+		return data
+
+	@classmethod
+	def urlParseQsl(self, data, single = False):
+		data = parse_qsl(data)
+		if single: data = dict(data)
+		return data
 
 	##############################################################################
 	# CLEAN
