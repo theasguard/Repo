@@ -30,6 +30,7 @@ from orion.modules.orionapi import *
 from orion.modules.orionnavigator import *
 from orion.modules.orionsettings import *
 from orion.modules.orionintegration import *
+from orion.modules.orionpromotion import *
 
 orion = Orion(OrionApi._keyInternal())
 parameters = OrionTools.addonParameters()
@@ -114,12 +115,12 @@ elif action == 'dialogSettings':
 elif action == 'dialogLogin':
     OrionNavigator.dialogLogin()
 
+elif action == 'dialogPromotion':
+    OrionPromotion.dialog()
+
 ##############################################################################
 # SETTINGS
 ##############################################################################
-
-elif action == 'settingsHelp':
-    OrionSettings.help(type)
 
 elif action == 'settingsAccountLogin':
     OrionNavigator.settingsAccountLogin()
@@ -130,6 +131,18 @@ elif action == 'settingsAccountRefresh':
 elif action == 'settingsFiltersUpdate':
 	OrionSettings.setFiltersUpdate()
 
+elif action == 'settingsFiltersLookup':
+	OrionNavigator.settingsFiltersLookup(type)
+
+elif action == 'settingsFiltersAccessTorrent':
+	OrionNavigator.settingsFiltersAccessTorrent(type)
+
+elif action == 'settingsFiltersAccessUsenet':
+	OrionNavigator.settingsFiltersAccessUsenet(type)
+
+elif action == 'settingsFiltersAccessHoster':
+	OrionNavigator.settingsFiltersAccessHoster(type)
+
 elif action == 'settingsFiltersStreamOrigin':
 	OrionNavigator.settingsFiltersStreamOrigin(type)
 
@@ -138,6 +151,9 @@ elif action == 'settingsFiltersStreamSource':
 
 elif action == 'settingsFiltersStreamHoster':
 	OrionNavigator.settingsFiltersStreamHoster(type)
+
+elif action == 'settingsFiltersFileLanguages':
+	OrionNavigator.settingsFiltersFileLanguages(type)
 
 elif action == 'settingsFiltersMetaRelease':
 	OrionNavigator.settingsFiltersMetaRelease(type)
@@ -202,6 +218,12 @@ elif action == 'integrationMagicality':
 elif action == 'integrationTheoath':
 	OrionIntegration.executeTheOath()
 
+elif action == 'integrationApocalypse720':
+	OrionIntegration.executeApocalypse720()
+
+elif action == 'integrationNoLivesMatter':
+	OrionIntegration.executeNoLivesMatter()
+
 elif action == 'integrationYoda':
 	OrionIntegration.executeYoda()
 
@@ -210,6 +232,24 @@ elif action == 'integrationBodie':
 
 elif action == 'integrationNymeria':
 	OrionIntegration.executeNymeria()
+
+elif action == 'integrationFen':
+	OrionIntegration.executeFen()
+
+elif action == 'integrationNightwing':
+	OrionIntegration.executeNightwing()
+
+elif action == 'integrationPov':
+	OrionIntegration.executePov()
+
+elif action == 'integrationUmbrella':
+	OrionIntegration.executeUmbrella()
+
+elif action == 'integrationKingpin':
+	OrionIntegration.executeKingPin()
+
+elif action == 'integrationEzra':
+	OrionIntegration.executeEzra()
 
 elif action == 'integrationVenom':
 	OrionIntegration.executeVenom()
@@ -225,9 +265,6 @@ elif action == 'integrationMercury':
 
 elif action == 'integrationDeceit':
 	OrionIntegration.executeDeceit()
-
-elif action == 'integrationFen':
-	OrionIntegration.executeFen()
 
 elif action == 'integrationGenesis':
 	OrionIntegration.executeGenesis()
@@ -253,11 +290,23 @@ elif action == 'integrationContinuum':
 elif action == 'integrationMarauder':
 	OrionIntegration.executeMarauder()
 
+elif action == 'integrationPatriot':
+	OrionIntegration.executePatriot()
+
 elif action == 'integrationAsguard':
 	OrionIntegration.executeAsguard()
 
+elif action == 'integrationAsgard':
+	OrionIntegration.executeAsgard()
+
 elif action == 'integrationTheCrew':
 	OrionIntegration.executeTheCrew()
+
+elif action == 'integrationChainsGenocide':
+	OrionIntegration.executeChainsGenocide()
+
+elif action == 'integrationKodiverse':
+	OrionIntegration.executeKodiVerse()
 
 elif action == 'integrationOpenScrapers':
 	OrionIntegration.executeOpenScrapers()
@@ -265,11 +314,35 @@ elif action == 'integrationOpenScrapers':
 elif action == 'integrationLambdaScrapers':
 	OrionIntegration.executeLambdaScrapers()
 
+elif action == 'integrationFenomScrapers':
+	OrionIntegration.executeFenomScrapers()
+
+elif action == 'integrationNightwingScrapers':
+	OrionIntegration.executeNightwingScrapers()
+
+elif action == 'integrationCocoScrapers':
+	OrionIntegration.executeCocoScrapers()
+
+elif action == 'integrationUmbrellaScrapers':
+	OrionIntegration.executeUmbrellaScrapers()
+
+elif action == 'integrationKingpinScrapers':
+	OrionIntegration.executeKingPinScrapers()
+
+elif action == 'integrationEzScrapers':
+	OrionIntegration.executeEzScrapers()
+
 elif action == 'integrationUniversalScrapers':
 	OrionIntegration.executeUniversalScrapers()
 
+elif action == 'integrationUniversalDebrid':
+	OrionIntegration.executeUniversalDebrid()
+
 elif action == 'integrationNanScrapers':
 	OrionIntegration.executeNanScrapers()
+
+elif action == 'integrationEncrypticScrapers':
+	OrionIntegration.executeEncrypticScrapers()
 
 elif action == 'integrationElementum':
 	OrionIntegration.executeElementum()
