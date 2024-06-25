@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+	<views>50</views>
+	<zorder>0</zorder>
+	<defaultcontrol always="true">1</defaultcontrol>
+	<coordinates>
+		<left>0</left>
+		<top>0</top>
+	</coordinates>
+
+	<controls>
+		<control type="button" id="1">
+			<left>0</left>
+			<top>0</top>
+			<width>0</width>
+			<height>0</height>
+			<onback>Dialog.Close($INFO[Window(10000).Property(OrionAuthenticationWindow)])</onback>
+			<onclick>SetFocus(2)</onclick>
+			<onup>SetFocus(2)</onup>
+			<ondown>SetFocus(2)</ondown>
+			<onleft>SetFocus(2)</onleft>
+			<onright>SetFocus(2)</onright>
+			<texturefocus></texturefocus>
+			<texturenofocus></texturenofocus>
+			<colordiffuse>00000000</colordiffuse>
+		</control>
+
+		<control type="group">
+			<left>140</left>
+			<top>35</top>
+			<width>1000</width>
+			<height>650</height>
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>100%</width>
+				<height>100%</height>
+				<texture>special://home/addons/script.module.orion/resources/media/window/background.png</texture>
+			</control>
+			<control type="label">
+				<left>468</left>
+				<top>190</top>
+				<width>60</width>
+				<height>60</height>
+				<font>font60</font>
+				<aligny>center</aligny>
+				<align>center</align>
+				<textcolor>FFFFFFFF</textcolor>
+				<label>[B]$ADDON[script.module.orion 33075][/B]</label>
+			</control>
+
+			<control type="group">
+				<control type="label">
+					<left>40</left>
+					<top>20</top>
+					<width>420</width>
+					<height>100</height>
+					<font>font14</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>$ADDON[script.module.orion 33076]</label>
+				</control>
+				<control type="image">
+					<left>100</left>
+					<top>130</top>
+					<width>280</width>
+					<height>280</height>
+					<aspectratio align="left" aligny="bottom">stretch</aspectratio>
+					<texture>$INFO[Window(10000).Property(OrionAuthenticationQr)]</texture>
+				</control>
+			</control>
+
+			<control type="group">
+				<control type="label">
+					<left>540</left>
+					<top>20</top>
+					<width>420</width>
+					<height>100</height>
+					<font>font14</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>$ADDON[script.module.orion 33077]</label>
+				</control>
+				<control type="label">
+					<left>520</left>
+					<top>150</top>
+					<width>460</width>
+					<height>100</height>
+					<font>font12</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>$ADDON[script.module.orion 33078]</label>
+				</control>
+				<control type="label">
+					<left>520</left>
+					<top>180</top>
+					<width>460</width>
+					<height>100</height>
+					<font>font20</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>[B]$INFO[Window(10000).Property(OrionAuthenticationLink)][/B]</label>
+				</control>
+				<control type="label">
+					<left>520</left>
+					<top>250</top>
+					<width>460</width>
+					<height>100</height>
+					<font>font12</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>$ADDON[script.module.orion 33079]</label>
+				</control>
+				<control type="label">
+					<left>520</left>
+					<top>280</top>
+					<width>460</width>
+					<height>100</height>
+					<font>font20</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>[B]$INFO[Window(10000).Property(OrionAuthenticationCode)][/B]</label>
+				</control>
+			</control>
+
+			<control type="group">
+				<control type="label">
+					<left>20</left>
+					<top>460</top>
+					<width>960</width>
+					<height>30</height>
+					<font>font14</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>$ADDON[script.module.orion 33080]</label>
+				</control>
+				<control type="image">
+					<left>250</left>
+					<top>500</top>
+					<width>70</width>
+					<height>70</height>
+					<texture>special://home/addons/script.module.orion/resources/media/window/loader.png</texture>
+					<animation effect="rotate" time="1000" end="-360" center="auto" loop="true" condition="true">Conditional</animation>
+				</control>
+				<control type="label">
+					<left>320</left>
+					<top>520</top>
+					<width>400</width>
+					<height>30</height>
+					<font>font14</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<wrapmultiline>true</wrapmultiline>
+					<textcolor>FF47CAE9</textcolor>
+					<label>[B]$ADDON[script.module.orion 33081][/B]</label>
+				</control>
+				<control type="button" id="2">
+					<left>440</left>
+					<top>580</top>
+					<width>120</width>
+					<height>50</height>
+					<label>[B]$ADDON[script.module.orion 32251][/B]</label>
+					<wrapmultiline>true</wrapmultiline>
+					<font>font14</font>
+					<texturefocus colordiffuse="FF47CAE9">special://home/addons/script.module.orion/resources/media/window/button.png</texturefocus>
+					<texturenofocus colordiffuse="FF637385">special://home/addons/script.module.orion/resources/media/window/button.png</texturenofocus>
+					<colordiffuse>FFFFFFFF</colordiffuse>
+					<textcolor>FF47CAE9</textcolor>
+					<focusedcolor>FFFFFFFF</focusedcolor>
+					<disabledcolor>80FFFFFF</disabledcolor>
+					<invalidcolor>FFFFFFFF</invalidcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<pulseonselect></pulseonselect>
+					<onback>Dialog.Close($INFO[Window(10000).Property(OrionAuthenticationWindow)])</onback>
+					<onclick>Dialog.Close($INFO[Window(10000).Property(OrionAuthenticationWindow)])</onclick>
+					<onfocus></onfocus>
+					<onunfocus></onunfocus>
+					<onup>2</onup>
+					<ondown>3</ondown>
+					<onleft>1</onleft>
+					<onright>1</onright>
+				</control>
+			</control>
+
+		</control>
+	</controls>
+</window>

@@ -1,0 +1,1386 @@
+<?xml version="1.0" ?>
+<settings version="1">
+	<section id="script.module.orion">
+
+		<!-- ==================== INTERNAL ==================== -->
+		<category id="internal" label="">
+			<group id="internal.data" label="">
+				<setting id="internal.initial" type="boolean"><default>false</default><level>4</level><visible>false</visible></setting>
+				<setting id="internal.tickets" type="boolean"><default>false</default><level>4</level><visible>false</visible></setting>
+				<setting id="internal.integration" type="integer"><default>0</default><level>4</level><visible>false</visible></setting>
+				<setting id="internal.backup" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+
+				<setting id="internal.link" type="string"><default>https://orionoid.com</default><level>4</level><visible>false</visible></setting>
+				<setting id="internal.providers" type="string"><default>https://providers.orionoid.com</default><level>4</level><visible>false</visible></setting>
+				<setting id="internal.domain" type="string"><default>orionoid.com</default><level>4</level><visible>false</visible></setting>
+				<setting id="internal.ip" type="string"><default>188.241.58.223</default><level>4</level><visible>false</visible></setting>
+
+				<setting id="internal.api.orion" type="string"><default>PUFGVkNaa1ZycDFiWFprVVdaMWFXeEdWc3AwVlZwV1U0SmxWYWRVWUdoV1ZXWmxXR3BWVjFNbFZzbEVNTlZsVlhKVmJvbGxWR1oxVlNkbFZQVkZiYU5sVEVaa1JXdG1XdmRsUlNabFZzWlZV</default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="internal.api.access" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="internal.api.user" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="internal.api.apps" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="internal.api.notification" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="internal.api.promotion" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="internal.api.subscription" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+			</group>
+		</category>
+
+		<!-- ==================== INTEGRATION ==================== -->
+		<category id="integration" label="">
+			<group id="integration.data" label="">
+				<!-- Add these here, otherwise there are errors when Kodi Logging is enabled: requested setting (integration.XXX) was not found. -->
+				<setting id="integration.gaia" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.seren" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.incursion" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.placenta" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.covenant" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.magicality" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.theoath" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.apocalypse720" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.nolivesmatter" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.yoda" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.bodie" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.nymeria" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.venom" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.scrubs" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.medusa" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.mercury" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.deceit" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.fen" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.nightwing" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.pov" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.umbrella" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.kingpin" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.ezra" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.genesis" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.exodus" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.exodusredux" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.neptunerising" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.deathstreams" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.boommovies" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.continuum" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.marauder" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.patriot" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.asguard" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.asgard" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.thecrew" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.chainsgenocide" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.kodiverse" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.openscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.lambdascrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.fenomscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.nightwingscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.cocoscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.umbrellascrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.kingpinscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.ezscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.universalscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.universaldebrid" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.nanscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.encrypticscrapers" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.elementum" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="integration.quasar" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+			</group>
+		</category>
+
+		<!-- ==================== GENERAL ==================== -->
+		<category id="general" label="32009" help="34005">
+
+			<group id="general.interface" label="32039">
+				<setting id="general.interface.background" type="boolean" label="32040" help="34001">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>2</level>
+				</setting>
+				<setting id="general.interface.theme" type="integer" label="32041" help="34002">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<options>
+							<option label="32042">0</option>
+							<option label="32043">1</option>
+						</options>
+					</constraints>
+				</setting>
+			</group>
+
+			<group id="general.notifications" label="32056">
+				<setting id="general.notifications.api" type="integer" label="32158" help="34003">
+					<control type="spinner" format="string"/>
+					<default>2</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32120">0</option>
+							<option label="32058">1</option>
+							<option label="32059">2</option>
+						</options>
+					</constraints>
+				</setting>
+				<setting id="general.notifications.news" type="boolean" label="32159" help="34017">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>0</level>
+				</setting>
+				<setting id="general.notifications.updates" type="boolean" label="32290" help="34061">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>0</level>
+				</setting>
+				<setting id="general.notifications.tickets" type="boolean" label="32291" help="34062">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>0</level>
+				</setting>
+			</group>
+
+			<group id="general.settings" label="32005">
+				<setting id="general.settings.backup" type="integer" label="32185" help="34048">
+					<control type="spinner" format="string"/>
+					<default>1</default>
+					<level>1</level>
+					<constraints>
+						<options>
+							<option label="32057">0</option>
+							<option label="32270">1</option>
+							<option label="32269">2</option>
+							<option label="32268">3</option>
+						</options>
+					</constraints>
+				</setting>
+				<setting id="general.settings.cache" type="boolean" label="32194" help="34053">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>2</level>
+				</setting>
+			</group>
+
+			<group id="general.connection" label="32049">
+				<setting id="general.connection.custom" type="boolean" label="32050" help="34049">
+					<control type="toggle"/>
+					<default>false</default>
+					<level>3</level>
+				</setting>
+				<setting id="general.connection.mode" type="integer" label="32187" help="34050" parent="general.connection.custom">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>3</level>
+					<constraints>
+						<options>
+							<option label="32188">0</option>
+							<option label="32189">1</option>
+							<option label="32190">2</option>
+							<option label="32191">3</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="general.connection.custom">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="general.connection.domain" type="string" label="32192" help="34051" parent="general.connection.mode">
+					<control type="edit" format="string">
+						<heading>32192</heading>
+					</control>
+					<default>orionoid.com</default>
+					<level>3</level>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="general.connection.custom">true</condition>
+								<condition setting="general.connection.mode">2</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="general.connection.ip" type="string" label="32193" help="34052" parent="general.connection.custom">
+					<control type="edit" format="ip">
+						<heading>32193</heading>
+					</control>
+					<default>188.241.58.223</default>
+					<level>3</level>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="general.connection.custom">true</condition>
+								<condition setting="general.connection.mode">3</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="general.connection.timeout" type="integer" label="32051" help="34004" parent="general.connection.custom">
+					<control type="slider" format="integer">
+						<heading>32051</heading>
+						<popup>true</popup>
+					</control>
+					<default>90</default>
+					<level>3</level>
+					<constraints>
+						<minimum>20</minimum>
+						<step>1</step>
+						<maximum>300</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="general.connection.custom">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+		</category>
+
+		<!-- ==================== ACCOUNT ==================== -->
+		<category id="account" label="32017" help="34006">
+
+			<group id="account.authentication" label="32034">
+				<setting id="account.authentication.key" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="account.authentication.valid" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting> <!-- Make text instead of bool, since the value is tested for an empty string during backup. -->
+
+				<setting id="account.authentication.login" type="string" label="32034" help="34007">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountLogin)</data>
+						<close>true</close>
+					</control>
+					<default>$ADDON[script.module.orion 32247]</default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+				</setting>
+			</group>
+
+			<group id="account.data" label="32017">
+				<setting id="account.data.refresh" type="string" label="32038" help="34065">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.status" type="string" label="32014" help="34066">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.key" operator="!is"></dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.verified" type="string" label="32277" help="34067">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.username" type="string" label="32276" help="34068">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.email" type="string" label="32020" help="34069">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.package" type="string" label="32023" help="34070">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.time" type="string" label="32029" help="34071">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.limit.stream" type="string" label="32031" help="34072">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.limit.hash" type="string" label="32198" help="34073">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="account.data.limit.container" type="string" label="32230" help="34074">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsAccountRefresh)</data>
+						<close>true</close>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="account.authentication.valid">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+		</category>
+
+		<!-- ==================== FILTERS ==================== -->
+		<category id="filters" label="32067" help="34045">
+			<!-- ORION FILTERS - UNIVERSAL START -->
+
+			<group id="filters.custom" label="32183">
+				<setting id="filters.custom.app" type="boolean"><default>false</default><level>4</level><visible>false</visible></setting>
+
+				<setting id="filters.custom.enabled" type="boolean" label="32330" help="34046">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>0</level>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.app">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.limit" label="32081">
+				<setting id="filters.limit.mode" type="integer" label="32243" help="34009">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32237">0</option>
+							<option label="32238">1</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.count" type="integer" label="32082" help="34060" parent="filters.limit.mode">
+					<control type="edit" format="integer">
+						<heading>32082</heading>
+					</control>
+					<default>200</default>
+					<level>0</level>
+					<constraints>
+						<minimum>1</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.limit.mode">0</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.count.movie" type="integer" label="32239" help="34075" parent="filters.limit.mode">
+					<control type="edit" format="integer">
+						<heading>32239</heading>
+					</control>
+					<default>200</default>
+					<level>0</level>
+					<constraints>
+						<minimum>1</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.limit.mode">1</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.count.show" type="integer" label="32240" help="34076" parent="filters.limit.mode">
+					<control type="edit" format="integer">
+						<heading>32240</heading>
+					</control>
+					<default>200</default>
+					<level>0</level>
+					<constraints>
+						<minimum>1</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.limit.mode">1</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.retry" type="integer" label="32083" help="34010" parent="filters.limit.mode">
+					<control type="edit" format="integer">
+						<heading>32083</heading>
+					</control>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.limit.mode">0</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.retry.movie" type="integer" label="32241" help="34010" parent="filters.limit.mode">
+					<control type="edit" format="integer">
+						<heading>32241</heading>
+					</control>
+					<default>0</default>
+					<level>3</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.limit.mode">1</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.retry.show" type="integer" label="32242" help="34010" parent="filters.limit.mode">
+					<control type="edit" format="integer">
+						<heading>32242</heading>
+					</control>
+					<default>0</default>
+					<level>3</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.limit.mode">1</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.age" type="integer" label="32087" help="34014">
+					<control type="edit" format="integer">
+						<heading>32087</heading>
+					</control>
+					<default>0</default>
+					<level>3</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.limit.popularity" type="integer" label="32085" help="34013">
+					<control type="slider" format="percentage">
+						<heading>32085</heading>
+						<popup>true</popup>
+					</control>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<minimum>0</minimum>
+						<step>1</step>
+						<maximum>100</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.sort" label="32068">
+				<setting id="filters.sort.value" type="integer" label="32069" help="34011">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>1</level>
+					<constraints>
+						<options>
+							<option label="32057">0</option>
+							<option label="32308">1</option>
+							<option label="32164">2</option>
+							<option label="32071">3</option>
+							<option label="32072">4</option>
+							<option label="32073">5</option>
+							<option label="32074">6</option>
+							<option label="32075">7</option>
+							<option label="32076">8</option>
+							<option label="32077">9</option>
+							<option label="32078">10</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.sort.order" type="integer" label="32070" help="34012">
+					<control type="spinner" format="string"/>
+					<default>1</default>
+					<level>1</level>
+					<constraints>
+						<options>
+							<option label="32079">0</option>
+							<option label="32080">1</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.sort.value" operator="!is">0</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.stream" label="32329">
+				<setting id="filters.stream.type" type="integer" label="32099" help="34015">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32059">0</option>
+							<option label="32091">1</option>
+							<option label="32092">2</option>
+							<option label="32093">3</option>
+							<option label="32088">4</option>
+							<option label="32089">5</option>
+							<option label="32090">6</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.protocol.torrent" type="integer" label="32218" help="34056" parent="filters.stream.type">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<options>
+							<option label="32059">0</option>
+							<option label="32204">1</option>
+							<option label="32205">2</option>
+							<option label="32206">3</option>
+							<option label="32207">4</option>
+							<option label="32208">5</option>
+							<option label="32209">6</option>
+							<option label="32210">7</option>
+							<option label="32211">8</option>
+							<option label="32212">9</option>
+							<option label="32213">10</option>
+							<option label="32214">11</option>
+							<option label="32215">12</option>
+							<option label="32216">13</option>
+							<option label="32217">14</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.stream.type" operator="!is">3</condition>
+								<condition setting="filters.stream.type" operator="!is">5</condition>
+								<condition setting="filters.stream.type" operator="!is">6</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.protocol.usenet" type="integer" label="32219" help="34057" parent="filters.stream.type">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<options>
+							<option label="32059">0</option>
+							<option label="32204">1</option>
+							<option label="32209">2</option>
+							<option label="32210">3</option>
+							<option label="32211">4</option>
+							<option label="32212">5</option>
+							<option label="32213">6</option>
+							<option label="32214">7</option>
+							<option label="32215">8</option>
+							<option label="32216">9</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.stream.type" operator="!is">2</condition>
+								<condition setting="filters.stream.type" operator="!is">4</condition>
+								<condition setting="filters.stream.type" operator="!is">6</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.protocol.hoster" type="integer" label="32220" help="34058" parent="filters.stream.type">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<options>
+							<option label="32059">0</option>
+							<option label="32204">1</option>
+							<option label="32209">2</option>
+							<option label="32210">3</option>
+							<option label="32211">4</option>
+							<option label="32212">5</option>
+							<option label="32213">6</option>
+							<option label="32214">7</option>
+							<option label="32215">8</option>
+							<option label="32216">9</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.stream.type" operator="!is">1</condition>
+								<condition setting="filters.stream.type" operator="!is">4</condition>
+								<condition setting="filters.stream.type" operator="!is">5</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.seeds" type="integer" label="32104" help="34018" parent="filters.stream.type">
+					<control type="edit" format="integer">
+						<heading>32104</heading>
+					</control>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>10000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.stream.type" operator="!is">3</condition>
+								<condition setting="filters.stream.type" operator="!is">5</condition>
+								<condition setting="filters.stream.type" operator="!is">6</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.age" type="integer" label="32087" help="34019" parent="filters.stream.type">
+					<control type="edit" format="integer">
+						<heading>32087</heading>
+					</control>
+					<default>0</default>
+					<level>2</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>20000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.stream.type" operator="!is">2</condition>
+								<condition setting="filters.stream.type" operator="!is">4</condition>
+								<condition setting="filters.stream.type" operator="!is">6</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.origin" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.stream.origin.label" type="string" label="32201" help="34055">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersStreamOrigin&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>9 $ADDON[script.module.orion 32096]</default>
+					<level>4</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.source" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.stream.source.label" type="string" label="32094" help="34016">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersStreamSource&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>253 $ADDON[script.module.orion 32096]</default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.stream.hoster" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.stream.hoster.label" type="string" label="32173" help="34044">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersStreamHoster&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>449 $ADDON[script.module.orion 32096]</default>
+					<level>3</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.access" label="32310">
+				<setting id="filters.access.status" type="integer" label="32105" help="34020">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32059">0</option>
+							<option label="32155">1</option>
+							<option label="32119">2</option>
+							<option label="32100">3</option>
+							<option label="32165">4</option>
+							<option label="32166">5</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.access.torrent" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.access.torrent.label" type="string" label="32107" help="34021" parent="filters.access.status">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAccessTorrent&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>0 $ADDON[script.module.orion 32096]</default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.access.status" operator="!is">0</condition>
+								<condition setting="filters.access.status" operator="!is">3</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.access.usenet" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.access.usenet.label" type="string" label="32108" help="34022" parent="filters.access.status">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAccessUsenet&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>0 $ADDON[script.module.orion 32096]</default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.access.status" operator="!is">0</condition>
+								<condition setting="filters.access.status" operator="!is">3</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.access.hoster" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.access.hoster.label" type="string" label="32109" help="34023" parent="filters.access.status">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAccessHoster&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>0 $ADDON[script.module.orion 32096]</default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.access.status" operator="!is">0</condition>
+								<condition setting="filters.access.status" operator="!is">3</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.lookup" type="boolean" label="32311" help="34063">
+					<control type="toggle"/>
+					<default>false</default>
+					<level>0</level>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.lookup.service" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.lookup.service.label" type="string" label="32325" help="34064" parent="filters.lookup">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAccessHoster&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>0 $ADDON[script.module.orion 32096]</default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.lookup">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.file" label="32236">
+				<setting id="filters.file.languages" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.file.languages.label" type="string" label="32052" help="34077">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersFileLanguages&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>184 $ADDON[script.module.orion 32096]</default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.pack" type="integer" label="32110" help="34024">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32101">0</option>
+							<option label="32102">1</option>
+							<option label="32103">2</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.size" type="boolean" label="32076" help="34025">
+					<control type="toggle"/>
+					<default>false</default>
+					<level>0</level>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.size.minimum" type="integer" label="32111" help="34026" parent="filters.file.size">
+					<control type="edit" format="integer">
+						<heading>32111</heading>
+					</control>
+					<default>100</default>
+					<level>0</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>200000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.file.size">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.size.maximum" type="integer" label="32112" help="34027" parent="filters.file.size">
+					<control type="edit" format="integer">
+						<heading>32112</heading>
+					</control>
+					<default>20000</default>
+					<level>0</level>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>200000</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.file.size">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.size.unknown" type="boolean" label="32184" help="34047" parent="filters.file.size">
+					<control type="toggle"/>
+					<default>true</default>
+					<level>1</level>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.file.size">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.name" type="integer" label="32234" help="34059">
+					<control type="spinner" format="string"/>
+					<default>0</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32101">0</option>
+							<option label="32102">1</option>
+							<option label="32103">2</option>
+							<option label="32054">3</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.name.keyword" type="string" label="32053" help="34078" parent="filters.file.name">
+					<control type="edit" format="string">
+						<heading>32053</heading>
+						<popup>true</popup>
+					</control>
+					<default></default>
+					<level>0</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.file.name">3</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.file.name.match" type="string" label="32055" help="34079" parent="filters.file.name">
+					<control type="edit" format="string">
+						<heading>32055</heading>
+						<popup>true</popup>
+					</control>
+					<default></default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.file.name" operator="!is">1</condition>
+								<condition setting="filters.file.name" operator="!is">3</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.video" label="32095">
+				<setting id="filters.video.quality" type="boolean" label="32074" help="34031">
+					<control type="toggle"/>
+					<default>false</default>
+					<level>0</level>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.video.quality.minimum" type="integer" label="32117" help="34032" parent="filters.video.quality">
+					<control type="spinner" format="string"/>
+					<default>7</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32120">0</option>
+							<option label="32121">1</option>
+							<option label="32122">2</option>
+							<option label="32123">3</option>
+							<option label="32124">4</option>
+							<option label="32125">5</option>
+							<option label="32126">6</option>
+							<option label="32127">7</option>
+							<option label="32128">8</option>
+							<option label="32129">9</option>
+							<option label="32130">10</option>
+							<option label="32131">11</option>
+							<option label="32132">12</option>
+							<option label="32133">13</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.video.quality">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.video.quality.maximum" type="integer" label="32118" help="34033" parent="filters.video.quality">
+					<control type="spinner" format="string"/>
+					<default>11</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32120">0</option>
+							<option label="32121">1</option>
+							<option label="32122">2</option>
+							<option label="32123">3</option>
+							<option label="32124">4</option>
+							<option label="32125">5</option>
+							<option label="32126">6</option>
+							<option label="32127">7</option>
+							<option label="32128">8</option>
+							<option label="32129">9</option>
+							<option label="32130">10</option>
+							<option label="32131">11</option>
+							<option label="32132">12</option>
+							<option label="32133">13</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.video.quality">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.video.codec" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.video.codec.label" type="string" label="32134" help="34034">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersVideoCodec&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>14 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.video.3d" type="integer" label="32135" help="34035">
+					<control type="spinner" format="string"/>
+					<default>1</default>
+					<level>2</level>
+					<constraints>
+						<options>
+							<option label="32101">0</option>
+							<option label="32102">1</option>
+							<option label="32103">2</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.audio" label="32136">
+				<setting id="filters.audio.type" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.audio.type.label" type="string" label="32137" help="34036">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAudioType&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>2 $ADDON[script.module.orion 32096]</default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.audio.channels" type="boolean" label="32138" help="34037">
+					<control type="toggle"/>
+					<default>false</default>
+					<level>0</level>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.audio.channels.minimum" type="integer" label="32139" help="34038" parent="filters.audio.channels">
+					<control type="spinner" format="string"/>
+					<default>2</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32120">0</option>
+							<option label="32141">1</option>
+							<option label="32142">2</option>
+							<option label="32143">3</option>
+							<option label="32144">4</option>
+							<option label="32145">5</option>
+							<option label="32146">6</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.audio.channels">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.audio.channels.maximum" type="integer" label="32140" help="34039" parent="filters.audio.channels">
+					<control type="spinner" format="string"/>
+					<default>5</default>
+					<level>0</level>
+					<constraints>
+						<options>
+							<option label="32120">0</option>
+							<option label="32141">1</option>
+							<option label="32142">2</option>
+							<option label="32143">3</option>
+							<option label="32144">4</option>
+							<option label="32145">5</option>
+							<option label="32146">6</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition setting="filters.custom.enabled">true</condition>
+								<condition setting="filters.audio.channels">true</condition>
+							</and>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.audio.system" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.audio.system.label" type="string" label="32200" help="34054">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAudioSystem&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>7 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.audio.codec" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.audio.codec.label" type="string" label="32147" help="34040">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAudioCodec&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>36 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.audio.languages" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.audio.languages.label" type="string" label="32148" help="34041">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersAudioLanguages&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>184 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.subtitle" label="32152">
+				<setting id="filters.subtitle.type" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.subtitle.type.label" type="string" label="32153" help="34042">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersSubtitleType&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>2 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.subtitle.languages" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.subtitle.languages.label" type="string" label="32154" help="34043">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersSubtitleLanguages&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>184 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<group id="filters.meta" label="32244">
+				<setting id="filters.meta.release" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.meta.release.label" type="string" label="32114" help="34028">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersMetaRelease&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>27 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.meta.uploader" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.meta.uploader.label" type="string" label="32115" help="34029">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersMetaUploader&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>278 $ADDON[script.module.orion 32096]</default>
+					<level>2</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="filters.meta.edition" type="string"><default></default><constraints><allowempty>true</allowempty></constraints><level>4</level><visible>false</visible></setting>
+				<setting id="filters.meta.edition.label" type="string" label="32116" help="34030">
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://script.module.orion/?action=settingsFiltersMetaEdition&type=universal)</data>
+						<close>true</close>
+					</control>
+					<default>2 $ADDON[script.module.orion 32096]</default>
+					<level>1</level>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible" setting="filters.custom.enabled">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+
+			<!-- ORION FILTERS - UNIVERSAL END -->
+		</category>
+
+	</section>
+</settings>
