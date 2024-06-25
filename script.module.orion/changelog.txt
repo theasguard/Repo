@@ -1,4 +1,271 @@
 
+[B]5.0.1 (2024.05.31)[/B]
+- Fixed ranged filter parameters.
+- Fixed file size filtering.
+- Added automatic parameter for stream voting.
+- Added automatic parameter for stream removal.
+- Added invalid stream data.
+
+[B]5.0.0 (2024.05.22)[/B]
+- Updated the file name filter setting.
+- Added the file match filter setting.
+- Added the file languages filter setting.
+- Updated settings to the new standard.
+- Updated addon menus and navigation.
+- Support for titles without an IMDb ID.
+- Various other small improvements.
+
+[B]4.9.20 (2023.12.12)[/B]
+- Fixed Chains Genocide integration.
+
+[B]4.9.19 (2023.12.11)[/B]
+- Added Chains Genocide integration.
+
+[B]4.9.18 (2023.11.01)[/B]
+- Fixed CocoScrapers integration.
+
+[B]4.9.17 (2023.08.26)[/B]
+- Changed CocoScrapers integration.
+- Fixed Fen integration.
+
+[B]4.9.16 (2023.07.31)[/B]
+- Fixed CocoScrapers integration for Umbrella.
+
+[B]4.9.15 (2023.07.25)[/B]
+- Updated API notifications.
+
+[B]4.9.14 (2023.07.18)[/B]
+- Added Nightwing integration.
+
+[B]4.9.13 (2023.07.11)[/B]
+- Fixed Scrubs integration.
+
+[B]4.9.12 (2023.07.05)[/B]
+- Fixed Umbrella integration.
+
+[B]4.9.11 (2023.07.05)[/B]
+- Fixed CocoScrapers integration.
+
+[B]4.9.10 (2023.02.23)[/B]
+- Fixed Scrubs integration.
+- Changed base64 encoding in all integrations.
+- Changed regular expressions in all integrations.
+
+[B]4.9.9 (2023.02.02)[/B]
+- Possible fix for database threading.
+- Rewritten database code.
+
+[B]4.9.8 (2023.02.01)[/B]
+- Support for Kodi 20.
+- Possible fix for concurrent scraping.
+
+[B]4.9.7 (2022.12.24)[/B]
+- Fixed settings import external addons.
+- Improved QR authentication dialog.
+
+[B]4.9.6 (2022.09.09)[/B]
+- Fixed CocoScrapers integration.
+
+[B]4.9.5 (2022.07.31)[/B]
+- Added Patriot integration.
+- Added CocoScrapers integration.
+- Added Umbrella integration.
+- Added UmbrellaScrapers integration.
+- Updated Fen integration.
+
+[B]4.9.4 (2022.07.23)[/B]
+- Fixed initialization.
+
+[B]4.9.3 (2022.07.22)[/B]
+- Added POV integration.
+
+[B]4.9.2 (2022.06.24)[/B]
+- Fixed Asgard integration.
+
+[B]4.9.1 (2022.06.23)[/B]
+- Added KinPin integration.
+- Added KinPinScrapers integration.
+- Fixed local Seren integration.
+- Updated integration settings.
+- Fixed filter settings reset on Kodi restart.
+
+[B]4.9.0 (2022.06.17)[/B]
+- Added debrid support endpoint.
+- Added support for custom sources and hosters.
+- Fixed source and hoster settings selection.
+
+[B]4.8.1 (2022.05.08)[/B]
+- Added Ezra integration.
+- Added EzScrapers integration.
+- Added NoLivesMatter integration.
+- Added EncrypticScrapers integration.
+- Updated failed authentication.
+- Updated API errors.
+
+[B]4.8.0 (2022.04.27)[/B]
+- Fixed settings retrieval.
+
+[B]4.7.9 (2022.03.25)[/B]
+- New version to fix 4.7.8 upload issues.
+
+[B]4.7.8 (2022.03.25)[/B]
+- Fixed missing settings values.
+
+[B]4.7.7 (2022.03.22)[/B]
+- Fixed old settings cleanup.
+
+[B]4.7.6 (2022.03.18)[/B]
+- Improved SSL certificate handling.
+
+[B]4.7.5 (2022.03.14)[/B]
+- Added debrid cache lookup support.
+- Added debrid resolving support.
+
+[B]4.7.4 (2022.03.12)[/B]
+- Added KodiVerse integration.
+- Fixed FenomScrapers integration.
+
+[B]4.7.3 (2022.03.11)[/B]
+- API update.
+
+[B]4.7.2 (2022.03.09)[/B]
+- Windows SSL fix.
+
+[B]4.7.1 (2022.01.11)[/B]
+- Updated Fen integration.
+
+[B]4.7.0 (2022.01.08)[/B]
+- Added AllDebrid support.
+- Added DebridLink support.
+- Fixed debug report generation.
+- Improved settings reselection.
+- Rearranged filter settings.
+
+[B]4.6.9 (2021.12.21)[/B]
+- Fixed Fen integration.
+- Fixed player image art.
+
+[B]4.6.8 (2021.12.19)[/B]
+- Fixed Kodi JSON RPC playback.
+
+[B]4.6.7 (2021.11.26)[/B]
+- Fixed link splitting.
+- Fixed Fen hoster integration.
+- Updated other integrations.
+
+[B]4.6.6 (2021.11.22)[/B]
+- Changed stream updates.
+- Fixed various integrations.
+
+[B]4.6.5 (2021.10.03)[/B]
+- Changed connection error notification.
+
+[B]4.6.4 (2021.10.02)[/B]
+- Fixed settings wizard cancel.
+
+[B]4.6.3 (2021.09.30)[/B]
+- Fixed Python 3 ranges.
+
+[B]4.6.2 (2021.09.21)[/B]
+- Updated notification formatting.
+
+[B]4.6.1 (2021.09.21)[/B]
+- Updated app popularity.
+
+[B]4.6.0 (2021.08.31)[/B]
+- Added code and QR authentication.
+- Fixed coupon redemption.
+
+[B]4.5.7 (2021.07.04)[/B]
+- Added filter settings launch.
+- Updated Asgard integration.
+
+[B]4.5.6 (2021.06.03)[/B]
+- Fixed language string file.
+
+[B]4.5.5 (2021.06.02)[/B]
+- Possible fix for sporadic Seren scraping crashes.
+
+[B]4.5.4 (2021.05.07)[/B]
+- New Exodus fork integration.
+- Kodi 19 fixes for the filter settings.
+
+[B]4.5.3 (2021.04.07)[/B]
+- Fixed Elementum multi scraping.
+
+[B]4.5.2 (2021.04.02)[/B]
+- Updated all integrations for Kodi 19.
+- Fixed Elementum integration.
+
+[B]4.5.1 (2021.03.15)[/B]
+- Updated FenomScrapers integration.
+- Some dialog improvements.
+
+[B]4.5.0 (2021.02.10)[/B]
+- Improved authentication process.
+- Improved Seren integration.
+- Added public interface for request usage.
+- Changed online settings backup requirements.
+- Settings cleanup and optimization.
+
+[B]4.4.3 (2021.02.04)[/B]
+- Optimized saving filters settings.
+- Updated core class.
+
+[B]4.4.2 (2021.02.01)[/B]
+- Changed imports for Kodi 19.
+- Possible fix for encoding of the settings file.
+
+[B]4.4.1 (2021.01.22)[/B]
+- Added UniversalDebrid integration.
+- Added Asgard integration.
+- Fixed base64 decoding for Kodi 19.
+
+[B]4.4.0 (2021.01.15)[/B]
+- Added FenomScrapers integration.
+- Fixed integration for Python 3.
+- Renamed descending order attribute.
+- Fixed empty result exception.
+- Fixed Elementum and Quasar timeout issue.
+- Fixed a few Kodi 19 bugs.
+
+[B]4.3.1 (2020.09.03)[/B]
+- Fixed bugs for Kodi 19.
+
+[B]4.3.0 (2020.06.09)[/B]
+- Added Apocalypse 720 integration.
+- Better abort detection in service.
+- Fixed raw settings retrieval.
+
+[B]4.2.7 (2020.05.09)[/B]
+- Changed notification popups.
+
+[B]4.2.6 (2020.05.09)[/B]
+- Increased the default scraping timeout.
+
+[B]4.2.5 (2020.05.07)[/B]
+- Added alternative file copy mechanisms.
+- Improved settings file adaption.
+
+[B]4.2.4 (2020.05.02)[/B]
+- Fixed NanScrapers integration.
+- Possible fix for settings file copy.
+
+[B]4.2.3 (2020.04.01)[/B]
+- Added size attribute to OpenScrapers integration.
+
+[B]4.2.2 (2020.03.30)[/B]
+- Changed networker header handling.
+
+[B]4.2.1 (2020.03.26)[/B]
+- Changed promotion notifications.
+
+[B]4.2.0 (2020.03.26)[/B]
+- Updated promotion options.
+
+[B]4.1.1 (2020.02.22)[/B]
+- Updated OpenScrapers integration.
+
 [B]4.1.0 (2020.02.12)[/B]
 - Added best sorting option.
 - Added website player support.
