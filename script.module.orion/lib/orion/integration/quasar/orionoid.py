@@ -11,6 +11,7 @@
 
 from burst import burst
 from burst.utils import Magnet
+
 from orion import *
 from orion.modules.oriontools import *
 from orion.modules.orioninterface import *
@@ -41,7 +42,7 @@ class Orionoid:
 			# For some reason, some magnets have UTF characters in their hash. Ignore them.
 			hash = Magnet(result).info_hash
 			if not hash: return None
-		return result.encode('utf-8')
+		return OrionTools.unicodeEncode(result)
 
 	@classmethod
 	def _quality(self, data):
@@ -121,7 +122,7 @@ class Orionoid:
 			addon = OrionTools.addon('script.quasar.burst')
 			if addon.getSetting('orion') == 'true':
 				if burst.timeout < 60: burst.timeout = 60
-				icon = OrionTools.pathJoin(addon.getAddonInfo('path').decode('utf-8'), 'burst', 'providers', 'icons', '%s.png' % Orionoid.Id)
+				icon = OrionTools.pathJoin(OrionTools.unicodeDecode(addon.getAddonInfo('path')), 'burst', 'providers', 'icons', '%s.png' % Orionoid.Id)
 
 				try: idImdb = filtering.info['imdb_id']
 				except: idImdb = None
@@ -169,7 +170,5 @@ class Orionoid:
 					})
 
 				filtering.results.extend(results)
-				return filtering.results
-		except:
-			self._error()
-		return None
+		except: self._error()
+		return filtering.results

@@ -9,7 +9,9 @@
 	this stuff is worth it, you can buy me a beer in return.
 '''
 
-import os.path
+from umbrellascrapers.sources_umbrellascrapers.orionoid import Orionoid
 
-files = os.listdir(os.path.dirname(__file__))
-__all__ = [filename[:-3] for filename in files if not filename.startswith('__') and filename.endswith('.py')]
+class source(Orionoid):
+
+	def __init__(self):
+		Orionoid.__init__(self, type = Orionoid.TypeHoster)

@@ -1,0 +1,1 @@
+<setting id="provider.oriontorrent" type="boolean" label="35002" help=""><level>0</level><default>true</default><control type="toggle"/></setting>

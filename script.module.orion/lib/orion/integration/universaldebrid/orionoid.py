@@ -9,21 +9,26 @@
 	this stuff is worth it, you can buy me a beer in return.
 '''
 
+from ..scraper import Scraper
+from ..common import get_rd_domains
+
 from orion import *
 from orion.modules.oriontools import *
 
-import pkgutil
 import base64
 import json
 import time
 import sys
 import os
-import re
 import xbmc
 import xbmcvfs
 import xbmcaddon
 
-class source:
+class orionoid(Scraper):
+
+	name = 'Orion'
+	domain = ['https://orionoid.com']
+	sources = []
 
 	TimeDays = 86400
 
@@ -49,29 +54,19 @@ class source:
 	SettingPopularity = 16
 	SettingAge = 17
 
+	Keys = {
+		'default' : 'Vm5sQ1VVbEZNR2RSZVVFeVNVVm5aMU5wUWs5SlJVVm5VbmxDVlVsRlVXZFZRMEpOU1VWalowNXBRa3hKUlZsblVXbENSVWxGWTJkU1EwSkxTVVJuWjFORFFrNUpSRTFuVTNsQ1NVbEZSV2RUYVVFdw==',
+		'plugin.video.asgard' : 'VTNsQ1IwbEZVV2RTVTBKSlNVVlJaMUZUUWxsSlJHTm5VbE5DVTBsRlJXZFRhVUpPU1VWdloxUkRRa1JKUkdkblRtbENUMGxGVFdkUFUwSkVTVVpSWjFSRFFrbEpSVWxuVW1sQk5VbEdTV2RUUTBKTg==',
+	}
+
 	def __init__(self):
-		self.addon = xbmcaddon.Addon('plugin.video.placenta')
-		self.priority = 1
+		self.addon = xbmcaddon.Addon('script.module.universaldebrid')
 		self.language = ['ab', 'aa', 'af', 'ak', 'sq', 'am', 'ar', 'an', 'hy', 'as', 'av', 'ae', 'ay', 'az', 'bm', 'ba', 'eu', 'be', 'bn', 'bh', 'bi', 'nb', 'bs', 'br', 'bg', 'my', 'ca', 'ch', 'ce', 'ny', 'zh', 'cv', 'kw', 'co', 'cr', 'hr', 'cs', 'da', 'dv', 'nl', 'dz', 'en', 'eo', 'et', 'ee', 'fo', 'fj', 'fi', 'fr', 'ff', 'gd', 'gl', 'lg', 'ka', 'de', 'el', 'gn', 'gu', 'ht', 'ha', 'he', 'hz', 'hi', 'ho', 'hu', 'is', 'io', 'ig', 'id', 'ia', 'ie', 'iu', 'ik', 'ga', 'it', 'ja', 'jv', 'kl', 'kn', 'kr', 'ks', 'kk', 'km', 'ki', 'rw', 'rn', 'kv', 'kg', 'ko', 'ku', 'kj', 'ky', 'lo', 'la', 'lv', 'li', 'ln', 'lt', 'lu', 'lb', 'mk', 'mg', 'ms', 'ml', 'mt', 'gv', 'mi', 'mr', 'mh', 'mn', 'na', 'nv', 'ng', 'ne', 'nd', 'se', 'no', 'ii', 'nn', 'oc', 'oj', 'or', 'om', 'os', 'pi', 'ps', 'fa', 'pl', 'pt', 'pa', 'qu', 'ro', 'rm', 'ru', 'sm', 'sg', 'sa', 'sc', 'sr', 'sn', 'sd', 'si', 'cu', 'sk', 'sl', 'so', 'nr', 'st', 'es', 'su', 'sw', 'ss', 'sv', 'tl', 'ty', 'tg', 'ta', 'tt', 'te', 'th', 'bo', 'ti', 'to', 'ts', 'tn', 'tr', 'tk', 'tw', 'uk', 'ur', 'ug', 'uz', 've', 'vi', 'vo', 'wa', 'cy', 'fy', 'wo', 'xh', 'yi', 'yo', 'za', 'zu']
-		self.key = 'VlhsQ1EwbEVhMmRWVTBFelNVWlpaMU5EUWtoSlJsVm5WRU5DUmtsR1dXZFBVMEpNU1VWM1oxRlRRazlKUmtWblQxTkJNRWxGV1dkV1UwRXdTVVZ2WjFKVFFraEpSa0ZuVGtOQ1NVbEZTV2RPZVVKTA=='
-		self.domains = ['https://orionoid.com']
-		self.providers = []
 		try: self.cachePath = os.path.join(xbmcvfs.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile'))), 'orion.cache')
 		except: self.cachePath = os.path.join(xbmc.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile'))), 'orion.cache')
 		self.cacheData = None
-		self.resolvers = None
-
-	def movie(self, imdb, title, localtitle, aliases, year):
-		try: return OrionTools.urlEncode(({'imdb' : imdb, 'title' : title, 'year' : year})
-		except: return None
-
-	def tvshow(self, imdb, tvdb, tvshowtitle, localtvshowtitle, aliases, year):
-		try: return OrionTools.urlEncode(({'imdb' : imdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
-		except: return None
-
-	def episode(self, url, imdb, tvdb, title, premiered, season, episode):
-		try: return OrionTools.urlEncode(({'imdb' : imdb, 'tvdb' : tvdb, 'season' : season, 'episode' : episode})
-		except: return None
+		try: self.key = orionoid.Keys[xbmcaddon.Addon().getAddonInfo('id')]
+		except: self.key = orionoid.Keys['default']
 
 	def _error(self):
 		type, value, trace = sys.exc_info()
@@ -92,13 +87,13 @@ class source:
 		message = str(errortype) + ' -> ' + str(errormessage)
 		parameters = [filename, linenumber, name, message]
 		parameters = ' | '.join([str(parameter) for parameter in parameters])
-		xbmc.log('PLACENTA ORION [ERROR]: ' + parameters, xbmc.LOGERROR)
+		xbmc.log('UNIVERSAL DEBRID ORION [ERROR]: ' + parameters, xbmc.LOGERROR)
 
-	def _settings(self):
+	def _settings(self, full = True):
 		settings = []
 		for i in range(1, 16):
-			setting = int(self.addon.getSetting('provider.orionoid.info.' + str(i)))
-			if setting > 0: settings.append(setting)
+			setting = int(self.addon.getSetting('Orion_info.' + str(i)))
+			if full or setting > 0: settings.append(setting)
 		return settings
 
 	def _cacheSave(self, data):
@@ -125,7 +120,7 @@ class source:
 		links = data['links']
 		for link in links:
 			if link.lower().startswith('magnet:'):
-				return link
+				return link.split('&tr')[0]
 		return links[0]
 
 	def _quality(self, data):
@@ -154,7 +149,9 @@ class source:
 		except: return 'en'
 
 	def _source(self, data, label = True):
-		if label:
+		if data['stream']['type'] == OrionStream.TypeTorrent:
+			return 'Torrent'
+		elif label:
 			try: hoster = data['stream']['hoster']
 			except: hoster = None
 			if hoster: return hoster
@@ -168,8 +165,8 @@ class source:
 	def _size(self, data):
 		size = data['file']['size']
 		if size:
-			if size < source.SizeGigaByte: return '%d MB' % int(size / float(source.SizeMegaByte))
-			else: return '%0.1f GB' % (size / float(source.SizeGigaByte))
+			if size < orionoid.SizeGigaByte: return '%d MB' % int(size / float(orionoid.SizeMegaByte))
+			else: return '%0.1f GB' % (size / float(orionoid.SizeGigaByte))
 		return None
 
 	def _seeds(self, data):
@@ -180,7 +177,7 @@ class source:
 		return None
 
 	def _days(self, data):
-		try: days = (time.time() - data['time']['updated']) / float(source.TimeDays)
+		try: days = (time.time() - data['time']['updated']) / float(orionoid.TimeDays)
 		except: days = 0
 		days = int(days)
 		return str(days) + ' Day' + ('' if days == 1 else 's')
@@ -190,143 +187,86 @@ class source:
 		except: popularity = 0
 		return '+' + str(int(popularity)) + '%'
 
-	def _domain(self, data):
-		elements = OrionTools.urlParse(self._link(data))
-		domain = elements.netloc or elements.path
-		domain = domain.split('@')[-1].split(':')[0]
-		result = re.search('(?:www\.)?([\w\-]*\.[\w\-]{2,3}(?:\.[\w\-]{2,3})?)$', domain)
-		if result: domain = result.group(1)
-		return domain.lower()
-
-	def _provider(self, id, create = True):
-		if len(self.providers) == 0:
-			try:
-				path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-				paths = [i[1] for i in os.walk(path)][0]
-				for i in paths:
-					for loader, name, pkg in pkgutil.walk_packages([os.path.join(path, i)]):
-						if pkg: continue
-						try:
-							name = re.sub(u'[^\w\d\s]+', '', name.lower())
-							module = loader.find_module(name)
-							if module: self.providers.append((name, module.load_module(name)))
-						except: self._error()
-			except: self._error()
-
-		id = id.lower()
-		for i in self.providers:
-			if id == i[0]: return i[1].source() if create else i[1]
-		for i in self.providers:
-			if id in i[0] or i[0] in id: return i[1].source() if create else i[1]
-		return None
-
-	def _debrid(self, data):
-		link = self._link(data)
-		for resolver in self.resolvers:
-			if resolver.valid_url(url = link, host = None):
-				return True
-		return False
-
-	def sources(self, url, hostDict, hostprDict):
-		sources = []
+	def scrape(self, type, title = None, year = None, yearEpisode = None, season = None, episode = None, imdb = None, tvdb = None, debrid = None):
+		self.sources = []
 		try:
-			if url == None: raise Exception()
 			orion = Orion(OrionTools.base64From(OrionTools.base64From(OrionTools.base64From(self.key))).replace(' ', ''))
 			if not orion.userEnabled() or not orion.userValid(): raise Exception()
-			settings = self._settings()
+			settings = self._settings(full = False)
 
-			data = OrionTools.urlParseQs(url)
-			data = dict([(i, data[i][0]) if data[i] else (i, '') for i in data])
-
-			imdb = data['imdb'] if 'imdb' in data else None
-			tmdb = data['tmdb'] if 'tmdb' in data else None
-			tvdb = data['tvdb'] if 'tvdb' in data else None
-
-			season = None
-			episode = None
-			type = Orion.TypeShow if 'tvshowtitle' in data else Orion.TypeMovie
-			if type == Orion.TypeShow:
-				try:
-					season = int(data['season']) if 'season' in data else None
-					episode = int(data['episode']) if 'episode' in data else None
-				except: pass
-				if season == None or season == '': raise Exception()
-				if episode == None or episode == '': raise Exception()
+			if type == Orion.TypeShow and (season is None or season == ''): raise Exception()
 
 			results = orion.streams(
 				type = type,
 				idImdb = imdb,
-				idTmdb = tmdb,
 				idTvdb = tvdb,
 				numberSeason = season,
 				numberEpisode = episode,
-				streamType = Orion.StreamHoster
+				streamType = orion.streamTypes([OrionStream.TypeTorrent]), # Currently only has torrents.
+				protocolTorrent = Orion.ProtocolMagnet
 			)
 
-			from resources.lib.modules import debrid
-			debridResolvers = debrid.debrid_resolvers
-			debridProviders = ['premiumize', 'realdebrid', 'alldebrid', 'rpnet', 'megadebrid', 'debridlink', 'zevera', 'smoozed', 'simplydebrid']
-			self.resolvers = []
-			for debridResolver in debridResolvers:
-				try:
-					provider = re.sub('[^0-9a-zA-Z]+', '', debridResolver.name.lower())
-					if any([i in provider or provider in i for i in debridProviders]):
-						self.resolvers.append(debridResolver)
-				except: pass
+			debridDomains = None
+			if debrid:
+				debridDomains = get_rd_domains()
+				debridDomains = [i.lower().split('.', 1)[0] for i in debridDomains]
 
 			for data in results:
 				try:
-					info = []
+					source = self._source(data, True)
+					provider = self._source(data, False)
+
+					info = [self.name]
 					for setting in settings:
-						if setting == source.SettingStreamProvider:
+						if setting == orionoid.SettingStreamProvider:
 							try: info.append(data['stream']['source'])
 							except: pass
-						elif setting == source.SettingStreamHoster:
+						elif setting == orionoid.SettingStreamHoster:
 							try: info.append(data['stream']['hoster'])
 							except: pass
-						elif setting == source.SettingStreamSeeds:
+						elif setting == orionoid.SettingStreamSeeds:
 							try: info.append(self._seeds(data))
 							except: pass
-						elif setting == source.SettingFileSize:
+						elif setting == orionoid.SettingFileSize:
 							try: info.append(self._size(data))
 							except: pass
-						elif setting == source.SettingFilePack:
+						elif setting == orionoid.SettingFilePack:
 							try: info.append('Pack' if data['file']['pack'] else None)
 							except: pass
-						elif setting == source.SettingMetaEdition:
+						elif setting == orionoid.SettingMetaEdition:
 							try: info.append(data['meta']['edition'])
 							except: pass
-						elif setting == source.SettingMetaRelease:
+						elif setting == orionoid.SettingMetaRelease:
 							try: info.append(data['meta']['release'])
 							except: pass
-						elif setting == source.SettingMetaUploader:
+						elif setting == orionoid.SettingMetaUploader:
 							try: info.append(data['meta']['uploader'])
 							except: pass
-						elif setting == source.SettingVideoQuality:
+						elif setting == orionoid.SettingVideoQuality:
 							try: info.append(data['video']['quality'].upper())
 							except: pass
-						elif setting == source.SettingVideoCodec:
+						elif setting == orionoid.SettingVideoCodec:
 							try: info.append(data['video']['codec'].upper())
 							except: pass
-						elif setting == source.SettingVideo3D:
+						elif setting == orionoid.SettingVideo3D:
 							try: info.append('3D' if data['video']['3d'] else None)
 							except: pass
-						elif setting == source.SettingAudioChannels:
+						elif setting == orionoid.SettingAudioChannels:
 							try: info.append('%d CH' % data['audio']['channels'] if data['audio']['channels'] else None)
 							except: pass
-						elif setting == source.SettingAudioSystem:
+						elif setting == orionoid.SettingAudioSystem:
 							try: info.append(data['audio']['system'].upper())
 							except: pass
-						elif setting == source.SettingAudioCodec:
+						elif setting == orionoid.SettingAudioCodec:
 							try: info.append(data['audio']['codec'].upper())
 							except: pass
-						elif setting == source.SettingAudioLanguages:
+						elif setting == orionoid.SettingAudioLanguages:
 							try: info.append('-'.join(data['audio']['languages'].upper()))
 							except: pass
-						elif setting == source.SettingPopularity:
+						elif setting == orionoid.SettingPopularity:
 							try: info.append(self._popularity(data))
 							except: pass
-						elif setting == source.SettingAge:
+						elif setting == orionoid.SettingAge:
 							try: info.append(self._days(data))
 							except: pass
 					info = [i for i in info if i]
@@ -337,26 +277,24 @@ class source:
 					try: orion['item'] = data
 					except: pass
 
-					sources.append({
+					self.sources.append({
 						'orion' : orion,
-						'provider' : self._source(data, False),
-						'source' : self._source(data, True),
+						'scraper' : ' | '.join(info),
+						'provider' : provider,
+						'source' : source,
 						'quality' : self._quality(data),
 						'language' : self._language(data),
 						'url' : self._link(data),
-						'info' : ' | '.join(info) if len(info) > 0 else None,
 						'direct' : data['access']['direct'],
-						'debridonly' : self._debrid(data)
+						'debridonly' : data['stream']['type'] == OrionStream.TypeTorrent or (not data['access']['direct'] and debrid and source in debridDomains)
 					})
 				except: self._error()
 		except: self._error()
-		self._cacheSave(sources)
-		return sources
+		self._cacheSave(self.sources)
+		return self.sources
 
-	def resolve(self, url):
-		item = self._cacheFind(url)
-		try:
-			provider = self._provider(item['provider'], True)
-			if provider: url = provider.resolve(url)
-		except: self._error()
-		return url
+	def scrape_movie(self, title, year, imdb, debrid = False):
+		return self.scrape(type = Orion.TypeMovie, title = title, year = year, imdb = imdb, debrid = debrid)
+
+	def scrape_episode(self, title, show_year, year, season, episode, imdb, tvdb, debrid = False):
+		return self.scrape(type = Orion.TypeShow, title = title, year = show_year, yearEpisode = year, season = season, episode = episode, imdb = imdb, tvdb = tvdb, debrid = debrid)

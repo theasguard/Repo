@@ -1,0 +1,8 @@
+msgctxt "#35001"
+msgid "Orion (Hoster)"
+msgstr ""
+
+msgctxt "#35002"
+msgid "Orion (Torrent)"
+msgstr ""
+

@@ -1,0 +1,3 @@
+<setting type="lsep" label="Orion" />
+<setting id="provider.orionoid" type="bool" label="ORION" default="true" />
+<setting id="orionoid.settings" type="action" label="Settings" option="close" action="RunPlugin(plugin://script.module.orion?action=dialogSettings)" subsetting="true" visible="eq(-1,true)" />

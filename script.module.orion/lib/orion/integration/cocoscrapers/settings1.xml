@@ -1,0 +1,1 @@
+<setting id="provider.orionhoster" type="boolean" label="35001" help=""><level>0</level><default>true</default><control type="toggle"/></setting>
