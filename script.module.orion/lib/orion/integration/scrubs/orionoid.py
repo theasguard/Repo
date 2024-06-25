@@ -10,8 +10,8 @@
 '''
 
 from orion import *
-import urllib
-import urlparse
+from orion.modules.oriontools import *
+
 import pkgutil
 import base64
 import json
@@ -56,37 +56,52 @@ class source:
 		self.key = 'VW1sQ1VVbEZWV2RUUTBKVFNVVnZaMUpEUWtkSlJYTm5WWGxDUTBsRmIyZFNhVUpFU1VaTloxVnBRWHBKUldkblZrTkNTVWxHUldkVGFVSlNTVVYzWjFkVFFraEpSVmxuVlVOQ1JVbEZXV2RUZVVKTg=='
 		self.domains = ['https://orionoid.com']
 		self.providers = []
-		self.cachePath = os.path.join(xbmc.translatePath(self.addon.getAddonInfo('profile').decode('utf-8')), 'orion.cache')
+		try: self.cachePath = os.path.join(xbmcvfs.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile'))), 'orion.cache')
+		except: self.cachePath = os.path.join(xbmc.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile'))), 'orion.cache')
 		self.cacheData = None
 		self.resolvers = None
 
-	def movie(self, imdb, title, localtitle, aliases, year):
-		try: return urllib.urlencode({'imdb' : imdb, 'title' : title, 'year' : year})
+	def movie(self, imdb, tmdb, title, localtitle, aliases, year):
+		try: return OrionTools.urlEncode({'imdb' : imdb, 'tmdb' : tmdb, 'title' : title, 'year' : year})
 		except: return None
 
-	def tvshow(self, imdb, tvdb, tvshowtitle, localtvshowtitle, aliases, year):
-		try: return urllib.urlencode({'imdb' : imdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
+	def tvshow(self, imdb, tmdb, tvdb, tvshowtitle, localtvshowtitle, aliases, year):
+		try: return OrionTools.urlEncode({'imdb' : imdb, 'tmdb' : tmdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
 		except: return None
 
-	def episode(self, url, imdb, tvdb, title, premiered, season, episode):
-		try: return urllib.urlencode({'imdb' : imdb, 'tvdb' : tvdb, 'season' : season, 'episode' : episode})
+	def episode(self, url, imdb, tmdb, tvdb, title, premiered, season, episode):
+		try:
+			parameters = OrionTools.urlParseQs(url)
+			if not parameters: parameters = {}
+			parameters.update({'season' : season, 'episode' : episode})
+			return OrionTools.urlEncode(parameters)
 		except: return None
 
 	def _error(self):
-		type, value, traceback = sys.exc_info()
-		filename = traceback.tb_frame.f_code.co_filename
-		linenumber = traceback.tb_lineno
-		name = traceback.tb_frame.f_code.co_name
-		errortype = type.__name__
-		errormessage = str(errortype) + ' -> ' + str(value.message)
-		parameters = [filename, linenumber, name, errormessage]
+		type, value, trace = sys.exc_info()
+		try: filename = trace.tb_frame.f_code.co_filename
+		except: filename = None
+		try: linenumber = trace.tb_lineno
+		except: linenumber = None
+		try: name = trace.tb_frame.f_code.co_name
+		except: name = None
+		try: errortype = type.__name__
+		except: errortype = None
+		try: errormessage = value.message
+		except:
+			try:
+				import traceback
+				errormessage = traceback.format_exception(type, value, trace)
+			except: pass
+		message = str(errortype) + ' -> ' + str(errormessage)
+		parameters = [filename, linenumber, name, message]
 		parameters = ' | '.join([str(parameter) for parameter in parameters])
 		xbmc.log('SCRUBS ORION [ERROR]: ' + parameters, xbmc.LOGERROR)
 
 	def _settings(self):
 		settings = []
 		for i in range(1, 16):
-			setting = int(self.addon.getSetting('provider.orion.info.' + str(i)))
+			setting = int(self.addon.getSetting('orionoid.info.' + str(i)))
 			if setting > 0: settings.append(setting)
 		return settings
 
@@ -182,7 +197,7 @@ class source:
 		return '+' + str(int(popularity)) + '%'
 
 	def _domain(self, data):
-		elements = urlparse.urlparse(self._link(data))
+		elements = OrionTools.urlParse(self._link(data))
 		domain = elements.netloc or elements.path
 		domain = domain.split('@')[-1].split(':')[0]
 		result = re.search('(?:www\.)?([\w\-]*\.[\w\-]{2,3}(?:\.[\w\-]{2,3})?)$', domain)
@@ -198,7 +213,7 @@ class source:
 					for loader, name, pkg in pkgutil.walk_packages([os.path.join(path, i)]):
 						if pkg: continue
 						try:
-							name = re.sub(ur'[^\w\d\s]+', '', name.lower())
+							name = re.sub(u'[^\w\d\s]+', '', name.lower())
 							module = loader.find_module(name)
 							if module: self.providers.append((name, module.load_module(name)))
 						except: self._error()
@@ -218,15 +233,15 @@ class source:
 				return True
 		return False
 
-	def sources(self, url, hostDict, hostprDict):
+	def sources(self, url, hostDict, hostprDict = None):
 		sources = []
 		try:
 			if url == None: raise Exception()
-			orion = Orion(base64.b64decode(base64.b64decode(base64.b64decode(self.key))).replace(' ', ''))
+			orion = Orion(OrionTools.base64From(OrionTools.base64From(OrionTools.base64From(self.key))).replace(' ', ''))
 			if not orion.userEnabled() or not orion.userValid(): raise Exception()
 			settings = self._settings()
 
-			data = urlparse.parse_qs(url)
+			data = OrionTools.urlParseQs(url)
 			data = dict([(i, data[i][0]) if data[i] else (i, '') for i in data])
 
 			imdb = data['imdb'] if 'imdb' in data else None
@@ -251,96 +266,101 @@ class source:
 				idTvdb = tvdb,
 				numberSeason = season,
 				numberEpisode = episode,
-				streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeHoster]),
-				protocolTorrent = Orion.ProtocolMagnet
+
+				# Torrents not supported anymore.
+				#streamType = orion.streamTypes([OrionStream.TypeTorrent, OrionStream.TypeHoster]),
+				#protocolTorrent = Orion.ProtocolMagnet
+				streamType = orion.streamTypes([OrionStream.TypeHoster]),
 			)
 
-			from resources.lib.modules import debrid
+			self.resolvers = []
+			# Debrid not supported anymore.
+			'''from resources.lib.modules import debrid
 			debridResolvers = debrid.debrid_resolvers
 			debridProviders = ['premiumize', 'realdebrid', 'alldebrid', 'rpnet', 'megadebrid', 'debridlink', 'zevera', 'smoozed', 'simplydebrid']
-			self.resolvers = []
 			for debridResolver in debridResolvers:
 				try:
 					provider = re.sub('[^0-9a-zA-Z]+', '', debridResolver.name.lower())
 					if any([i in provider or provider in i for i in debridProviders]):
 						self.resolvers.append(debridResolver)
-				except: pass
+				except: pass'''
 
-			for data in results:
-				try:
-					info = []
-					for setting in settings:
-						if setting == source.SettingStreamProvider:
-							try: info.append(data['stream']['source'])
-							except: pass
-						elif setting == source.SettingStreamHoster:
-							try: info.append(data['stream']['hoster'])
-							except: pass
-						elif setting == source.SettingStreamSeeds:
-							try: info.append(self._seeds(data))
-							except: pass
-						elif setting == source.SettingFileSize:
-							try: info.append(self._size(data))
-							except: pass
-						elif setting == source.SettingFilePack:
-							try: info.append('Pack' if data['file']['pack'] else None)
-							except: pass
-						elif setting == source.SettingMetaEdition:
-							try: info.append(data['meta']['edition'])
-							except: pass
-						elif setting == source.SettingMetaRelease:
-							try: info.append(data['meta']['release'])
-							except: pass
-						elif setting == source.SettingMetaUploader:
-							try: info.append(data['meta']['uploader'])
-							except: pass
-						elif setting == source.SettingVideoQuality:
-							try: info.append(data['video']['quality'].upper())
-							except: pass
-						elif setting == source.SettingVideoCodec:
-							try: info.append(data['video']['codec'].upper())
-							except: pass
-						elif setting == source.SettingVideo3D:
-							try: info.append('3D' if data['video']['3d'] else None)
-							except: pass
-						elif setting == source.SettingAudioChannels:
-							try: info.append('%d CH' % data['audio']['channels'] if data['audio']['channels'] else None)
-							except: pass
-						elif setting == source.SettingAudioSystem:
-							try: info.append(data['audio']['system'].upper())
-							except: pass
-						elif setting == source.SettingAudioCodec:
-							try: info.append(data['audio']['codec'].upper())
-							except: pass
-						elif setting == source.SettingAudioLanguages:
-							try: info.append('-'.join(data['audio']['languages'].upper()))
-							except: pass
-						elif setting == source.SettingPopularity:
-							try: info.append(self._popularity(data))
-							except: pass
-						elif setting == source.SettingAge:
-							try: info.append(self._days(data))
-							except: pass
-					info = [i for i in info if i]
+			if results:
+				for data in results:
+					try:
+						info = []
+						for setting in settings:
+							if setting == source.SettingStreamProvider:
+								try: info.append(data['stream']['source'])
+								except: pass
+							elif setting == source.SettingStreamHoster:
+								try: info.append(data['stream']['hoster'])
+								except: pass
+							elif setting == source.SettingStreamSeeds:
+								try: info.append(self._seeds(data))
+								except: pass
+							elif setting == source.SettingFileSize:
+								try: info.append(self._size(data))
+								except: pass
+							elif setting == source.SettingFilePack:
+								try: info.append('Pack' if data['file']['pack'] else None)
+								except: pass
+							elif setting == source.SettingMetaEdition:
+								try: info.append(data['meta']['edition'])
+								except: pass
+							elif setting == source.SettingMetaRelease:
+								try: info.append(data['meta']['release'])
+								except: pass
+							elif setting == source.SettingMetaUploader:
+								try: info.append(data['meta']['uploader'])
+								except: pass
+							elif setting == source.SettingVideoQuality:
+								try: info.append(data['video']['quality'].upper())
+								except: pass
+							elif setting == source.SettingVideoCodec:
+								try: info.append(data['video']['codec'].upper())
+								except: pass
+							elif setting == source.SettingVideo3D:
+								try: info.append('3D' if data['video']['3d'] else None)
+								except: pass
+							elif setting == source.SettingAudioChannels:
+								try: info.append('%d CH' % data['audio']['channels'] if data['audio']['channels'] else None)
+								except: pass
+							elif setting == source.SettingAudioSystem:
+								try: info.append(data['audio']['system'].upper())
+								except: pass
+							elif setting == source.SettingAudioCodec:
+								try: info.append(data['audio']['codec'].upper())
+								except: pass
+							elif setting == source.SettingAudioLanguages:
+								try: info.append('-'.join(data['audio']['languages'].upper()))
+								except: pass
+							elif setting == source.SettingPopularity:
+								try: info.append(self._popularity(data))
+								except: pass
+							elif setting == source.SettingAge:
+								try: info.append(self._days(data))
+								except: pass
+						info = [i for i in info if i]
 
-					orion = {}
-					try: orion['stream'] = data['id']
-					except: pass
-					try: orion['item'] = data
-					except: pass
+						orion = {}
+						try: orion['stream'] = data['id']
+						except: pass
+						try: orion['item'] = data
+						except: pass
 
-					sources.append({
-						'orion' : orion,
-						'provider' : self._source(data, False),
-						'source' : self._source(data, True),
-						'quality' : self._quality(data),
-						'language' : self._language(data),
-						'url' : self._link(data),
-						'info' : ' | '.join(info) if len(info) > 0 else None,
-						'direct' : data['access']['direct'],
-						'debridonly' : self._debrid(data)
-					})
-				except: self._error()
+						sources.append({
+							'orion' : orion,
+							'provider' : self._source(data, False),
+							'source' : self._source(data, True),
+							'quality' : self._quality(data),
+							'language' : self._language(data),
+							'url' : self._link(data),
+							'info' : ' | '.join(info) if len(info) > 0 else None,
+							'direct' : data['access']['direct'],
+							'debridonly' : self._debrid(data)
+						})
+					except: self._error()
 		except: self._error()
 		self._cacheSave(sources)
 		return sources

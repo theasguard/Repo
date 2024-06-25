@@ -12,15 +12,17 @@
 from orion import *
 from orion.modules.oriontools import *
 from orion.modules.orionnetworker import *
+
 import threading
-import urllib
-import urlparse
 import pkgutil
 import sys
 import os
 import re
 import xbmc
 import xbmcaddon
+
+try: xrange # Python 2
+except NameError: xrange = range # Python 3
 
 class source:
 
@@ -61,7 +63,7 @@ class source:
 
 	def __init__(self):
 		self.addon = xbmcaddon.Addon('script.module.openscrapers')
-		profile = xbmc.translatePath(self.addon.getAddonInfo('profile').decode('utf-8'))
+		profile = xbmc.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile')))
 		try: os.mkdir(profile)
 		except: pass
 		self.priority = 1
@@ -75,15 +77,15 @@ class source:
 		except: self.key = source.Keys['default']
 
 	def movie(self, imdb, title, localtitle, aliases, year):
-		try: return urllib.urlencode({'imdb' : imdb, 'title' : title, 'year' : year})
+		try: return OrionTools.urlEncode(({'imdb' : imdb, 'title' : title, 'year' : year})
 		except: return None
 
 	def tvshow(self, imdb, tvdb, tvshowtitle, localtvshowtitle, aliases, year):
-		try: return urllib.urlencode({'imdb' : imdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
+		try: return OrionTools.urlEncode(({'imdb' : imdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
 		except: return None
 
 	def episode(self, url, imdb, tvdb, title, premiered, season, episode):
-		try: return urllib.urlencode({'imdb' : imdb, 'tvdb' : tvdb, 'season' : season, 'episode' : episode})
+		try: return OrionTools.urlEncode(({'imdb' : imdb, 'tvdb' : tvdb, 'season' : season, 'episode' : episode})
 		except: return None
 
 	def _error(self):
@@ -106,9 +108,9 @@ class source:
 
 	def _premiumizeParameters(self, parameters = None):
 		from resolveurl.plugins.premiumize_me import PremiumizeMeResolver
-		if parameters: parameters = [urllib.urlencode(parameters, doseq = True)]
+		if parameters: parameters = [OrionTools.urlEncode((parameters, doseq = True)]
 		else: parameters = []
-		parameters.append(urllib.urlencode({'access_token' : PremiumizeMeResolver.get_setting('token')}, doseq = True))
+		parameters.append(OrionTools.urlEncode(({'access_token' : PremiumizeMeResolver.get_setting('token')}, doseq = True))
 		return '&'.join(parameters)
 
 	def _premiumizeRequest(self, link, parameters = None):
@@ -246,7 +248,7 @@ class source:
 		return '+' + str(int(popularity)) + '%'
 
 	def _domain(self, data):
-		elements = urlparse.urlparse(self._link(data))
+		elements = OrionTools.urlParse(self._link(data))
 		domain = elements.netloc or elements.path
 		domain = domain.split('@')[-1].split(':')[0]
 		result = re.search('(?:www\.)?([\w\-]*\.[\w\-]{2,3}(?:\.[\w\-]{2,3})?)$', domain)
@@ -262,7 +264,7 @@ class source:
 					for loader, name, pkg in pkgutil.walk_packages([os.path.join(path, i)]):
 						if pkg: continue
 						try:
-							name = re.sub(ur'[^\w\d\s]+', '', name.lower())
+							name = re.sub(u'[^\w\d\s]+', '', name.lower())
 							module = loader.find_module(name)
 							if module: self.providers.append((name, module.load_module(name)))
 						except: self._error()
@@ -295,7 +297,7 @@ class source:
 			if not orion.userEnabled() or not orion.userValid(): raise Exception()
 			settings = self._settings()
 
-			data = urlparse.parse_qs(url)
+			data = OrionTools.urlParseQs(url)
 			data = dict([(i, data[i][0]) if data[i] else (i, '') for i in data])
 
 			imdb = data['imdb'] if 'imdb' in data else None

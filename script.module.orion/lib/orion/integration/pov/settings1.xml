@@ -1,0 +1,2 @@
+<setting label="Hosters" type="lsep" />
+<setting id="provider.orionhoster" type="bool" label="Orion (Hoster)" default="true" />

@@ -1,0 +1,3 @@
+<setting label="Orion" type="lsep" />
+<setting id="provider.oriontorrent" type="bool" label="Orion (Torrents)" default="true" />
+<setting id="provider.orionhoster" type="bool" label="Orion (Hosters)" default="false" />

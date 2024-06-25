@@ -10,8 +10,8 @@
 '''
 
 from orion import *
-import urllib
-import urlparse
+from orion.modules.oriontools import *
+
 import pkgutil
 import base64
 import json
@@ -56,32 +56,43 @@ class source:
 		self.key = 'VWxOQ1JVbEVZMmRSVTBKSlNVVm5aMVJUUVRSSlJUUm5UbmxDUzBsRlVXZE9VMEpHU1VWSloxUlRRbE5KUmtWblZHbENUVWxFWTJkU2VVSlNTVVJyWjFOcFFraEpSV2RuVkVOQk5VbEZNR2RXUTBKSg=='
 		self.domains = ['https://orionoid.com']
 		self.providers = []
-		self.cachePath = os.path.join(xbmc.translatePath(self.addon.getAddonInfo('profile').decode('utf-8')), 'orion.cache')
+		try: self.cachePath = os.path.join(xbmcvfs.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile'))), 'orion.cache')
+		except: self.cachePath = os.path.join(xbmc.translatePath(OrionTools.unicodeDecode(self.addon.getAddonInfo('profile'))), 'orion.cache')
 		self.cacheData = None
 		self.resolvers = None
 		try: self.seeds = int(self.addon.getSetting('torrent.min.seeders'))
 		except: self.seeds = 1
 
 	def movie(self, imdb, title, localtitle, aliases, year):
-		try: return urllib.urlencode({'imdb' : imdb, 'title' : title, 'year' : year})
+		try: return OrionTools.urlEncode(({'imdb' : imdb, 'title' : title, 'year' : year})
 		except: return None
 
 	def tvshow(self, imdb, tvdb, tvshowtitle, localtvshowtitle, aliases, year):
-		try: return urllib.urlencode({'imdb' : imdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
+		try: return OrionTools.urlEncode(({'imdb' : imdb, 'tvdb' : tvdb, 'tvshowtitle' : tvshowtitle, 'year' : year})
 		except: return None
 
 	def episode(self, url, imdb, tvdb, title, premiered, season, episode):
-		try: return urllib.urlencode({'imdb' : imdb, 'tvdb' : tvdb, 'season' : season, 'episode' : episode})
+		try: return OrionTools.urlEncode(({'imdb' : imdb, 'tvdb' : tvdb, 'season' : season, 'episode' : episode})
 		except: return None
 
 	def _error(self):
-		type, value, traceback = sys.exc_info()
-		filename = traceback.tb_frame.f_code.co_filename
-		linenumber = traceback.tb_lineno
-		name = traceback.tb_frame.f_code.co_name
-		errortype = type.__name__
-		errormessage = str(errortype) + ' -> ' + str(value.message)
-		parameters = [filename, linenumber, name, errormessage]
+		type, value, trace = sys.exc_info()
+		try: filename = trace.tb_frame.f_code.co_filename
+		except: filename = None
+		try: linenumber = trace.tb_lineno
+		except: linenumber = None
+		try: name = trace.tb_frame.f_code.co_name
+		except: name = None
+		try: errortype = type.__name__
+		except: errortype = None
+		try: errormessage = value.message
+		except:
+			try:
+				import traceback
+				errormessage = traceback.format_exception(type, value, trace)
+			except: pass
+		message = str(errortype) + ' -> ' + str(errormessage)
+		parameters = [filename, linenumber, name, message]
 		parameters = ' | '.join([str(parameter) for parameter in parameters])
 		xbmc.log('EXODUS ORION [ERROR]: ' + parameters, xbmc.LOGERROR)
 
@@ -184,7 +195,7 @@ class source:
 		return '+' + str(int(popularity)) + '%'
 
 	def _domain(self, data):
-		elements = urlparse.urlparse(self._link(data))
+		elements = OrionTools.urlParse(self._link(data))
 		domain = elements.netloc or elements.path
 		domain = domain.split('@')[-1].split(':')[0]
 		result = re.search('(?:www\.)?([\w\-]*\.[\w\-]{2,3}(?:\.[\w\-]{2,3})?)$', domain)
@@ -200,7 +211,7 @@ class source:
 					for loader, name, pkg in pkgutil.walk_packages([os.path.join(path, i)]):
 						if pkg: continue
 						try:
-							name = re.sub(ur'[^\w\d\s]+', '', name.lower())
+							name = re.sub(u'[^\w\d\s]+', '', name.lower())
 							module = loader.find_module(name)
 							if module: self.providers.append((name, module.load_module(name)))
 						except: self._error()
@@ -224,11 +235,11 @@ class source:
 		sources = []
 		try:
 			if url == None: raise Exception()
-			orion = Orion(base64.b64decode(base64.b64decode(base64.b64decode(self.key))).replace(' ', ''))
+			orion = Orion(OrionTools.base64From(OrionTools.base64From(OrionTools.base64From(self.key))).replace(' ', ''))
 			if not orion.userEnabled() or not orion.userValid(): raise Exception()
 			settings = self._settings()
 
-			data = urlparse.parse_qs(url)
+			data = OrionTools.urlParseQs(url)
 			data = dict([(i, data[i][0]) if data[i] else (i, '') for i in data])
 
 			imdb = data['imdb'] if 'imdb' in data else None
