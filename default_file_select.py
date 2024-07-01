@@ -65,9 +65,7 @@ def apply_urlresolver(hosters):
                     filtered_hosters.append(hoster)
                 else:
                     hmf = resolveurl.HostedMediaFile(host=host, media_id='12345678901', return_all=True)  # use dummy media_id to force host validation
-                    if 'magnet' in debrid_resolvers:
-                        hmf = resolveurl.HostedMediaFile(magnet=host, media_id='12345678901', return_all=True) 
-                        logger.log('Hoster URL: %s' % (host), log_utils.LOGDEBUG)
+                    logger.log('Hoster URL: %s' % (host), log_utils.LOGDEBUG)
 
                     if hmf:
                         logger.log('Known Miss: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
