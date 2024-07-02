@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2024 Thor
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ from asguard_lib import cloudflare
 from asguard_lib import cf_captcha
 import kodi
 import log_utils  # @UnusedImport
-
 import six
 from six.moves import urllib_request, urllib_parse, urllib_error
 from six.moves import http_cookiejar as cookielib
@@ -52,7 +51,7 @@ BASE_URL = ''
 FLARESOLVERR_URL = 'http://localhost:8191/v1'
 COOKIEPATH = kodi.translate_path(kodi.get_profile())
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-MAX_RESPONSE = 1024 * 1024 * 5
+MAX_RESPONSE = 1024 * 1024 * 10
 CF_CAPCHA_ENABLED = kodi.get_setting('cf_captcha') == 'true'
 
 class ScrapeError(Exception):
@@ -138,46 +137,92 @@ class Scraper(object):
         else:
             return link
 
+    def resolve_all_debrid(self, link):
+        """
+        Resolves a magnet or torrent link using AllDebrid's API.
+
+        link: a magnet or torrent link
+
+        Returns a resolved link if successful, otherwise None.
+        """
+        try:
+            # Retrieve the AllDebrid API key from Kodi settings
+            # not sure about this yet 
+            api_key = kodi.get_setting('alldebrid_api_key')
+            if not api_key:
+                raise Exception("AllDebrid API key not found in settings")
+
+            if link.startswith('magnet:'):
+                url = f'https://api.alldebrid.com/v4/magnet/upload?agent=Asguard&apikey={api_key}&magnets[]={link}'
+                logger.log(f'Resolving AllDebrid magnet: {link}', log_utils.LOGDEBUG)
+            if link.startswith('http'):
+                url = f'https://api.alldebrid.com/v4/link/unlock?agent=Asguard&apikey={api_key}&link={link}'
+                logger.log(f'Resolving AllDebrid link: {url}', log_utils.LOGDEBUG)
+
+            response = requests.get(url)
+            logger.log(f'Response: {response}', log_utils.LOGDEBUG)
+            if response.status_code == 200:
+                data = response.json()
+                logger.log(f'Data: {data}', log_utils.LOGDEBUG)
+                if data['status'] == 'success':
+                    return data['data']['link']
+            return None
+        except Exception as e:
+            logger.log(f'Error resolving AllDebrid link: {str(e)}', log_utils.LOGERROR)
+            return None
+
+
     def format_source_label(self, item):
         """
-        Must return a string that is to be the label to be used for this source in the "Choose Source" dialog
+        Must return a string that is to be the label to be used for this source in the "Choose Source" dialog.
 
-        item: one element of the list that is returned from get_sources for this scraper
+        Args:
+            item (dict): One element of the list that is returned from get_sources for this scraper.
+
+        Returns:
+            str: Formatted label for the source.
         """
-        label = '[%s]' % (item['quality'])
+        label_parts = [f"[{item['quality']}"]
 
-        if 'torrent' in item and item['torrent']:
-            label += ' (Torrent)'
+        if 'label' in item:
+            label_parts.append(f"({item['label']})")
 
-        if '4K' in item and item['4K']:
-            label += ' (HD4K)'
-        
-        if '3D' in item and item['3D']:
-            label += ' (3D)'
-            
+        if item.get('torrent'):
+            label_parts.append("(Torrent)")
+
+        if item.get('4K'):
+            label_parts.append("(HD4K)")
+
+        if item.get('3D'):
+            label_parts.append("(3D)")
+
         if 'format' in item:
-            label += ' (%s)' % (item['format'])
-        
-        if 'version' in item:
-            label += ' %s' % (item['version'])
-            
-        label += ' %s' % (item['host'])
-        
-        if 'views' in item and item['views'] is not None:
-            label += ' (%s views)' % (item['views'])
-        
-        if 'rating' in item and item['rating'] is not None:
-            label += ' (%s/100)' % (item['rating'])
-            
-        if 'size' in item:
-            label += ' (%s)' % (item['size'])
+            label_parts.append(f"({item['format']})")
 
-        if 'subs' in item and item['subs']:
-            label += ' (%s)' % (item['subs'])
-            
+        if 'version' in item:
+            label_parts.append(item['version'])
+
+        label_parts.append(item['host'])
+
+        if 'views' in item and item['views'] is not None:
+            label_parts.append(f"({item['views']} views)")
+
+        if 'rating' in item and item['rating'] is not None:
+            label_parts.append(f"({item['rating']}/100)")
+
+        if 'size' in item:
+            label_parts.append(f"({item['size']})")
+
+        if item.get('subs'):
+            label_parts.append(f"({item['subs']})")
+
         if 'extra' in item:
-            label += ' [%s]' % (item['extra'])
-        return label
+            label_parts.append(f"[{item['extra']}]")
+
+        if 'seeders' in item:
+            label_parts.append(f"({item['seeders']} seeders)")
+
+        return ' '.join(label_parts)
 
 
     @abc.abstractmethod
@@ -258,6 +303,20 @@ class Scraper(object):
         return False
 
     def _default_get_url(self, video):
+        """
+        Retrieves the URL for a given video based on its type and metadata.
+
+        Args:
+            video (ScraperVideo): An object containing metadata about the video.
+                - video_type: One of VIDEO_TYPES (e.g., EPISODE, TVSHOW, SEASON).
+                - title: The title of the TV show or movie.
+                - year: The year of the TV show or movie.
+                - season: The season number (only for TV shows).
+                - episode: The episode number (only for TV shows).
+
+        Returns:
+            str: The URL related to the video, or None if no URL is found.
+        """
         url = None
         temp_video_type = video.video_type
         if video.video_type == VIDEO_TYPES.EPISODE:
@@ -278,7 +337,7 @@ class Scraper(object):
                     url = results[0]['url']
                     self.db_connection().set_related_url(temp_video_type, video.title, video.year, self.get_name(), url, season)
 
-        if isinstance(url, str): url = url.encode('utf-8')
+        if isinstance(url, str): url = url
         if video.video_type == VIDEO_TYPES.EPISODE:
             if url == FORCE_NO_MATCH:
                 url = None
@@ -286,7 +345,7 @@ class Scraper(object):
                 result = self.db_connection().get_related_url(VIDEO_TYPES.EPISODE, video.title, video.year, self.get_name(), video.season, video.episode)
                 if result:
                     url = result[0][0]
-                    if isinstance(url, str): url = url.encode('utf-8')
+                    if isinstance(url, str): url = url
                     logger.log('Got local related url: |%s|%s|%s|' % (video, self.get_name(), url), log_utils.LOGDEBUG)
                 else:
                     url = self._get_episode_url(url, video)
@@ -315,7 +374,7 @@ class Scraper(object):
                          method=None, require_debrid=False, read_error=False, cache_limit=8):
         if require_debrid:
             if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
+                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.choose_source(url) if resolver.isUniversal()]
             if not Scraper.debrid_resolvers:
                 logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
                 return ''
@@ -444,34 +503,43 @@ class Scraper(object):
             logger.log(f'After Cookies: {self} - {scraper_utils.cookies_as_str(cj)}', log_utils.LOGDEBUG)
         return cj
 
-    def do_recaptcha(self, url):
-        headers = {'User-Agent': scraper_utils.get_ua(), 'Referer': url}
-        # Use FlareSolverr to get the page content and solve CAPTCHA
-        payload = {
-            'cmd': 'request.get',
-            'url': url,
-            'maxTimeout': 60000,
-            'headers': headers
-        }
-        response = requests.post(f"{FLARESOLVERR_URL}/request", json=payload)
-        result = response.json()
-        html = result['solution']['response']
-        token = self.extract_captcha_token(html)
-        if token:
-            submit_url = self.construct_captcha_submit_url(url, token)
-            submit_response = requests.get(submit_url, headers=headers)
-            return submit_response.text
-        else:
-            logger.log('Failed to solve CAPTCHA', log_utils.LOGWARNING)
-            return None
+    def do_recaptcha(self, url, site_key):
+        """
+        Solves reCAPTCHA using FLARESOLVER.
 
-    def extract_captcha_token(self, html):
-        # Logic to extract CAPTCHA token from HTML
-        pass
+        Args:
+            url (str): The URL of the page containing the reCAPTCHA.
+            site_key (str): The site key of the reCAPTCHA.
 
-    def construct_captcha_submit_url(self, base_url, token):
-        # Logic to construct URL for submitting CAPTCHA response
-        pass
+        Returns:
+            str: The reCAPTCHA token if successful, otherwise None.
+        """
+        try:
+            # Prepare the payload for FLARESOLVER
+            payload = {
+                "cmd": "request.get",
+                "url": url,
+                "maxTimeout": 60000,
+                "session": True,
+                "cookies": True,
+                "userAgent": scraper_utils.get_ua(),
+                "captcha": {
+                    "provider": "hcaptcha",
+                    "sitekey": site_key
+                }
+            }
+
+            # Send the request to FLARESOLVER
+            response = requests.post(f'{FLARESOLVERR_URL}/v1', json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'ok':
+                    return data.get('solution', {}).get('gRecaptchaResponse')
+            logger.log(f'Failed to solve reCAPTCHA: {response.text}', log_utils.LOGERROR)
+        except Exception as e:
+            logger.log(f'Error solving reCAPTCHA: {str(e)}', log_utils.LOGERROR)
+        return None
+
 
     def _default_get_episode_url(self, html, video, episode_pattern, title_pattern='', airdate_pattern=''):
         logger.log('Default Episode Url: |%s|%s|' % (self.get_name(), video), log_utils.LOGDEBUG)
@@ -637,8 +705,19 @@ class Scraper(object):
 
 
     def _get_direct_hostname(self, link):
+        """
+        Determines the direct hostname for a given link.
+
+        Args:
+            link (str): The URL link to check.
+
+        Returns:
+            str: The direct hostname if recognized, otherwise the scraper's name.
+        """
         host = urllib_parse.urlparse(link).hostname
-        if host and any(h in host for h in ['google', 'orion', 'blogspot']):
+        direct_hosts = ['google', 'orion', 'blogspot', 'mixdrop', 'vidcloud', 'streamtape', 'dood', 'vidlox', 'mp4upload']
+
+        if host and any(h in host for h in direct_hosts):
             return 'gvideo'
         else:
             return self.get_name()
@@ -698,6 +777,15 @@ class Scraper(object):
         return sources
 
     def __extract_video(self, item):
+        """
+        Extracts video URLs from a nested list structure.
+
+        Args:
+            item (list): A nested list structure containing video URLs.
+
+        Returns:
+            list: A list of extracted video URLs.
+        """
         sources = []
         for e in item:
             if isinstance(e, dict):
@@ -709,8 +797,7 @@ class Scraper(object):
                                     for item4 in item3:
                                         if isinstance(item4, str):
                                             s = urllib_parse.unquote(item4).replace('\\0026', '&').replace('\\003D', '=')
-                                            for match in re.finditer('url=([^&]+)', s):
-                                                sources.append(match.group(1))
+                                            sources.extend(re.findall('url=([^&]+)', s))
         return sources
         
     def _parse_gdocs(self, link):
@@ -762,6 +849,17 @@ class Scraper(object):
         return sources
 
     def _get_files(self, url, headers=None, cache_limit=.5):
+        """
+        Retrieves files from a directory URL.
+
+        Args:
+            url (str): The URL of the directory to fetch files from.
+            headers (dict): Optional headers for the HTTP request.
+            cache_limit (float): Cache limit for the request.
+
+        Returns:
+            list: A list of file rows with URLs and metadata.
+        """
         sources = []
         for row in self._parse_directory(self._http_get(url, headers=headers, cache_limit=cache_limit)):
             source_url = scraper_utils.urljoin(url, row['link'])
@@ -773,6 +871,15 @@ class Scraper(object):
         return sources
     
     def _parse_directory(self, html):
+        """
+        Parses the HTML of a directory listing to extract file information.
+
+        Args:
+            html (str): The HTML content of the directory listing.
+
+        Returns:
+            list: A list of dictionaries containing file information.
+        """
         rows = []
         for match in re.finditer(self.row_pattern, html):
             row = match.groupdict()
