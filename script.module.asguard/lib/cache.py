@@ -1,6 +1,6 @@
 """
     Asguard module
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2018 Thor
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,19 +17,25 @@
 """
 import functools
 import log_utils
-import kodi
-
-import xbmc, xbmcaddon, xbmcvfc, time, os, pickle, hashlib, re
+import xbmcaddon
+import xbmc
+import xbmcvfs
+import time
+import pickle
+import hashlib
+import os
 import shutil
+import kodi
 import ast
+import re
 import six
+
 try:
     from sqlite3 import dbapi2 as db, OperationalError
 except ImportError:
     from pysqlite2 import dbapi2 as db, OperationalError
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
 
 try:
     cache_path = kodi.translate_path(os.path.join(kodi.get_profile(), 'cache'))
@@ -37,9 +43,10 @@ try:
         os.makedirs(cache_path)
 except Exception as e:
     logger.log('Failed to create cache: %s: %s' % (cache_path, e), log_utils.LOGWARNING)
-    
+
 cache_enabled = kodi.get_setting('use_cache') == 'true'
-    
+
+
 def reset_cache():
     try:
         shutil.rmtree(cache_path)
@@ -47,7 +54,8 @@ def reset_cache():
     except Exception as e:
         logger.log('Failed to Reset Cache: %s' % (e), log_utils.LOGWARNING)
         return False
-    
+
+
 def _get_func(name, args=None, kwargs=None, cache_limit=1):
     if not cache_enabled:
         return False, None
@@ -70,7 +78,8 @@ def _get_func(name, args=None, kwargs=None, cache_limit=1):
             return True, pickle.loads(pickled_result)
 
     return False, None
-    
+
+
 def _save_func(name, args=None, kwargs=None, result=None):
     try:
         if args is None:
@@ -88,12 +97,14 @@ def _save_func(name, args=None, kwargs=None, result=None):
     except Exception as e:
         logger.log('Failure during cache write: %s' % (e), log_utils.LOGWARNING)
 
+
 def _get_filename(name, args, kwargs):
     if six.PY2:
         arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
     else:
         arg_hash = hashlib.md5(name.encode('utf8')).hexdigest() + hashlib.md5(str(args).encode('utf8')).hexdigest() + hashlib.md5(str(kwargs).encode('utf8')).hexdigest()
     return arg_hash
+
 
 def cache_method(cache_limit):
     def wrap(func):
@@ -116,6 +127,7 @@ def cache_method(cache_limit):
                 return result
         return memoizer
     return wrap
+
 
 # do not use this with instance methods the self parameter will cause args to never match
 def cache_function(cache_limit):
@@ -180,6 +192,7 @@ def timeout(function, *args):
 
 
 def cache_get(key):
+    # type: (str, str) -> dict or None
     try:
         cursor = _get_connection_cursor()
         cursor.execute("SELECT * FROM %s WHERE key = ?" % cache_table, [key])
@@ -230,11 +243,10 @@ def _get_connection_cursor():
 
 
 def _get_connection():
-    from xbmcaddon import Addon
-    addon = Addon()
-    xbmcvfs.mkdir(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
-    conn = db.connect(os.path.join(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'), 'cache.db'))
+    xbmcvfs.mkdir(xbmc.translatePath(addonInfo('profile')).decode('utf-8'))
+    conn = db.connect(os.path.join(xbmc.translatePath(addonInfo('profile')).decode('utf-8'), 'cache.db'))
     conn.row_factory = _dict_factory
+    return conn
 
 
 def _dict_factory(cursor, row):

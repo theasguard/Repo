@@ -20,15 +20,14 @@ import _strptime
 import time
 import re
 import json
-import urllib.request as urllib_request
-import urllib.parse as urllib_parse
+import urllib.error as urllib_error
 import os
 import kodi
 import log_utils
 import xbmcgui
 import xbmcvfs
 import xbmc
-from six.moves import urllib_request, urllib_parse, urllib_error
+from six.moves import urllib_request, urllib_parse
 import six
 
 
@@ -78,6 +77,33 @@ def make_list_item(label, meta, art=None, cast=None):
             listitem.setProperty('tvdb_id', str(meta['ids']['tvdb']))
 
     return listitem
+
+def iso_2_utc_tmdb(iso_ts):
+    if not iso_ts or iso_ts is None:
+        return 0
+
+    # Handle cases where the date might not include the time component
+    if len(iso_ts) == 7:  # Format: YYYY-MM
+        ts_format = '%Y-%m'
+    elif len(iso_ts) == 10:  # Format: YYYY-MM-DD
+        ts_format = '%Y-%m-%d'
+    elif len(iso_ts) == 19:  # Format: YYYY-MM-DDTHH:MM:SS
+        ts_format = '%Y-%m-%dT%H:%M:%S'
+    else:
+        raise ValueError("Unsupported date format: {}".format(iso_ts))
+
+    try:
+        d = datetime.datetime.strptime(iso_ts, ts_format)
+    except TypeError:
+        d = datetime.datetime(*(time.strptime(iso_ts, ts_format)[0:6]))
+
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    delta = d - epoch
+    try:
+        seconds = delta.total_seconds()  # works only on 2.7+
+    except:
+        seconds = delta.seconds + delta.days * 24 * 3600  # close enough
+    return seconds
 
 def iso_2_utc(iso_ts):
     if not iso_ts or iso_ts is None:
@@ -223,8 +249,10 @@ def get_extension(url, response):
     elif response.url != url:
         filename = url2name(response.url)
     ext = os.path.splitext(filename)[1][1:]
-    if not ext: ext = DEFAULT_EXT
+    if not ext:
+        ext = DEFAULT_EXT
     return ext
+
 
 def create_legal_filename(title, year):
     filename = title
@@ -302,3 +330,33 @@ def format_time(seconds):
         return "%02d:%02d:%02d" % (hours, minutes, seconds)
     else:
         return "%02d:%02d" % (minutes, seconds)
+    
+
+def auth_alldebrid(Alldebrid_API, translations):
+    i18n = translations.i18n
+    start = time.time()
+    alldebrid_timeout = int(kodi.get_setting('alldebrid_timeout'))
+    alldebrid_api = Alldebrid_API()
+    result = alldebrid_api.authenticate()
+    code, expires, interval = result['device_code'], result['expires_in'], result['interval']
+    time_left = expires - int(time.time() - start)
+    line1 = i18n('verification_url') % (result['verification_url'])
+    line2 = i18n('prompt_code') % (result['user_code'])
+    with kodi.CountdownDialog(i18n('alldebrid_auth'), line1=line1, line2=line2, countdown=time_left, interval=interval) as cd:
+        result = cd.start(__auth_alldebrid, [alldebrid_api, code, i18n])
+
+    try:
+        kodi.set_setting('alldebrid_api_key', result['access_token'])
+        alldebrid_api = Alldebrid_API(result['access_token'], timeout=alldebrid_timeout)
+        profile = alldebrid_api.get_user_info(cached=False)
+        kodi.set_setting('alldebrid_user', '%s (%s)' % (profile['username'], profile['name']))
+        kodi.notify(msg=i18n('alldebrid_auth_complete'), duration=3000)
+    except Exception as e:
+        logger.log('AllDebrid Authorization Failed: %s' % (e), log_utils.LOGDEBUG)
+
+def __auth_alldebrid(alldebrid_api, code, i18n):
+    try:
+        return alldebrid_api.__poll_auth(code)
+    except Exception as e:
+        logger.log('AllDebrid Polling Failed: %s' % (e), log_utils.LOGDEBUG)
+        return None
