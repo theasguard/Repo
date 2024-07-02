@@ -43,6 +43,8 @@ class Scraper(scraper.Scraper):
     def get_sources(self, video):
         hosters = []
         query = self._build_query(video)
+        if video.video_type == VIDEO_TYPES.TVSHOW:
+            query = self._build_season_pack_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL % urllib.parse.quote_plus(query))
         logging.debug("Search URL: %s", search_url)
         html = self._http_get(search_url, require_debrid=True)
@@ -69,16 +71,17 @@ class Scraper(scraper.Scraper):
                 logging.debug("Retrieved quality: %s", quality)
 
                 host = scraper_utils.get_direct_hostname(self, magnet)
-                source_label = f"{name}"
+                label = f"{name} | {quality} | {size}"
                 hosters.append({
                     'name': name,
+                    'label': label,
                     'multi-part': False,
                     'class': self,
                     'url': magnet,
                     'size': size,
                     'downloads': downloads,
                     'quality': quality,
-                    'host': source_label,
+                    'host': 'magnet',
                     'direct': False,
                     'debridonly': True
                 })
@@ -100,6 +103,16 @@ class Scraper(scraper.Scraper):
             logging.debug("Movie query: %s", query)
         query = query.replace(' ', '+').replace('+-', '-')
         logging.debug("Final query: %s", query)
+        return query
+
+    def _build_season_pack_query(self, video):
+        query = f'{video.title} "Batch"|"Complete Series"'
+        logging.debug("Initial season pack query: %s", query)
+        if video.video_type == VIDEO_TYPES.TVSHOW:
+            query += f' S{int(video.season):02d}'
+            logging.debug("Season pack query with season: %s", query)
+        query = query.replace(' ', '+').replace('+-', '-')
+        logging.debug("Final season pack query: %s", query)
         return query
 
     def _filter_sources(self, hosters, video):
