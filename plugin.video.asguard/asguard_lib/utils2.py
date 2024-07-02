@@ -570,7 +570,7 @@ def get_failures():
     return json.loads(kodi.get_setting('scraper_failures'))
 
 def store_failures(failures):
-    failures = {key: value for key, value in failures.items() if value != 0}
+    failures = dict((key, value) for key, value in failures.items() if value != 0)
     kodi.set_setting('scraper_failures', json.dumps(failures))
 
 def menu_on(menu):
