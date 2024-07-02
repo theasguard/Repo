@@ -1,5 +1,5 @@
 """
-    SALTS Addon
+    Asguard Kodi Addon
     Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
@@ -54,6 +54,11 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def provides(cls):
+        """
+        Specifies the types of videos this scraper can provide.
+
+        :return: A set of video types.
+        """
         return frozenset([VIDEO_TYPES.MOVIE, VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE])
 
     @classmethod
@@ -65,6 +70,12 @@ class Scraper(scraper.Scraper):
         return link
 
     def get_sources(self, video):
+        """
+        Fetches sources for a given video.
+
+        :param video: The video object containing details like title, year, etc.
+        :return: A list of sources.
+        """
         hosters = []
         query = self._build_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL)
@@ -95,7 +106,7 @@ class Scraper(scraper.Scraper):
                 logging.debug("Retrieved quality: %s", quality)
 
                 host = scraper_utils.get_direct_hostname(self, name)
-                source_label = f"{name}"
+                label = f"{name} | {quality} | {size}"
                 hosters.append({
                     'class': self,
                     'name': name,
@@ -104,7 +115,8 @@ class Scraper(scraper.Scraper):
                     'size': size,
                     'torrent': torrent,
                     'quality': quality,
-                    'host': source_label,
+                    'host': 'magnet',
+                    'label': label,
                     'direct': False,
                     'debridonly': True
                 })
@@ -116,6 +128,12 @@ class Scraper(scraper.Scraper):
         return self._filter_sources(hosters, video)
 
     def _build_query(self, video):
+        """
+        Builds the search query for the given video.
+
+        :param video: The video object.
+        :return: The search query as a dictionary.
+        """
         query = {'q': video.title}
         logging.debug("Retrieved query: %s", query)
         if video.video_type == VIDEO_TYPES.EPISODE:
@@ -130,6 +148,13 @@ class Scraper(scraper.Scraper):
         return query
 
     def _filter_sources(self, hosters, video):
+        """
+        Filters the sources based on the video type and episode matching.
+
+        :param hosters: List of hosters.
+        :param video: The video object.
+        :return: Filtered list of sources.
+        """
         logging.debug("Retrieved sources: %s", hosters)
         filtered_sources = []
         for source in hosters:
@@ -141,6 +166,14 @@ class Scraper(scraper.Scraper):
         return filtered_sources
 
     def _match_episode(self, title, season, episode):
+        """
+        Matches the episode number in the title with the given season and episode.
+
+        :param title: The title of the source.
+        :param season: The season number.
+        :param episode: The episode number.
+        :return: True if the episode matches, False otherwise.
+        """
         regex_ep = re.compile(r'\bS(\d+)E(\d+)\b')
         match = regex_ep.search(title)
         if match:
@@ -158,6 +191,17 @@ class Scraper(scraper.Scraper):
         return False
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
+        """
+        Performs an HTTP GET request.
+
+        :param url: The URL to fetch.
+        :param data: Data to send in the request.
+        :param retry: Whether to retry on failure.
+        :param allow_redirect: Whether to allow redirects.
+        :param cache_limit: Cache limit for the request.
+        :param require_debrid: Whether debrid is required.
+        :return: The response text.
+        """
         if require_debrid:
             if Scraper.debrid_resolvers is None:
                 Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
@@ -178,6 +222,11 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_settings(cls):
+        """
+        Returns the settings for the scraper.
+
+        :return: List of settings.
+        """
         settings = super(cls, cls).get_settings()
         name = cls.get_name()
         settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="true"/>')
