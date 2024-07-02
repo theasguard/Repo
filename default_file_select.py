@@ -64,7 +64,7 @@ def apply_urlresolver(hosters):
                     known_hosts[host] += 1
                     filtered_hosters.append(hoster)
                 else:
-                    hmf = resolveurl.HostedMediaFile(host=host, media_id='12345678901', return_all=True)  # use dummy media_id to force host validation
+                    hmf = resolveurl.HostedMediaFile(host=host, media_id='12345678901')  # use dummy media_id to force host validation
                     logger.log('Hoster URL: %s' % (host), log_utils.LOGDEBUG)
 
                     if hmf:
