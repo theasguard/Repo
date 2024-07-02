@@ -374,7 +374,7 @@ class Scraper(object):
                          method=None, require_debrid=False, read_error=False, cache_limit=8):
         if require_debrid:
             if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.choose_source(url) if resolver.isUniversal()]
+                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers(url) if resolver.isUniversal()]
             if not Scraper.debrid_resolvers:
                 logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
                 return ''
