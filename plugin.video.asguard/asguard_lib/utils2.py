@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2016 tknorris
+    Copyright (C) 2024 tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,18 +15,24 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from StringIO import StringIO
-import gzip,datetime,time,re,os,urllib2,urllib,hashlib,htmlentitydefs,json
+
+import io, re, json, gzip, datetime, time, os, html, hashlib
+import xbmc, xbmcaddon, xbmcvfs, xbmcgui
+import html.entities
+import six
+from six.moves import urllib_request, urllib_parse, urllib_error, urllib_response, http_cookiejar
 import _strptime  # @UnusedImport
 import xml.etree.ElementTree as ET
 import log_utils
 import utils
-import xbmc
-import xbmcaddon
-import xbmcvfs
 import kodi
-import pyaes
-from constants import *  # @UnusedWildImport
+
+try:
+    from . import pyaes
+except ImportError:
+    import pyaes
+
+from .constants import *  # @UnusedWildImport
 from asguard_lib import strings
 
 logger = log_utils.Logger.get_logger()
@@ -60,11 +66,22 @@ def art(name):
 
 def show_id(show):
     queries = {}
-    ids = show['ids']
-    for key in ('trakt', 'imdb', 'tvdb', 'tmdb', 'tvrage', 'slug'):
+    ids = show.get('ids', {})
+    for key in ('trakt', 'imdb', 'tvdb', 'tmdb', 'tvrage', 'slug', 'anidb', 'mal'):
         if key in ids and ids[key]:
             queries['id_type'] = key
             queries['show_id'] = ids[key]
+            if key == 'imdb':
+                queries['imdbnumber'] = ids[key]
+            elif key == 'tvdb':
+                queries['tvdb'] = ids[key]
+            elif key == 'tmdb':
+                queries['tmdb'] = ids[key]
+            elif key == 'anidb':
+                queries['anidb'] = ids[key]
+            elif key == 'mal':
+                queries['mal'] = ids[key]
+            # Note: 'trakt' and 'slug' do not have direct Kodi equivalents
             break
     return queries
 
@@ -91,24 +108,36 @@ def _released_key(item):
 
 def sort_list(sort_key, sort_direction, list_data):
     logger.log('Sorting List: %s - %s' % (sort_key, sort_direction), log_utils.LOGDEBUG)
-    # logger.log(json.dumps(list_data), log_utils.LOGDEBUG)
-    reverse = False if sort_direction == TRAKT_SORT_DIR.ASCENDING else True
-    # if sort_key == TRAKT_LIST_SORT.RANK:
-        # return sorted(list_data, key=lambda x: x['rank'], reverse=reverse)
-    # elif sort_key == TRAKT_LIST_SORT.RECENTLY_ADDED:
-        # return sorted(list_data, key=lambda x: x['listed_at'], reverse=reverse)
-    # if sort_key == TRAKT_LIST_SORT.TITLE:
-        # return sorted(list_data, key=lambda x: title_key(x[x['type']].get('title')), reverse=reverse)
-    # elif sort_key == TRAKT_LIST_SORT.RELEASE_DATE:
-        # return sorted(list_data, key=lambda x: _released_key(x[x['type']]), reverse=reverse)
-    if sort_key == TRAKT_LIST_SORT.RUNTIME:
-        return sorted(list_data, key=lambda x: x[x['type']].get('runtime', 0), reverse=reverse)
-    elif sort_key == TRAKT_LIST_SORT.POPULARITY:
-        return sorted(list_data, key=lambda x: x[x['type']].get('votes', 0), reverse=reverse)
-    elif sort_key == TRAKT_LIST_SORT.PERCENTAGE:
-        return sorted(list_data, key=lambda x: x[x['type']].get('rating', 0), reverse=reverse)
-    # elif sort_key == TRAKT_LIST_SORT.VOTES:
-        # return sorted(list_data, key=lambda x: x[x['type']].get('votes', 0), reverse=reverse)
+    reverse = sort_direction != TRAKT_SORT_DIR.ASCENDING
+
+    def get_title(item):
+        return title_key(item[item['type']].get('title', ''))
+
+    def get_released(item):
+        return _released_key(item[item['type']])
+
+    def get_runtime(item):
+        return item[item['type']].get('runtime', 0)
+
+    def get_votes(item):
+        return item[item['type']].get('votes', 0)
+
+    def get_rating(item):
+        return item[item['type']].get('rating', 0)
+
+    sort_functions = {
+        TRAKT_LIST_SORT.RANK: lambda x: x['rank'],
+        TRAKT_LIST_SORT.RECENTLY_ADDED: lambda x: x['listed_at'],
+        TRAKT_LIST_SORT.TITLE: get_title,
+        TRAKT_LIST_SORT.RELEASE_DATE: get_released,
+        TRAKT_LIST_SORT.RUNTIME: get_runtime,
+        TRAKT_LIST_SORT.POPULARITY: get_votes,
+        TRAKT_LIST_SORT.PERCENTAGE: get_rating,
+        TRAKT_LIST_SORT.VOTES: get_votes
+    }
+
+    if sort_key in sort_functions:
+        return sorted(list_data, key=sort_functions[sort_key], reverse=reverse)
     else:
         logger.log('Unrecognized list sort key: %s - %s' % (sort_key, sort_direction), log_utils.LOGWARNING)
         return list_data
@@ -129,36 +158,68 @@ def make_seasons_info(progress):
     return season_info
 
 def make_episodes_watched(episodes, progress):
-    watched = {}
-    for season in progress['seasons']:
-        watched[str(season['number'])] = {}
-        for ep_status in season['episodes']:
-            watched[str(season['number'])][str(ep_status['number'])] = ep_status['completed']
+    try:
+        # Ensure progress is a dictionary
+        if isinstance(progress, str):
+            progress = json.loads(progress)
+        
+        if 'seasons' not in progress:
+            logger.error("Invalid progress data: 'seasons' key not found")
+            return episodes
 
-    for episode in episodes:
-        season_str = str(episode['season'])
-        episode_str = str(episode['number'])
-        if season_str in watched and episode_str in watched[season_str]:
-            episode['watched'] = watched[season_str][episode_str]
-        else:
-            episode['watched'] = False
+        watched = {}
+        for season in progress['seasons']:
+            watched[str(season['number'])] = {}
+            for ep_status in season['episodes']:
+                watched[str(season['number'])][str(ep_status['number'])] = ep_status['completed']
 
-    return episodes
+        for episode in episodes:
+            season_str = str(episode['season'])
+            episode_str = str(episode['number'])
+            if season_str in watched and episode_str in watched[season_str]:
+                episode['watched'] = watched[season_str][episode_str]
+            else:
+                episode['watched'] = False
+
+        return episodes
+    except (TypeError, ValueError) as e:
+        return episodes
 
 def make_trailer(trailer_url):
-    match = re.search('\?v=(.*)', trailer_url)
+    match = re.search(r'\?v=(.*)', trailer_url)
     if match:
         return 'plugin://plugin.video.youtube/?action=play_video&videoid=%s' % (match.group(1))
 
 def make_ids(item):
-    info = {}
+    info = {
+        'imdbnumber': None,
+        'imdb_id': None,  # Ensures the key exists even if it's not in the item
+        'tmdb_id': None,
+        'tvdb_id': None,
+        'trakt_id': None,
+        'slug': None,
+        'tvrage_id': None,  # Added for completeness
+        'anidb_id': None,   # Added for completeness
+        'mal_id': None      # Added for completeness
+    }
     if 'ids' in item:
         ids = item['ids']
-        if 'imdb' in ids: info['code'] = info['imdbnumber'] = info['imdb_id'] = ids['imdb']
-        if 'tmdb' in ids: info['tmdb_id'] = ids['tmdb']
-        if 'tvdb' in ids: info['tvdb_id'] = ids['tvdb']
-        if 'trakt' in ids: info['trakt_id'] = ids['trakt']
-        if 'slug' in ids: info['slug'] = ids['slug']
+        if 'imdb' in ids: 
+            info['code'] = info['imdbnumber'] = info['imdb_id'] = ids['imdb']
+        if 'tmdb' in ids: 
+            info['tmdb_id'] = ids['tmdb']
+        if 'tvdb' in ids: 
+            info['tvdb_id'] = ids['tvdb']
+        if 'trakt' in ids: 
+            info['trakt_id'] = ids['trakt']
+        if 'slug' in ids: 
+            info['slug'] = ids['slug']
+        if 'tvrage' in ids: 
+            info['tvrage_id'] = ids['tvrage']
+        if 'anidb' in ids: 
+            info['anidb_id'] = ids['anidb']
+        if 'mal' in ids: 
+            info['mal_id'] = ids['mal']
     return info
 
 def make_people(item):
@@ -174,7 +235,11 @@ def make_people(item):
 
 def make_air_date(first_aired):
     utc_air_time = utils.iso_2_utc(first_aired)
-    try: air_date = time.strftime('%Y-%m-%d', time.localtime(utc_air_time))
+    if utc_air_time < 0:
+        logger.log(f'Negative UTC time for first_aired: {first_aired}', log_utils.LOGWARNING)
+        return '1970-01-01'  # Default date or handle as needed
+    try:
+        air_date = time.strftime('%Y-%m-%d', time.localtime(utc_air_time))
     except ValueError:  # windows throws a ValueError on negative values to localtime
         d = datetime.datetime.fromtimestamp(0) + datetime.timedelta(seconds=utc_air_time)
         air_date = d.strftime('%Y-%m-%d')
@@ -211,9 +276,9 @@ def filename_from_title(title, video_type, year=None):
         filename = title
 
     filename = re.sub(r'(?!%s)[^\w\-_\.]', '.', filename)
-    filename = re.sub('\.+', '.', filename)
-    filename = re.sub(re.compile('(CON|PRN|AUX|NUL|COM\d|LPT\d)\.', re.I), '\\1_', filename)
-    xbmc.makeLegalFilename(filename)
+    filename = re.sub(r'\.+', '.', filename)
+    filename = re.sub(re.compile(r'(CON|PRN|AUX|NUL|COM\d|LPT\d)\.', re.I), r'\1_', filename)
+    xbmc.makeLegalFilename(filename) if six.PY2 else xbmcvfs.makeLegalFilename(filename)
     return filename
 
 def filter_exclusions(hosters):
@@ -244,11 +309,17 @@ def get_sort_key(item):
         elif field in SORT_KEYS:
             if field == 'source':
                 value = item['class'].get_name()
+            elif isinstance(field, list):
+                value = field[0] if field else None
             else:
                 value = item[field]
 
             if value in SORT_KEYS[field]:
                 item_sort_key.append(sign * int(SORT_KEYS[field][value]))
+
+            if isinstance(value, list):
+                # Handle the case where value is a list
+                value = value[0] if value else None
             else:  # assume all unlisted values sort as worst
                 item_sort_key.append(sign * -1)
         elif field == 'debrid':
@@ -264,6 +335,36 @@ def get_sort_key(item):
     # logger.log('item: %s sort_key: %s' % (item, item_sort_key), log_utils.LOGDEBUG)
     return tuple(item_sort_key)
 
+def pick_source(sources, auto_pick=None):
+    if auto_pick is None:
+        auto_pick = kodi.get_setting('auto_pick') == 'true'
+
+    if len(sources) == 1:
+        return sources[0][1]
+    elif len(sources) > 1:
+        if auto_pick:
+            return sources[0][1]
+        else:
+            result = xbmcgui.Dialog().select(i18n('choose_the_link'), [str(source[0]) if source[0] else 'Unknown' for source in sources])
+            if result == -1:
+                raise Exception(i18n('no_link_selected'))
+            else:
+                return sources[result][1]
+    else:
+        raise Exception(i18n('no_video_link'))
+
+def sort_sources_list(sources):
+    if len(sources) > 1:
+        try:
+            sources.sort(key=lambda x: int(re.sub(r"\D", "", x[0])), reverse=True)
+        except:
+            logger.log_debug(r'Scrape sources sort failed |int(re.sub("\D", "", x[0])|')
+            try:
+                sources.sort(key=lambda x: re.sub("[^a-zA-Z]", "", x[0].lower()))
+            except:
+                logger.log_debug('Scrape sources sort failed |re.sub("[^a-zA-Z]", "", x[0].lower())|')
+    return sources
+
 def make_source_sort_string(sort_key):
     sorted_key = sorted(sort_key.items(), key=lambda x: -x[1])
     sort_string = '|'.join([element[0] for element in sorted_key])
@@ -273,22 +374,24 @@ def test_stream(hoster):
     # parse_qsl doesn't work because it splits elements by ';' which can be in a non-quoted UA
     try:
         headers = dict([item.split('=') for item in (hoster['url'].split('|')[1]).split('&')])
-        for key in headers: headers[key] = urllib.unquote_plus(headers[key])
+        for key in headers:
+            headers[key] = urllib_parse.unquote_plus(headers[key])
     except:
         headers = {}
     logger.log('Testing Stream: %s from %s using Headers: %s' % (hoster['url'], hoster['class'].get_name(), headers), log_utils.LOGDEBUG)
-    request = urllib2.Request(hoster['url'].split('|')[0], headers=headers)
+    request = urllib_request.Request(hoster['url'].split('|')[0], headers=headers)
 
     msg = ''
-    opener = urllib2.build_opener(urllib2.HTTPRedirectHandler)
-    urllib2.install_opener(opener)
-    try: http_code = urllib2.urlopen(request, timeout=2).getcode()
-    except urllib2.URLError as e:
+    opener = urllib_request.build_opener(urllib_request.HTTPRedirectHandler)
+    urllib_request.install_opener(opener)
+    try:
+        http_code = urllib_request.urlopen(request, timeout=2).getcode()
+    except urllib_error.URLError as e:
         # treat an unhandled url type as success
         if hasattr(e, 'reason') and 'unknown url type' in str(e.reason).lower():
             return True
         else:
-            if isinstance(e, urllib2.HTTPError):
+            if isinstance(e, urllib_error.HTTPError):
                 http_code = e.code
             else:
                 http_code = 600
@@ -307,8 +410,23 @@ def test_stream(hoster):
     return int(http_code) < 400
 
 def scraper_enabled(name):
-    # return true if setting exists and set to true, or setting doesn't exist (i.e. '')
-    return kodi.get_setting('%s-enable' % (name)) in ('true', '')
+    """
+    Check if a scraper is enabled.
+    
+    :param name: The name of the scraper
+    :return: True if the scraper is enabled or the setting doesn't exist, False otherwise
+    """
+    # Get the scraper enable setting
+    setting_id = f'{name}-enable'
+    setting_value = kodi.get_setting(setting_id)
+    
+    # If the setting doesn't exist, create it and set it to 'true'
+    if not setting_value:
+        kodi.set_setting(setting_id, 'true')
+        return True
+    
+    # Return True if the setting is 'true', False otherwise
+    return setting_value == 'true'
 
 def make_day(date, use_words=True):
     date = to_datetime(date, '%Y-%m-%d').date()
@@ -410,21 +528,21 @@ def format_episode_label(label, season, episode, srts):
                 if not req_hd or srt['hd']:
                     if srt['completed']:
                         color = 'green'
-                        if not hi: hi = srt['hi']
-                        if not hd: hd = srt['hd']
-                        if not corrected: corrected = srt['corrected']
+                        if hi is None: hi = srt['hi']
+                        if hd is None: hd = srt['hd']
+                        if corrected is None: corrected = srt['corrected']
                     elif color != 'green':
                         color = 'yellow'
                         if float(srt['percent']) > percent:
-                            if not hi: hi = srt['hi']
-                            if not hd: hd = srt['hd']
-                            if not corrected: corrected = srt['corrected']
+                            if hi is None: hi = srt['hi']
+                            if hd is None: hd = srt['hd']
+                            if corrected is None: corrected = srt['corrected']
                             percent = srt['percent']
 
     if color != 'red':
-        label += ' [COLOR %s](SRT: ' % (color)
+        label += ' [COLOR %s](SRT: ' % color
         if color == 'yellow':
-            label += ' %s%%, ' % (percent)
+            label += ' %s%%, ' % percent
         if hi: label += 'HI, '
         if hd: label += 'HD, '
         if corrected: label += 'Corrected, '
@@ -452,11 +570,11 @@ def get_failures():
     return json.loads(kodi.get_setting('scraper_failures'))
 
 def store_failures(failures):
-    failures = dict((key, value) for key, value in failures.iteritems() if value != 0)
+    failures = {key: value for key, value in failures.items() if value != 0}
     kodi.set_setting('scraper_failures', json.dumps(failures))
 
 def menu_on(menu):
-    return kodi.get_setting('show_%s' % (menu)) == 'true'
+    return kodi.get_setting('show_%s' % menu) == 'true'
 
 def sort_progress(episodes, sort_order):
     if sort_order == TRAKT_SORT.TITLE:
@@ -483,13 +601,14 @@ def make_progress_msg(video):
         progress_msg += ' - S%02dE%02d' % (int(video.season), int(video.episode))
     return progress_msg
 
+
 def from_playlist():
     pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
     if pl.size() > 0:
         li = pl[pl.getposition()]
-        plugin_url = 'plugin://%s/' % (kodi.get_id())
-        if li.getfilename().lower().startswith(plugin_url):
-            logger.log('Playing Asguard item from playlist |%s|%s|%s|' % (pl.getposition(), li.getfilename(), plugin_url), log_utils.LOGDEBUG)
+        plugin_url = 'plugin://%s/' % kodi.get_id()
+        if li.getPath().lower().startswith(plugin_url):
+            logger.log('Playing Asguard item from playlist |%s|%s|%s|' % (pl.getposition(), li.getPath(), plugin_url), log_utils.LOGDEBUG)
             return True
     
     return False
@@ -511,21 +630,21 @@ def get_and_decrypt(url, password, old_lm=None):
 
         # only do the HEAD request if there's an old_lm to compare to
         if old_lm is not None:
-            req = urllib2.Request(url)
+            req = urllib_request.Request(url)
             req.get_method = lambda: 'HEAD'
-            res = urllib2.urlopen(req)
-            new_lm = res.info().getheader('Last-Modified')
+            res = urllib_request.urlopen(req)
+            new_lm = res.info().get('Last-Modified')
 
         if old_lm is None or new_lm != old_lm:
-            res = urllib2.urlopen(url)
+            res = urllib_request.urlopen(url)
             cipher_text = res.read()
             if cipher_text:
-                scraper_key = hashlib.sha256(password).digest()
+                scraper_key = hashlib.sha256(password.encode('utf-8')).digest()
                 IV = '\0' * 16
                 decrypter = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(scraper_key, IV))
                 plain_text = decrypter.feed(cipher_text)
                 plain_text += decrypter.feed()
-                new_lm = res.info().getheader('Last-Modified')
+                new_lm = res.info().get('Last-Modified')
 
         logger.log('url: %s, old_lm: |%s|, new_lm: |%s|, lm_match: %s' % (url, old_lm, new_lm, old_lm == new_lm), log_utils.LOGDEBUG)
                 
@@ -581,7 +700,7 @@ def make_plays(history):
             plays[season['number']] = {}
             for episode in season['episodes']:
                 plays[season['number']][episode['number']] = episode['plays']
-    logger.log('Plays: %s' % (plays), log_utils.LOGDEBUG)
+    logger.log('Plays: %s' % plays, log_utils.LOGDEBUG)
     return plays
     
 def get_next_rewatch(trakt_id, plays, progress):
@@ -608,7 +727,7 @@ def get_next_rewatch(trakt_id, plays, progress):
                         max_plays = 0
                         first_episode = next_episode
                     pick_next = False
-                    logger.log('Max Next Episode: %s' % (next_episode), log_utils.LOGDEBUG)
+                    logger.log('Max Next Episode: %s' % next_episode, log_utils.LOGDEBUG)
                 if ep_plays.get(episode['number'], 0) >= max_plays:
                     pick_next = True
                     max_plays = ep_plays.get(episode['number'], 0)
@@ -639,51 +758,45 @@ def get_next_rewatch(trakt_id, plays, progress):
 
 def i18n(string_id):
     return translations.i18n(string_id)
-    
+
 def cleanse_title(text):
     def fixup(m):
         text = m.group(0)
-        if not text.endswith(';'): text += ';'
+        if not text.endswith(';'):
+            text += ';'
         if text[:2] == "&#":
             # character reference
             try:
                 if text[:3] == "&#x":
-                    return unichr(int(text[3:-1], 16))
+                    return chr(int(text[3:-1], 16))
                 else:
-                    return unichr(int(text[2:-1]))
+                    return chr(int(text[2:-1]))
             except ValueError:
                 pass
         else:
             # named entity
             try:
-                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
-                
+                text = chr(html.entities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
 
         # replace nbsp with a space
-        text = text.replace(u'\xa0', u' ')
+        text = text.replace('\xa0', ' ')
         return text
-    
-    if isinstance(text, str):
-        try: text = text.decode('utf-8')
-        except:
-            try: text = text.decode('utf-8', 'ignore')
-            except: pass
-    
+
     return re.sub("&(\w+;|#x?\d+;?)", fixup, text.strip())
 
 def normalize_title(title):
-    if title is None: title = ''
+    if title is None:
+        title = ''
     title = cleanse_title(title)
     new_title = title.upper()
     new_title = re.sub('[^A-Za-z0-9]', '', new_title)
-    if isinstance(new_title, unicode):
-        new_title = new_title.encode('utf-8')
-    # logger.log('In title: |%s| Out title: |%s|' % (title,new_title), log_utils.LOGDEBUG)
     return new_title
 
 def crc32(s):
+    if s is None:
+        return None
     string = s.lower()
     sb = bytearray(string.encode())
     crc = 0xFFFFFFFF
@@ -698,11 +811,30 @@ def crc32(s):
     return '%08x' % (crc)
 
 def ungz(compressed):
-    buf = StringIO(compressed)
-    f = gzip.GzipFile(fileobj=buf)
-    html = f.read()
-#     before = len(compressed) / 1024.0
-#     after = len(html) / 1024.0
-#     saved = (after - before) / after
-#     logger.log('Uncompressing gzip input Before: {before:.2f}KB After: {after:.2f}KB Saved: {saved:.2%}'.format(before=before, after=after, saved=saved))
+    buf = io.BytesIO(compressed)
+    with gzip.GzipFile(fileobj=buf) as f:
+        html = f.read()
+    if isinstance(html, bytes):
+        html = html.decode('utf-8')
     return html
+
+def copy2clip(txt):
+	from sys import platform
+	if platform == "win32":
+		try:
+			from subprocess import check_call
+			cmd = 'echo ' + txt.replace('&', '^&').strip() + '|clip'
+			return check_call(cmd, shell=True)
+		except: pass
+	elif platform == "darwin":
+		try:
+			from subprocess import check_call
+			cmd = 'echo ' + txt.strip() + '|pbcopy'
+			return check_call(cmd, shell=True)
+		except: pass
+	elif platform == "linux":
+		try:
+			from subprocess import Popen, PIPE
+			p = Popen(['xsel', '-pi'], stdin=PIPE)
+			p.communicate(input=txt)
+		except: pass
