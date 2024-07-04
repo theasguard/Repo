@@ -2171,6 +2171,10 @@ msgctxt "#30740"
 msgid "Show Prune Settings"
 msgstr ""
 
+msgctxt "#30741"
+msgid "Get Pin"
+msgstr ""
+
 msgctxt "#30308"
 msgid "TMDB Search"
 msgstr ""
@@ -2185,6 +2189,10 @@ msgstr ""
 
 msgctxt "#30311"
 msgid "Alldebrid API Key"
+msgstr ""
+
+msgctxt "#30312"
+msgid "Default Quality"
 msgstr ""
 
 msgctxt "#30318"
@@ -2209,6 +2217,14 @@ msgstr ""
 
 msgctxt "#30324"
 msgid "Debug Addon"
+msgstr ""
+
+msgctxt "#30398"
+msgid "DebridCloudFiles Enabled"
+msgstr ""
+
+msgctxt "#30399"
+msgid "CouchTunerV1 Enabled"
 msgstr ""
 
 msgctxt "#30400"
@@ -2291,6 +2307,61 @@ msgctxt "#30419"
 msgid "1337X Enabled"
 msgstr ""
 
+msgctxt "#30420"
+msgid "Bitsearch Enabled"
+msgstr ""
+
+msgctxt "#30421"
+msgid "Anidex Enabled"
+msgstr ""
+
+msgctxt "#30422"
+msgid "Elfhosted Enabled"
+msgstr ""
+
+msgctxt "#30423"
+msgid "EZTV Enabled"
+msgstr ""
+
+msgctxt "#30424"
+msgid "KAT Enabled"
+msgstr ""
+
+msgctxt "#30425"
+msgid "H!anime Enabled"
+msgstr ""
+
+msgctxt "#30426"
+msgid "H!anime Alt Enabled"
+msgstr ""
+
+msgctxt "#30427"
+msgid "RARBG Enabled"
+msgstr ""
+
+msgctxt "#30428"
+msgid "Rutor Enabled"
+msgstr ""
+
+msgctxt "#30429"
+msgid "SkyTorrents Enabled"
+msgstr ""
+
+msgctxt "#30430"
+msgid "Torrentz2 Enabled"
+msgstr ""
+
+msgctxt "#30431"
+msgid "Snowfl Enabled"
+msgstr ""
+
+msgctxt "#30432"
+msgid "Movie4K Enabled"
+msgstr ""
+
+msgctxt "#30433"
+msgid "TorrentDownload Enabled"
+msgstr ""
 
 msgctxt "#40334"
 msgid "Accounts"
@@ -2346,4 +2417,128 @@ msgstr ""
 
 msgctxt "#40483"
 msgid "Bypass Filter"
+msgstr ""
+
+msgctxt "#40484"
+msgid "Elfhosted Bypass Filter"
+msgstr ""
+
+msgctxt "#40485"
+msgid "Next Up Time (minutes)"
+msgstr ""
+
+msgctxt "#40486"
+msgid "Minimum Seeders"
+msgstr ""
+
+msgctxt "#40487"
+msgid "Last List Check"
+msgstr ""
+
+msgctxt "#40588"
+msgid "4Horsemen"
+msgstr ""  
+
+msgctxt "#40589"
+msgid "Charon"
+msgstr ""
+
+msgctxt "#40590"
+msgid "Deadly Elegant"
+msgstr ""
+
+msgctxt "#40591"
+msgid "Death"
+msgstr ""
+
+msgctxt "#40592"
+msgid "DOA"
+msgstr ""
+
+msgctxt "#40593"
+msgid "Famine"
+msgstr ""
+
+msgctxt "#40594"
+msgid "Hades"
+msgstr ""
+
+msgctxt "#40595"
+msgid "Heinous"
+msgstr ""
+
+msgctxt "#40596"
+msgid "Pepper Shaker"
+msgstr ""
+
+msgctxt "#40597"
+msgid "Pestilence"
+msgstr ""
+
+msgctxt "#40598"
+msgid "Purgatory"
+msgstr ""
+
+msgctxt "#40599"
+msgid "Rock Salt"
+msgstr ""
+
+msgctxt "#40600"
+msgid "Seasoned"
+msgstr ""
+
+msgctxt "#40601"
+msgid "The Underworld"
+msgstr ""
+
+msgctxt "#40602"
+msgid "Toxic Death"
+msgstr ""
+
+msgctxt "#40603"
+msgid "Unsalted"
+msgstr ""
+
+msgctxt "#40604"
+msgid "War"
+msgstr ""
+
+msgctxt "#40605"
+msgid "Gogoanime Enabled"
+msgstr ""
+
+msgctxt "#40606"
+msgid "Gogoanime alt Enabled"
+msgstr ""
+
+msgctxt "#40607"
+msgid "NunFlix Enabled"
+msgstr ""
+
+msgctxt "#40608"
+msgid "Limetorrents Enabled"
+msgstr ""
+
+msgctxt "#40609"
+msgid "SolarMovie Enabled"
+msgstr ""
+
+msgctxt "#40610"
+msgid "Use Cache"
+msgstr ""
+
+msgctxt "#40611"
+msgid "Kickass2 Enabled"
+msgstr ""
+
+msgctxt "#40612"
+msgid "Dailymotion Enabled"
+msgstr ""
+
+msgctxt "#40613"
+msgid "DebridSearch Enabled"
+msgstr ""
+
+msgctxt "#40614"
+msgid "Annatar Enabled"
 msgstr ""
