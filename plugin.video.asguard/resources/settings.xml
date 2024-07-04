@@ -502,7 +502,7 @@
 				</setting>
 				<setting id="auto_pick" type="boolean" label="40481" help="">
 					<level>0</level>
-					<default>true</default>
+					<default>false</default>
 					<dependencies>
 						<dependency type="visible">
 							<condition on="property" name="InfoBool">true</condition>
