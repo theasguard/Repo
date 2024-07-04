@@ -1598,7 +1598,6 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
                     logger.log('Show metadata does not contain ids', log_utils.LOGWARNING)
                 people = trakt_api.get_people(SECTIONS.TV, trakt_id) if kodi.get_setting('include_people') == 'true' else None
                 info = salts_utils.make_info(ep_meta, show_meta, people)
-                info = salts_utils.make_info(ep_meta, show_meta, people)
                 art = image_scraper.get_images(VIDEO_TYPES.EPISODE, show_meta['ids'], season, episode)
 
     
