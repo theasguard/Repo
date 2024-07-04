@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.asguard" version="0.1.3" name="Asguard" provider-name="Thor">
+<addon id="plugin.video.asguard" version="0.1.5" name="Asguard" provider-name="MrBlamo">
     <requires>        
 <!-- 		<import addon="xbmc.python" version="2.19.0"/> -->
         <import addon="script.module.pyxbmct"/>
@@ -16,11 +16,12 @@
 		<import addon="script.module.kodi-six" version="0.1.3"/>
 		<import addon="script.module.orion" />
 		<import addon="script.module.html5lib" />
+        <import addon="script.module.cocoscrapers" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>
     </extension>
-     <extension point="xbmc.service" library="service.py" start="startup"/>
+    <extension point="xbmc.service" library="service.py" start="startup"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en">Stream video from many difference sources, SALTS fork by Thor</summary>
         <summary lang="hr">Gledajte video iz različitih izvora, SALTS fork by Thor</summary>
@@ -35,5 +36,9 @@ This is a Non-profit resource, organized solely for educational purposes which i
 		<platform>all</platform>
         <reuselanguageinvoker>false</reuselanguageinvoker>
 		<license>Beerware rev. 42</license>
+		<assets>
+		  <icon>icon.png</icon>
+		  <fanart>fanart.jpg</fanart>
+		</assets>
 	</extension>
 </addon>
