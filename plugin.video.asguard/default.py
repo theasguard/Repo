@@ -1410,6 +1410,39 @@ def apply_urlresolver(hosters):
 @url_dispatcher.register(MODES.RESOLVE_SOURCE, ['mode', 'class_url', 'direct', 'video_type', 'trakt_id', 'class_name'], ['season', 'episode'])
 @url_dispatcher.register(MODES.DIRECT_DOWNLOAD, ['mode', 'class_url', 'direct', 'video_type', 'trakt_id', 'class_name'], ['season', 'episode'])
 def resolve_source(mode, class_url, direct, video_type, trakt_id, class_name, season='', episode=''):
+    """
+    Resolves a media source URL and initiates playback or download.
+
+    This function identifies the appropriate scraper based on the provided class name,
+    resolves the media source URL using the scraper, and then either plays or downloads
+    the media based on the mode.
+
+    Args:
+        mode (str): The mode in which the function is called. It can be one of several modes such as 'RESOLVE_SOURCE', 'DIRECT_DOWNLOAD', etc.
+        class_url (str): The URL fragment associated with the media source to be resolved.
+        direct (bool): Indicates whether the URL is a direct link to the media file.
+        video_type (str): The type of video, either 'movie' or 'episode'.
+        trakt_id (str): The Trakt ID of the video.
+        class_name (str): The name of the scraper class to be used for resolving the URL.
+        season (str, optional): The season number (for TV shows). Defaults to ''.
+        episode (str, optional): The episode number (for TV shows). Defaults to ''.
+
+    Returns:
+        bool: True if the media was successfully played or downloaded, False otherwise.
+
+    Raises:
+        Exception: If the URL resolution fails or the resolved URL is invalid.
+
+    Detailed Description:
+    - The function first identifies the appropriate scraper class based on the provided class name.
+    - If the scraper class is found, an instance of the scraper is created.
+    - The `resolve_link` method of the scraper instance is called to resolve the media source URL.
+    - If the mode is 'DIRECT_DOWNLOAD', the function ends the Kodi directory and returns.
+    - Otherwise, the `play_source` function is called to play or download the media.
+    - Debrid check checks torrents on the debrid services, and if you have any of them enabled in resolveurl it uses the run def from the script on the hoster_url
+    Example Usage:
+        resolve_source(MODES.RESOLVE_SOURCE, 'http://example.com/video', False, VIDEO_TYPES.MOVIE, '12345', 'ExampleScraper')
+    """
     for cls in salts_utils.relevant_scrapers(video_type):
         if cls.get_name() == class_name:
             scraper_instance = cls()
@@ -1419,6 +1452,16 @@ def resolve_source(mode, class_url, direct, video_type, trakt_id, class_name, se
         return False
 
     hoster_url = scraper_instance.resolve_link(class_url)
+    logger.log('Hoster URL resolved: %s' % (hoster_url), log_utils.LOGDEBUG)
+
+    # if hoster_url.startswith('magnet:') or hoster_url.endswith('.torrent') or hoster_url.startswith('http'):
+    #     debrid_check = DebridCheck()
+    #     rd_enabled, ad_enabled, pm_enabled = debrid_check.run([hoster_url])
+        
+    #     if not (rd_enabled or ad_enabled or pm_enabled):
+    #         logger.log('No cached debrid link found for: %s' % (hoster_url), log_utils.LOGWARNING)
+    #         return True
+    
     if mode == MODES.DIRECT_DOWNLOAD:
         kodi.end_of_directory()
     return play_source(mode, hoster_url, direct, video_type, trakt_id, season, episode)
@@ -1445,6 +1488,45 @@ def download_subtitles(language, title, year, season, episode):
         return srt_scraper.download_subtitle(subs[index]['url'])
 
 def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episode=''):
+    """
+    Plays a media source in Kodi.
+
+    This function handles the resolution and playback of a media source URL. It supports both direct and indirect URLs,
+    resolves them using the `resolveurl` library, and manages playback properties such as resume points and metadata.
+
+    Args:
+        mode (str): The mode in which the function is called. It can be one of several modes such as 'GET_SOURCES', 'DOWNLOAD_SOURCE', etc.
+        hoster_url (str): The URL of the media source to be played.
+        direct (bool): Indicates whether the URL is a direct link to the media file.
+        video_type (str): The type of video, either 'movie' or 'episode'.
+        trakt_id (str): The Trakt ID of the video.
+        season (str, optional): The season number (for TV shows). Defaults to ''.
+        episode (str, optional): The episode number (for TV shows). Defaults to ''.
+
+    Returns:
+        bool: True if the media was successfully played or downloaded, False otherwise.
+
+    Raises:
+        Exception: If the URL resolution fails or the resolved URL is invalid.
+
+    Detailed Description:
+    - The function first checks if the `hoster_url` is None. If it is, it notifies the user of the failure and returns False.
+    - If the URL is direct, it is used as-is for playback.
+    - If the URL is indirect, it is resolved using the `resolveurl` library:
+        - `resolveurl.HostedMediaFile(url=hoster_url)`: This function creates a `HostedMediaFile` object for the given URL.
+        - `hmf.resolve()`: This function attempts to resolve the URL to a direct media link.
+    - If the URL resolution fails, an exception is raised, and the user is notified of the failure.
+    - The function then checks for a resume point if the video is not being downloaded or directly downloaded.
+    - Metadata and artwork for the video are fetched from the Trakt API and set as properties.
+    - If the mode is for downloading, the media is downloaded to the specified path.
+    - If subtitles are enabled, they are downloaded and set as properties.
+    - Finally, the media is played using `xbmc.Player().play()` or resolved using `xbmcplugin.setResolvedUrl()`.
+
+    Example Usage:
+        play_source(MODES.GET_SOURCES, 'http://example.com/video.mp4', True, VIDEO_TYPES.MOVIE, '12345')
+
+    """
+
     if hoster_url is None:
         if direct is not None:
             kodi.notify(msg=i18n('resolve_failed') % (i18n('no_stream_found')), duration=7500)
@@ -1454,8 +1536,10 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
         if direct:
             logger.log('Treating hoster_url as direct: %s' % (hoster_url), log_utils.LOGDEBUG)
             stream_url = hoster_url
+            logger.log('stream_url: %s' % (stream_url), log_utils.LOGDEBUG)
         else:
-            wd.update(25)
+            wd.update_progress(25)
+
             hmf = resolveurl.HostedMediaFile(url=hoster_url)
             if not hmf:
                 logger.log('Indirect hoster_url not supported by resolveurl: %s' % (hoster_url), log_utils.LOGDEBUG)
@@ -1472,7 +1556,7 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
                     except: msg = hoster_url
                     kodi.notify(msg=i18n('resolve_failed') % (msg), duration=7500)
                     return False
-        wd.update(50)
+        wd.update_progress(50)
     
     resume_point = 0
     pseudo_tv = xbmcgui.Window(10000).getProperty('PseudoTVRunning').lower()
@@ -1484,7 +1568,7 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
     
     with kodi.WorkingDialog() as wd:
         from_library = xbmc.getInfoLabel('Container.PluginName') == ''
-        wd.update(50)
+        wd.update_progress(50)
         win = xbmcgui.Window(10000)
         win.setProperty('asguard.playing', 'True')
         win.setProperty('asguard.playing.trakt_id', str(trakt_id))
@@ -1508,8 +1592,12 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
     
                 ep_meta = trakt_api.get_episode_details(trakt_id, season, episode)
                 show_meta = trakt_api.get_show_details(trakt_id)
-                win.setProperty('script.trakt.ids', json.dumps(show_meta['ids']))
+                if 'ids' in show_meta:
+                    win.setProperty('script.trakt.ids', json.dumps(show_meta['ids']))
+                else:
+                    logger.log('Show metadata does not contain ids', log_utils.LOGWARNING)
                 people = trakt_api.get_people(SECTIONS.TV, trakt_id) if kodi.get_setting('include_people') == 'true' else None
+                info = salts_utils.make_info(ep_meta, show_meta, people)
                 info = salts_utils.make_info(ep_meta, show_meta, people)
                 art = image_scraper.get_images(VIDEO_TYPES.EPISODE, show_meta['ids'], season, episode)
 
@@ -1531,27 +1619,26 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
                 file_name = utils2.filename_from_title(movie_meta['title'], video_type, movie_meta['year'])
         except TransientTraktError as e:
             logger.log('During Playback: %s' % (str(e)), log_utils.LOGWARNING)  # just log warning if trakt calls fail and leave meta and art blank
-        wd.update(75)
+        wd.update_progress(75)
 
     if mode in [MODES.DOWNLOAD_SOURCE, MODES.DIRECT_DOWNLOAD]:
         utils.download_media(stream_url, path, file_name, kodi.Translations(strings.STRINGS))
         return True
 
     with kodi.WorkingDialog() as wd:
-        wd.update(75)
+        wd.update_progress(75)
         if video_type == VIDEO_TYPES.EPISODE and utils2.srt_download_enabled() and show_meta:
             srt_path = download_subtitles(kodi.get_setting('subtitle-lang'), show_meta['title'], show_meta['year'], season, episode)
             if utils2.srt_show_enabled() and srt_path:
                 logger.log('Setting srt path: %s' % (srt_path), log_utils.LOGDEBUG)
                 win.setProperty('asguard.playing.srt', srt_path)
     
-        listitem = xbmcgui.ListItem(path=stream_url, iconImage=art['thumb'], thumbnailImage=art['thumb'])
-        listitem.setProperty('fanart_image', art['fanart'])
-        try: listitem.setArt(art)
-        except: pass
+        listitem = xbmcgui.ListItem(path=stream_url)
+        
+        listitem.setArt({'icon': art['thumb'], 'thumb': art['thumb'], 'fanart': art['fanart']})
         listitem.setPath(stream_url)
         listitem.setInfo('video', info)
-        wd.update(100)
+        wd.update_progress(100)
 
     if mode == MODES.RESOLVE_SOURCE or from_library or utils2.from_playlist():
         xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, listitem)
