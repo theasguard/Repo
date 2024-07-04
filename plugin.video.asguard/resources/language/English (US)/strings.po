@@ -2244,7 +2244,7 @@ msgid "Authorize AllDebrid..."
 msgstr ""
 
 msgctxt "#40344"
-msgid "All-Debrid Priority"
+msgid "All-Debrid Password"
 msgstr ""
 
 msgctxt "#40481"
