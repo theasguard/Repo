@@ -28,7 +28,10 @@ progressDialog = progressDialogBG
 
 abstractstaticmethod = abc.abstractmethod
 class abstractclassmethod(classmethod):
-
+    """
+    A decorator indicating abstract classmethods.
+    Similar to abstractmethod.
+    """
     __isabstractmethod__ = True
 
     def __init__(self, callable):
@@ -36,6 +39,10 @@ class abstractclassmethod(classmethod):
         super(abstractclassmethod, self).__init__(callable)
 
 class RDapi:
+    """
+    Real-Debrid API handler class.
+    Handles authentication and cache checking for Real-Debrid.
+    """
     def __init__(self):
         __metaclass__ = abc.ABCMeta
         self.token = __r_url__.getSetting('RealDebridResolver_token')
@@ -46,6 +53,13 @@ class RDapi:
         self.oauth_url = 'https://api.real-debrid.com/oauth/v2/'
 
     def _get(self, url):
+        """
+        Perform a GET request to the Real-Debrid API.
+        Refreshes token if necessary.
+
+        :param url: The endpoint URL to request.
+        :return: The response from the API.
+        """
         original_url = url
         url = self.rest_base_url + url
         if '?' not in url:
@@ -74,12 +88,22 @@ class RDapi:
         __r_url__.setSetting('RealDebridResolver_refresh', self.refresh)
 
     def check_cache(self, hashes):
+        """
+        Check the cache status of given torrent hashes.
+
+        :param hashes: List of torrent hashes to check.
+        :return: The response from the API.
+        """
         hash_string = '/'.join(hashes)
         url = 'torrents/instantAvailability/%s' % hash_string
         response = self._get(url)
         return response
 
 class ADapi:
+    """
+    AllDebrid API handler class.
+    Handles cache checking for AllDebrid.
+    """
     def __init__(self):
         __metaclass__ = abc.ABCMeta
         self.base_url = 'https://api.alldebrid.com/v4/'
@@ -93,6 +117,13 @@ class ADapi:
         return result
 
     def _post(self, url, data={}):
+        """
+        Perform a POST request to the AllDebrid API.
+
+        :param url: The endpoint URL to request.
+        :param data: The data to send in the POST request.
+        :return: The response from the API.
+        """
         result = None
         if self.token == '':
             logging.error("ADapi token is empty")
@@ -119,6 +150,13 @@ class PMapi:
         return response
 
     def _post(self, url, data={}):
+        """
+        Perform a POST request to the Premiumize.me API.
+
+        :param url: The endpoint URL to request.
+        :param data: The data to send in the POST request.
+        :return: The response from the API.
+        """
         if self.token == '' and not 'token' in url: return None
         headers = {'Authorization': 'Bearer %s' % self.token}
         if not 'token' in url: url = self.base_url + url
@@ -128,6 +166,10 @@ class PMapi:
         return resp
 
 class DebridCheck:
+    """
+    Main class to handle debrid cache checking.
+    Manages the checking process for Real-Debrid, AllDebrid, and Premiumize.me.
+    """
     def __init__(self):
         __metaclass__ = abc.ABCMeta
         self.db_cache = DebridCache()
@@ -149,6 +191,12 @@ class DebridCheck:
         self.starting_debrids_display = []
 
     def run(self, hash_list):
+        """
+        Run the debrid cache checking process.
+
+        :param hash_list: List of torrent hashes to check.
+        :return: Tuple of cached hashes for Real-Debrid, AllDebrid, and Premiumize.me.
+        """
         xbmc.sleep(500)
         self.hash_list = hash_list
         self._query_local_cache(self.hash_list)
@@ -220,6 +268,11 @@ class DebridCheck:
         self._add_to_local_cache(self.pm_process_results, 'pm')
 
     def _rd_lookup(self, chunk):
+        """
+        Perform the Real-Debrid cache lookup for a chunk of hashes.
+
+        :param chunk: List of torrent hashes to check.
+        """
         try:
             rd_cache_get = RDapi().check_cache(chunk)
             for h in chunk:
@@ -233,6 +286,11 @@ class DebridCheck:
         except: pass
 
     def _ad_lookup(self, hash_list):
+        """
+        Perform the AllDebrid cache lookup for a list of hashes.
+
+        :param hash_list: List of torrent hashes to check.
+        """
         try:
             ad_cache = ADapi().check_cache(hash_list)
             if isinstance(ad_cache, list):
@@ -258,6 +316,11 @@ class DebridCheck:
         except: pass
 
     def _query_local_cache(self, _hash):
+        """
+        Query the local cache for the given hashes.
+
+        :param _hash: List of torrent hashes to check.
+        """
         cached = self.db_cache.get_all(_hash)
         if cached:
             self.cached_hashes = cached
@@ -266,6 +329,10 @@ class DebridCheck:
         self.db_cache.set_many(_hash, debrid)
 
 class DebridCache:
+    """
+    Class to handle local caching of debrid data.
+    Uses SQLite for storage.
+    """
     def __init__(self):
         __metaclass__ = abc.ABCMeta
         self.dbfile = os.path.join(dataPath, 'debridcache.db')
