@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##-- all credits to Tikipeter --##
 ##-- Please retain this credit  --##
-
+##-- Edited by MrBlamo for the Asguard addon --##
 
 import abc, logging, os, sys, time, datetime
 import sqlite3
