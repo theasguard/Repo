@@ -15,17 +15,28 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import os, time, csv, json, hashlib, pickle, threading
-
+from abc import abstractmethod
+import datetime
+import functools
+import logging
+import pickle
+import os
+import re
+import sqlite3
+import time
+import csv
+import json
+import hashlib
+import threading
 from threading import Semaphore
-import xbmcvfs, xbmcgui
 
-import log_utils
-import kodi
+import requests
+import xbmc, xbmcaddon, xbmcvfs, xbmcgui, log_utils, kodi, cache, six
+
 from .utils2 import i18n
 
 logger = log_utils.Logger.get_logger(__name__)
-
+logging.basicConfig(level=logging.DEBUG)
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -33,11 +44,6 @@ def enum(**enums):
 class DatabaseRecoveryError(Exception):
     pass
 
-# Simplified error handling example
-try:
-    from mysql.connector import connect, OperationalError, DatabaseError
-except ImportError:
-    from sqlite3 import connect, OperationalError, DatabaseError  # Fallback to sqlite3 if mysql.connector is not available
 
 DB_TYPES = enum(MYSQL='mysql', SQLITE='sqlite')
 CSV_MARKERS = enum(REL_URL='***REL_URL***', OTHER_LISTS='***OTHER_LISTS***', SAVED_SEARCHES='***SAVED_SEARCHES***', BOOKMARKS='***BOOKMARKS***')
@@ -99,8 +105,7 @@ class DB_Connection():
     def flush_cache(self):
         if self.db_type == DB_TYPES.SQLITE:
             self.__execute('VACUUM')
-        else:
-            self.__execute('FLUSH TABLES')
+
 
     def prune_cache(self, prune_age=31):
         min_age = time.time() - prune_age * (60 * 60 * 24)
@@ -134,6 +139,16 @@ class DB_Connection():
         bookmarks = self.__execute(sql)
         return bookmarks
 
+    def get_cached_genres(self):
+        sql = 'SELECT slug, name FROM genres_cache'
+        rows = self.__execute(sql)
+        return {row[0]: row[1] for row in rows}
+
+    def cache_genres(self, genres):
+        sql = 'REPLACE INTO genres_cache (slug, name) VALUES (?, ?)'
+        for genre in genres:
+            self.__execute(sql, (genre['slug'], genre['name']))
+
     def bookmark_exists(self, trakt_id, season='', episode=''):
         return self.get_bookmark(trakt_id, season, episode) != None
 
@@ -148,6 +163,7 @@ class DB_Connection():
         self.__execute(sql, (trakt_id, season, episode))
 
     def cache_url(self, url, body, data=None, res_header=None):
+        logger.log('Cache URL: URL: %s, Data: %s, Res Header: %s' % (url, data, res_header), log_utils.LOGDEBUG)
         now = time.time()
         if data is None: data = ''
         if res_header is None: res_header = []
@@ -161,6 +177,7 @@ class DB_Connection():
 
         if isinstance(body, str):
             body = body.encode('utf-8')
+
         if self.db_type == DB_TYPES.SQLITE:
             body = memoryview(body)
         sql = 'REPLACE INTO url_cache (url, data, response, res_header, timestamp) VALUES(?, ?, ?, ?, ?)'
@@ -174,7 +191,7 @@ class DB_Connection():
         sql = 'DELETE FROM url_cache WHERE url = ? and data= ?'
         self.__execute(sql, (url, data))
 
-    def get_cached_url(self, url, data='', cache_limit=8):
+    def get_cached_url(self, url, data='', response='', cache_limit=8):
         if data is None: data = ''
         # truncate data if running mysql and greater than col size
         if self.db_type == DB_TYPES.MYSQL and len(data) > MYSQL_DATA_SIZE:
@@ -185,8 +202,8 @@ class DB_Connection():
         now = time.time()
         age = now - created
         limit = 60 * 60 * cache_limit
-        sql = 'SELECT timestamp, response, res_header FROM url_cache WHERE url = ? and data=?'
-        rows = self.__execute(sql, (url, data))
+        sql = 'SELECT timestamp, response, res_header FROM url_cache WHERE url = ? and data=? and response=?'
+        rows = self.__execute(sql, (url, data, response))
 
         if rows:
             created = float(rows[0][0])
@@ -204,18 +221,50 @@ class DB_Connection():
         if order_matters: sql += ' ORDER BY url, data'
         rows = self.__execute(sql)
         return rows
+    
+    def update_show_meta(self, anilist_id, meta_ids, art):
+        if isinstance(meta_ids, dict):
+            meta_ids = pickle.dumps(meta_ids)
+        if isinstance(art, dict):
+            art = pickle.dumps(art)
+        
+        sql = '''
+            REPLACE INTO shows_meta (
+                anilist_id, meta_ids, art
+            ) VALUES (?, ?, ?)
+        '''
+        
+        try:
+            self.__execute('PRAGMA foreign_keys=OFF')
+            self.__execute(sql, (anilist_id, meta_ids, art))
+            self.__execute('PRAGMA foreign_keys=ON')
+            self.db.commit()
+            logger.log('Updated show metadata for AniList ID: %s' % anilist_id, log_utils.LOGDEBUG)
+        except Exception as e:
+            logger.log('Failed to update show metadata for AniList ID: %s, Error: %s' % (anilist_id, str(e)), log_utils.LOGERROR)
+            import traceback
+            traceback.print_exc()
+        finally:
+            self.__close()
 
     def cache_function(self, name, args=None, kwargs=None, result=None):
         now = time.time()
         if args is None: args = []
         if kwargs is None: kwargs = {}
         pickle_result = pickle.dumps(result)
-        # do not cache a partial result
+        logging.debug("pickle_result: %s", pickle_result)
         if self.db_type == DB_TYPES.MYSQL and len(pickle_result) > MYSQL_MAX_BLOB_SIZE:
+            logger.log('Result too large to cache', log_utils.LOGDEBUG)
             return
 
-        arg_hash = hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
+        if six.PY2:
+            arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
+        else:
+            arg_hash = hashlib.md5(name.encode('utf8')).hexdigest() + hashlib.md5(str(args).encode('utf8')).hexdigest() + hashlib.md5(str(kwargs).encode('utf8')).hexdigest()
+        logging.debug("arg_hash: %s", arg_hash)
         sql = 'REPLACE INTO function_cache (name, args, result, timestamp) VALUES(?, ?, ?, ?)'
+        logging.debug("sql: %s", sql)
+        logger.log('Executing SQL: %s with params: %s' % (sql, (name, arg_hash, pickle_result, now)), log_utils.LOGDEBUG)
         self.__execute(sql, (name, arg_hash, pickle_result, now))
         logger.log('Function Cached: |%s|%s|%s| -> |%s|' % (name, args, kwargs, len(pickle_result)), log_utils.LOGDEBUG)
 
@@ -223,15 +272,23 @@ class DB_Connection():
         max_age = time.time() - cache_limit
         if args is None: args = []
         if kwargs is None: kwargs = {}
-        arg_hash = hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
+        if six.PY2:
+            arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
+        else:
+            arg_hash = hashlib.md5(name.encode('utf8')).hexdigest() + hashlib.md5(str(args).encode('utf8')).hexdigest() + hashlib.md5(str(kwargs).encode('utf8')).hexdigest()
+        logging.debug("arg_hash: %s", arg_hash)
         sql = 'SELECT result FROM function_cache WHERE name = ? and args = ? and timestamp >= ?'
+        logging.debug("sql: %s", sql)
+        logger.log('Executing SQL: %s with params: %s' % (sql, (name, arg_hash, max_age)), log_utils.LOGDEBUG)
         rows = self.__execute(sql, (name, arg_hash, max_age))
         if rows:
             logger.log('Function Cache Hit: |%s|%s|%s| -> |%d|' % (name, args, kwargs, len(rows[0][0])), log_utils.LOGDEBUG)
             return True, pickle.loads(rows[0][0])
         else:
+            logger.log('Function Cache Miss: |%s|%s|%s|' % (name, args, kwargs), log_utils.LOGDEBUG)
             return False, None
-        
+
+
     def cache_sources(self, sources):
         sql = 'DELETE FROM source_cache'
         self.__execute(sql)
@@ -271,6 +328,7 @@ class DB_Connection():
         self.__execute(sql)
         if self.db_type == DB_TYPES.SQLITE:
             self.__execute('VACUUM')
+            
         
     def get_cached_sources(self):
         sql = 'SELECT source from source_cache'
@@ -372,8 +430,8 @@ class DB_Connection():
         self.set_setting(setting, str(cur_value + 1))
 
     def export_from_db(self, full_path):
-        temp_path = os.path.join(kodi.translate_path("special://profile"), 'temp_export_%s.csv' % (int(time.time())))
-        with open(temp_path, 'w', encoding='utf-8') as f:
+        temp_path = os.path.join(kodi.translate_path("special://profile/addon_data/plugin.video.asguard"), 'temp_export_%s.csv' % (int(time.time())))
+        with open(temp_path, 'w') as f:
             writer = csv.writer(f)
             f.write('***VERSION: %s***\n' % self.get_db_version())
             if self.__table_exists('rel_url'):
@@ -413,48 +471,60 @@ class DB_Connection():
         return l
         
     def import_into_db(self, full_path):
-        temp_path = os.path.join(kodi.translate_path("special://profile"), 'temp_import_%s.csv' % (int(time.time())))
+        addon_userdata_path = kodi.translate_path("special://profile/addon_data/plugin.video.asguard")
+        temp_path = os.path.join(addon_userdata_path, 'temp_import_%s.csv' % (int(time.time())))
         logger.log('Copying import file from: |%s| to |%s|' % (full_path, temp_path), log_utils.LOGDEBUG)
         if not xbmcvfs.copy(full_path, temp_path):
             raise Exception('Import: Copy from |%s| to |%s| failed' % (full_path, temp_path))
 
+        progress = None
         try:
-            num_lines = sum(1 for line in open(temp_path, encoding='utf-8'))
+            with open(temp_path, 'r', encoding='latin-1') as f:
+                num_lines = sum(1 for _ in f)
             if self.progress:
                 progress = self.progress
-                progress.update(0, line2='Importing Saved Data', line3='Importing 0 of %s' % (num_lines))
+                progress.update(0, 'Importing 0 of %s' % (num_lines))
             else:
                 progress = xbmcgui.DialogProgress()
-                progress.create('Asguard', line2='Import from %s' % (full_path), line3='Importing 0 of %s' % (num_lines))
-            with open(temp_path, 'r', encoding='utf-8') as f:
-                    reader = csv.reader(f)
-                    mode = ''
-                    _ = f.readline()  # read header
-                    i = 0
-                    for line in reader:
-                        line = self.__unicode_encode(line)
-                        progress.update(i * 100 / num_lines, line3='Importing %s of %s' % (i, num_lines))
-                        if progress.iscanceled():
-                            return
-                        if line[0] in [CSV_MARKERS.REL_URL, CSV_MARKERS.OTHER_LISTS, CSV_MARKERS.SAVED_SEARCHES, CSV_MARKERS.BOOKMARKS]:
-                            mode = line[0]
-                            continue
-                        elif mode == CSV_MARKERS.REL_URL:
-                            self.set_related_url(line[0], line[1], line[2], line[5], line[6], line[3], line[4])
-                        elif mode == CSV_MARKERS.OTHER_LISTS:
-                            name = None if len(line) != 4 else line[3]
-                            self.add_other_list(line[0], line[1], line[2], name)
-                        elif mode == CSV_MARKERS.SAVED_SEARCHES:
-                            self.save_search(line[1], line[3], line[2])  # column order is different than method order
-                        elif mode == CSV_MARKERS.BOOKMARKS:
-                            self.set_bookmark(line[0], line[3], line[1], line[2])
-                        else:
-                            raise Exception('CSV line found while in no mode')
-                        i += 1
+                progress.create('Asguard', 'Import from %s' % (full_path))
+                progress.update(0, 'Importing 0 of %s' % (num_lines))
+            
+            with open(temp_path, 'r', encoding='latin-1') as f:
+                reader = csv.reader(f)
+                mode = ''
+                _ = f.readline()  # read header
+                i = 0
+                for line in reader:
+                    line = self.__unicode_encode(line)
+                    progress.update(int(i * 100 / num_lines), 'Importing %s of %s' % (i, num_lines))
+                    if progress.iscanceled():
+                        return
+                    if line[0] in [CSV_MARKERS.REL_URL, CSV_MARKERS.OTHER_LISTS, CSV_MARKERS.SAVED_SEARCHES, CSV_MARKERS.BOOKMARKS]:
+                        mode = line[0]
+                        continue
+                    elif mode == CSV_MARKERS.REL_URL:
+                        self.set_related_url(line[0], line[1], line[2], line[5], line[6], line[3], line[4])
+                    elif mode == CSV_MARKERS.OTHER_LISTS:
+                        name = None if len(line) != 4 else line[3]
+                        self.add_other_list(line[0], line[1], line[2], name)
+                    elif mode == CSV_MARKERS.SAVED_SEARCHES:
+                        self.save_search(line[1], line[3], line[2])  # column order is different than method order
+                    elif mode == CSV_MARKERS.BOOKMARKS:
+                        self.set_bookmark(line[0], line[3], line[1], line[2])
+                    else:
+                        raise Exception('CSV line found while in no mode')
+                    i += 1
+        except Exception as e:
+            logger.log('Import Failed: %s' % e, log_utils.LOGERROR)
+            raise
         finally:
-            if not xbmcvfs.delete(temp_path):
-                raise Exception('Import: Delete of %s failed.' % (temp_path))
-            progress.close()
+            try:
+                if not xbmcvfs.delete(temp_path):
+                    raise Exception('Import: Delete of %s failed.' % (temp_path))
+            except Exception as e:
+                logger.log('Error deleting temp file: %s' % e, log_utils.LOGERROR)
+            if progress:
+                progress.close()
             self.progress = None
             if self.db_type == DB_TYPES.SQLITE:
                 self.__execute('VACUUM')
@@ -462,14 +532,15 @@ class DB_Connection():
     def __unicode_encode(self, items):
         l = []
         for i in items:
-            if isinstance(i, str):
+            if isinstance(i, bytes):
                 try:
-                    l.append(i.encode('utf-8'))
+                    l.append(i.decode('utf-8'))
                 except UnicodeDecodeError:
                     l.append(i)
             else:
                 l.append(i)
         return l
+
         
     def execute_sql(self, sql):
         self.__execute(sql)
@@ -487,47 +558,196 @@ class DB_Connection():
     
             logger.log('Building Asguard Database', log_utils.LOGDEBUG)
             if self.db_type == DB_TYPES.MYSQL:
-                self.__execute('CREATE TABLE IF NOT EXISTS cache_table (key VARCHAR(255) NOT NULL, value TEXT, timestamp DOUBLE NOT NULL, PRIMARY KEY(key))')
-                self.__execute('CREATE TABLE IF NOT EXISTS url_cache (url VARBINARY(%s) NOT NULL, data VARBINARY(%s) NOT NULL, \
-                response MEDIUMBLOB, res_header TEXT, timestamp TEXT, PRIMARY KEY(url, data))' % (MYSQL_URL_SIZE, MYSQL_DATA_SIZE))
-                self.__execute('CREATE TABLE IF NOT EXISTS function_cache (name VARCHAR(255) NOT NULL, args VARCHAR(64), result MEDIUMBLOB, \
-                timestamp TEXT, PRIMARY KEY(name, args))')
-                self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting VARCHAR(255) NOT NULL, value TEXT, PRIMARY KEY(setting))')
-                self.__execute('CREATE TABLE IF NOT EXISTS rel_url \
-                (video_type VARCHAR(15) NOT NULL, title VARCHAR(255) NOT NULL, year VARCHAR(4) NOT NULL, season VARCHAR(5) NOT NULL, \
-                episode VARCHAR(5) NOT NULL, source VARCHAR(49) NOT NULL, rel_url VARCHAR(255), \
-                PRIMARY KEY(video_type, title, year, season, episode, source))')
-                self.__execute('CREATE TABLE IF NOT EXISTS other_lists (section VARCHAR(10) NOT NULL, username VARCHAR(68) NOT NULL, \
-                slug VARCHAR(255) NOT NULL, name VARCHAR(255), PRIMARY KEY(section, username, slug))')
-                self.__execute('CREATE TABLE IF NOT EXISTS saved_searches (id INTEGER NOT NULL AUTO_INCREMENT, section VARCHAR(10) NOT NULL, \
-                added DOUBLE NOT NULL,query VARCHAR(255) NOT NULL, PRIMARY KEY(id))')
-                self.__execute('CREATE TABLE IF NOT EXISTS bookmark (slug VARCHAR(255) NOT NULL, season VARCHAR(5) NOT NULL, episode VARCHAR(5) \
-                NOT NULL, resumepoint DOUBLE NOT NULL, PRIMARY KEY(slug, season, episode))')
-                self.__execute('CREATE TABLE IF NOT EXISTS source_cache (source BLOB NOT NULL)')
-                self.__execute('CREATE TABLE IF NOT EXISTS image_cache (object_type VARCHAR(15), trakt_id INTEGER NOT NULL, season VARCHAR(5) \
-                NOT NULL, episode VARCHAR(5) NOT NULL,timestamp TEXT, banner VARCHAR(255), fanart VARCHAR(255), thumb VARCHAR(255), poster \
-                VARCHAR(255), clearart VARCHAR(255), clearlogo VARCHAR(255), PRIMARY KEY(trakt_id, season, episode))')
+                self.__execute(f'''
+                    CREATE TABLE IF NOT EXISTS url_cache (
+                        url VARBINARY({MYSQL_URL_SIZE}) NOT NULL, 
+                        data VARBINARY({MYSQL_DATA_SIZE}) NOT NULL, 
+                        response MEDIUMBLOB, 
+                        res_header TEXT, 
+                        timestamp TEXT, 
+                        PRIMARY KEY(url, data)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS function_cache (
+                        name TEXT NOT NULL, 
+                        args TEXT NOT NULL,
+                        response MEDIUMBLOB, 
+                        result BLOB, 
+                        timestamp REAL NOT NULL, 
+                        PRIMARY KEY(name, args)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS db_info (
+                        setting VARCHAR(255) NOT NULL, 
+                        value TEXT, 
+                        PRIMARY KEY(setting)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS rel_url (
+                        video_type VARCHAR(15) NOT NULL, 
+                        title VARCHAR(255) NOT NULL, 
+                        year VARCHAR(4) NOT NULL, 
+                        season VARCHAR(5) NOT NULL, 
+                        episode VARCHAR(5) NOT NULL, 
+                        source VARCHAR(49) NOT NULL, 
+                        rel_url VARCHAR(255), 
+                        PRIMARY KEY(video_type, title, year, season, episode, source)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS other_lists (
+                        section VARCHAR(10) NOT NULL, 
+                        username VARCHAR(68) NOT NULL, 
+                        slug VARCHAR(255) NOT NULL, 
+                        name VARCHAR(255), 
+                        PRIMARY KEY(section, username, slug)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS saved_searches (
+                        id INTEGER NOT NULL AUTO_INCREMENT, 
+                        section VARCHAR(10) NOT NULL, 
+                        added DOUBLE NOT NULL,
+                        query VARCHAR(255) NOT NULL, 
+                        PRIMARY KEY(id)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS bookmark (
+                        slug VARCHAR(255) NOT NULL, 
+                        season VARCHAR(5) NOT NULL, 
+                        episode VARCHAR(5) NOT NULL, 
+                        resumepoint DOUBLE NOT NULL, 
+                        PRIMARY KEY(slug, season, episode)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS source_cache (
+                        source BLOB NOT NULL
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS image_cache (
+                        object_type VARCHAR(15), 
+                        trakt_id INTEGER NOT NULL, 
+                        season VARCHAR(5) NOT NULL, 
+                        episode VARCHAR(5) NOT NULL,
+                        timestamp TEXT, 
+                        banner VARCHAR(255), 
+                        fanart VARCHAR(255), 
+                        thumb VARCHAR(255), 
+                        poster VARCHAR(255), 
+                        clearart VARCHAR(255), 
+                        clearlogo VARCHAR(255), 
+                        PRIMARY KEY(trakt_id, season, episode)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS genres_cache (
+                        slug VARCHAR(255) NOT NULL, 
+                        name VARCHAR(255) NOT NULL, 
+                        PRIMARY KEY(slug)
+                    )
+                ''')
             else:
                 self.__create_sqlite_db()
                 self.__execute('PRAGMA journal_mode=WAL')
-                self.__execute('CREATE TABLE IF NOT EXISTS cache_table (key TEXT NOT NULL, value TEXT, timestamp REAL NOT NULL, PRIMARY KEY(key))')
-                self.__execute('CREATE TABLE IF NOT EXISTS url_cache (url VARCHAR(255) NOT NULL, data VARCHAR(255), response, res_header, timestamp, \
-                PRIMARY KEY(url, data))')
-                self.__execute('CREATE TABLE IF NOT EXISTS function_cache (name VARCHAR(255) NOT NULL, args VARCHAR(64), result, timestamp, \
-                PRIMARY KEY(name, args))')
-                self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting VARCHAR(255), value TEXT, PRIMARY KEY(setting))')
-                self.__execute('CREATE TABLE IF NOT EXISTS rel_url \
-                (video_type TEXT NOT NULL, title TEXT NOT NULL, year TEXT NOT NULL, season TEXT NOT NULL, episode TEXT NOT NULL, source TEXT NOT NULL, rel_url TEXT, \
-                PRIMARY KEY(video_type, title, year, season, episode, source))')
-                self.__execute('CREATE TABLE IF NOT EXISTS other_lists (section TEXT NOT NULL, username TEXT NOT NULL, slug TEXT NOT NULL, name TEXT, \
-                PRIMARY KEY(section, username, slug))')
-                self.__execute('CREATE TABLE IF NOT EXISTS saved_searches (id INTEGER PRIMARY KEY, section TEXT NOT NULL, added DOUBLE NOT NULL,query TEXT NOT NULL)')
-                self.__execute('CREATE TABLE IF NOT EXISTS bookmark (slug TEXT NOT NULL, season TEXT NOT NULL, episode TEXT NOT NULL, resumepoint DOUBLE NOT NULL, \
-                PRIMARY KEY(slug, season, episode))')
-                self.__execute('CREATE TABLE IF NOT EXISTS source_cache (source TEXT NOT NULL)')
-                self.__execute('CREATE TABLE IF NOT EXISTS image_cache (object_type TEXT NOT NULL, trakt_id INTEGER NOT NULL, season TEXT NOT NULL, episode TEXT NOT NULL,\
-                timestamp, banner TEXT, fanart TEXT, thumb TEXT, poster TEXT, clearart TEXT, clearlogo TEXT, PRIMARY KEY(object_type, trakt_id, season, episode))')
-    
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS url_cache (
+                        url VARCHAR(255) NOT NULL, 
+                        data VARCHAR(255), 
+                        response, 
+                        res_header, 
+                        timestamp, 
+                        PRIMARY KEY(url, data, response)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS function_cache (
+                        name TEXT, 
+                        args TEXT, 
+                        result BLOB,
+                        response,
+                        timestamp INTEGER, 
+                        PRIMARY KEY(name, args)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS db_info (
+                        setting VARCHAR(255), 
+                        value TEXT, 
+                        PRIMARY KEY(setting)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS rel_url (
+                        video_type TEXT NOT NULL, 
+                        title TEXT NOT NULL, 
+                        year TEXT NOT NULL, 
+                        season TEXT NOT NULL, 
+                        episode TEXT NOT NULL, 
+                        source TEXT NOT NULL, 
+                        rel_url TEXT, 
+                        PRIMARY KEY(video_type, title, year, season, episode, source)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS other_lists (
+                        section TEXT NOT NULL, 
+                        username TEXT NOT NULL, 
+                        slug TEXT NOT NULL, 
+                        name TEXT, 
+                        PRIMARY KEY(section, username, slug)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS saved_searches (
+                        id INTEGER PRIMARY KEY, 
+                        section TEXT NOT NULL, 
+                        added DOUBLE NOT NULL,
+                        query TEXT NOT NULL
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS bookmark (
+                        slug TEXT NOT NULL, 
+                        season TEXT NOT NULL, 
+                        episode TEXT NOT NULL, 
+                        resumepoint DOUBLE NOT NULL, 
+                        PRIMARY KEY(slug, season, episode)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS source_cache (
+                        source TEXT NOT NULL
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS image_cache (
+                        object_type TEXT NOT NULL, 
+                        trakt_id INTEGER NOT NULL, 
+                        season TEXT NOT NULL, 
+                        episode TEXT NOT NULL,
+                        timestamp, 
+                        banner TEXT, 
+                        fanart TEXT, 
+                        thumb TEXT, 
+                        poster TEXT, 
+                        clearart TEXT, 
+                        clearlogo TEXT, 
+                        PRIMARY KEY(object_type, trakt_id, season, episode)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS genres_cache (
+                        slug VARCHAR(255) NOT NULL, 
+                        name VARCHAR(255) NOT NULL, 
+                        PRIMARY KEY(slug)
+                    )
+                ''')
             # reload the previously saved backup export
             if db_version is not None and cur_version != db_version:
                 logger.log('Restoring DB from backup at %s' % (self.mig_path), log_utils.LOGDEBUG)
@@ -611,7 +831,7 @@ class DB_Connection():
                     if not is_read: DB_Connection.writes += 1
                     db_con = self.__get_db_connection()
                     cur = db_con.cursor()
-                    # logger.log('Running: %s with %s' % (sql, params), log_utils.LOGDEBUG)
+                    logger.log('Executing SQL: %s with params: %s' % (sql, params), log_utils.LOGDEBUG)
                     cur.execute(sql, params)
                     if is_read:
                         rows = cur.fetchall()
@@ -718,3 +938,18 @@ class DB_Connection():
 
         return sql
 
+    @abstractmethod
+    def set(self, cache_id, data, checksum=None, expiration=None):
+        """
+        Stores new value in cache location
+        :param cache_id: ID of cache to create
+        :type cache_id: str
+        :param data: value to store in cache
+        :type data: Any
+        :param checksum: Optional checksum to apply to item
+        :type checksum: str,int
+        :param expiration: Expiration of cache value in seconds since epoch
+        :type expiration: int
+        :return: None
+        :rtype:
+        """
