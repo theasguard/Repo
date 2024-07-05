@@ -22,6 +22,7 @@ import urllib.request
 import urllib.error
 
 import requests
+import urllib3
 import xbmcaddon
 import os
 import ssl
@@ -79,7 +80,7 @@ class Scraper(object):
                 new_dict[key] = urllib.parse.urlunparse((scheme, netloc, urllib.parse.quote(path), params, query, fragment))
         return new_dict
     
-    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=.1):
+    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=.02):
         if headers is None: headers = {}
         if data is not None:
             if isinstance(data, str):
@@ -97,12 +98,18 @@ class Scraper(object):
             res_headers = dict(cached_headers)
         else:
             try:
+                headers['Accept-Encoding'] = 'gzip'
                 logger.log('+++Image Scraper Call: %s, header: %s, data: %s cache_limit: %s' % (url, headers, data, cache_limit), log_utils.LOGDEBUG)
                 request = urllib.request.Request(url, data=data, headers=headers)
-                response = urllib.request.urlopen(request, timeout=20)  # Set timeout to 10 seconds
-                result = response.read()
-                logging.error("No Results Found", result)
-                result = utils2.ungz(result.decode('utf-8'))
+                response = urllib.request.urlopen(request)
+                result = ''
+                while True:
+                    data = response.read()
+                    if not data: break
+                    result += data
+                res_headers = dict(response.info().items())
+                if res_headers.get('content-encoding') == 'gzip':
+                    result = utils2.ungz(result)
                 db_connection.cache_url(url, result, data, res_header=res_headers)
             except (ssl.SSLError, socket.timeout) as e:
                 logger.log('Image Scraper Timeout: %s' % (url))
@@ -117,13 +124,11 @@ class Scraper(object):
 
         try:
             if 'application/json' in res_headers.get('content-type', ''):
-                return_data = json.loads(result)
+                return_data = utils.json_loads_as_str(result)
             else:
                 # try/except to handle older responses that might be missing headers
-                try: 
-                    return_data = json.loads(result)
-                except ValueError: 
-                    return_data = result
+                try: return_data = utils.json_loads_as_str(result)
+                except ValueError: return_data = result
         except ValueError:
             return_data = ''
             if result:
@@ -149,8 +154,22 @@ class FanartTVScraper(Scraper):
         if FANARTTV_ENABLED and self.API_KEY and any_art and video_id:
             url = f'{self.BASE_URL}/movies/{video_id}'
             images = self._get_url(url, headers=self.headers)
-            if images:
-                art_dict = self._extract_art(images, 'movie')
+            if BG_ENABLED:
+                art_dict['fanart'] = self.__get_best_image(images.get('moviebackground', []))
+
+            if THUMB_ENABLED:
+                art_dict['thumb'] = self.__get_best_image(images.get('moviethumb', []))
+
+            if BANNER_ENABLED:
+                art_dict['banner'] = self.__get_best_image(images.get('moviebanner', []))
+
+            if POSTER_ENABLED:
+                art_dict['poster'] = self.__get_best_image(images.get('movieposter', []))
+
+            if CLEARART_ENABLED:
+                art_dict['clearlogo'] = self.__get_best_image(images.get('hdmovielogo', []))
+                if not art_dict['clearlogo']: art_dict['clearlogo'] = self.__get_best_image(images.get('movielogo', []))
+                art_dict['clearart'] = self.__get_best_image(images.get('hdmovieclearart', []))
         
         return self._clean_art(art_dict)
     
@@ -161,8 +180,23 @@ class FanartTVScraper(Scraper):
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
             url = f'{self.BASE_URL}/tv/{video_id}'
             images = self._get_url(url, headers=self.headers)
-            if images:
-                art_dict = self._extract_art(images, 'tv')
+            if BG_ENABLED:
+                art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
+
+            if THUMB_ENABLED:
+                art_dict['thumb'] = self.__get_best_image(images.get('tvthumb', []))
+
+            if BANNER_ENABLED:
+                art_dict['banner'] = self.__get_best_image(images.get('tvbanner', []))
+
+            if POSTER_ENABLED:
+                art_dict['poster'] = self.__get_best_image(images.get('tvposter', []))
+
+            if CLEARART_ENABLED:
+                art_dict['clearlogo'] = self.__get_best_image(images.get('hdtvlogo', []))
+                if not art_dict['clearlogo']: art_dict['clearlogo'] = self.__get_best_image(images.get('clearlogo', []))
+                art_dict['clearart'] = self.__get_best_image(images.get('hdclearart', []))
+                if not art_dict['clearart']: art_dict['clearart'] = self.__get_best_image(images.get('clearart', []))
         
         return self._clean_art(art_dict)
     
@@ -173,8 +207,21 @@ class FanartTVScraper(Scraper):
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
             url = f'{self.BASE_URL}/tv/{video_id}'
             images = self._get_url(url, headers=self.headers)
-            if images:
-                season_art = self._extract_season_art(images)
+            seasons = set()
+            for name in ['seasonposter', 'seasonthumb', 'seasonbanner']:
+                seasons |= set([i['season'] for i in images.get(name, [])])
+
+            for season in seasons:
+                art_dict = {}
+                if POSTER_ENABLED:
+                    art_dict['poster'] = self.__get_best_image(images.get('seasonposter', []), season)
+
+                if BANNER_ENABLED:
+                    art_dict['banner'] = self.__get_best_image(images.get('seasonbanner', []), season)
+
+                if THUMB_ENABLED:
+                    art_dict['thumb'] = self.__get_best_image(images.get('seasonthumb', []), season)
+                season_art[season] = self._clean_art(art_dict)
                 
         return season_art
     
@@ -188,6 +235,7 @@ class FanartTVScraper(Scraper):
         except Exception as e:
             logger.log(f'Error during HTTP GET: {e}', log_utils.LOGERROR)
             return {}
+    
     
     def _extract_art(self, images, type_prefix):
         art_dict = {}
@@ -343,7 +391,7 @@ class TVDBScraper(Scraper):
         if self.API_KEY:
             if self.token is None:
                 url = f'{self.protocol}{self.BASE_URL}/login'
-                data = json.dumps({'apikey': self.API_KEY}).encode('utf-8')
+                data = json.dumps({'apikey': self.API_KEY})
                 req = urllib.request.Request(url, data=data, headers=self.headers)
                 try:
                     with urllib.request.urlopen(req) as response:
@@ -513,7 +561,7 @@ class TVDBScraper(Scraper):
             zip_data = self._get_url(url, cache_limit=ZIP_CACHE)
             if zip_data:
                 try:
-                    with zipfile.ZipFile(io.BytesIO(zip_data), 'r') as zip_file:
+                    with zipfile.ZipFile(io.StringIO(zip_data), 'r') as zip_file:
                         xml = zip_file.read(file_name).decode('utf-8')
                 except zipfile.BadZipFile:
                     logger.log('TVDB Zip Error: Bad Zip File', log_utils.LOGWARNING)
@@ -571,62 +619,115 @@ class TVMazeScraper(Scraper):
         if not TVMAZE_ENABLED or not THUMB_ENABLED:
             return art_dict
         
-        # Determine the key and video_id based on available ids
-        key, video_id = None, None
-        for id_key in ['tvdb', 'imdb', 'tvrage', 'tmdb']:
-            if id_key in ids and ids[id_key]:
-                key = id_key
-                video_id = ids[id_key]
-                break
-        
-        if not key:
+        if 'tvdb' in ids and ids['tvdb']:
+            key = 'thetvdb'
+            video_id = ids['tvdb']
+        elif 'imdb' in ids and ids['imdb']:
+            key = 'imdb'
+            video_id = ids['imdb']
+        elif 'tvrage' in ids and ids['tvrage']:
+            key = 'tvrage'
+            video_id = ids['tvrage']
+        elif 'tmdb' in ids and ids['tmdb']:
+            key = 'tmdb'
+            video_id = ids['tmdb']
+        else:
             return art_dict
         
-        # Fetch show data using the determined key and video_id
-        show_url = f'/lookup/shows?{key}={video_id}'
-        show_data = self._get_url(self.BASE_URL + show_url, cache_limit=24 * 7)
-        
-        if 'id' in show_data:
-            # Fetch and store the poster image
-            art_dict['poster'] = self.__get_image(show_data)
-            
-            # Fetch episode data
-            episodes_url = f'/shows/{show_data["id"]}/episodes'
-            episodes_data = self._get_url(self.BASE_URL + episodes_url, cache_limit=24)
-            
-            # Find the specific episode and store the thumbnail image
-            for episode_data in episodes_data:
-                if episode_data['season'] == int(season) and episode_data['number'] == int(episode):
-                    art_dict['thumb'] = self.__get_image(episode_data)
+        url = '/lookup/shows'
+        params = {key: video_id}
+        js_data = self._get_url(url, params, cache_limit=24 * 7)
+        if 'id' in js_data and js_data['id']:
+            art_dict['poster'] = self.__get_image(js_data)
+            url = '/shows/%s/episodes' % (js_data['id'])
+            for ep_item in self._get_url(url, cache_limit=24):
+                if ep_item['season'] == int(season) and ep_item['number'] == int(episode):
+                    art_dict['thumb'] = self.__get_image(ep_item)
                     break
-        
+                
         return self._clean_art(art_dict)
     
     def __get_image(self, item):
-        # Extract the image URL from the item data
-        image_info = item.get('image', {})
-        return image_info.get('original', None)
-    
+        image = item.get('image', {})
+        image = image.get('original') if image else None
+        return image
+
+class IMDBScraper(Scraper):
+    BASE_URL = 'https://www.imdb.com'
+
+    def get_movie_images(self, imdb_id):
+        art_dict = {}
+        url = f'{self.BASE_URL}/title/{imdb_id}/mediaindex'
+        images = self._scrape_images(url)
+        if images:
+            art_dict['poster'] = images.get('poster')
+            art_dict['fanart'] = images.get('fanart')
+            art_dict['banner'] = images.get('banner')
+        return self._clean_art(art_dict)
+
+    def get_tvshow_images(self, imdb_id):
+        art_dict = {}
+        url = f'{self.BASE_URL}/title/{imdb_id}/mediaindex'
+        images = self._scrape_images(url)
+        if images:
+            art_dict['poster'] = images.get('poster')
+            art_dict['fanart'] = images.get('fanart')
+            art_dict['banner'] = images.get('banner')
+        return self._clean_art(art_dict)
+
+    def get_episode_images(self, imdb_id, season, episode):
+        art_dict = {}
+        url = f'{self.BASE_URL}/title/{imdb_id}/episodes?season={season}&episode={episode}'
+        images = self._scrape_images(url)
+        if images:
+            art_dict['thumb'] = images.get('thumb')
+            art_dict['banner'] = images.get('banner')
+        return self._clean_art(art_dict)
+
+    def _scrape_images(self, url):
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req) as response:
+                html = response.read()
+                soup = BeautifulSoup(html, 'html.parser')
+                images = {}
+                poster = soup.find('img', {'class': 'poster'})
+                if poster:
+                    images['poster'] = poster['src']
+                fanart = soup.find('img', {'class': 'fanart'})
+                if fanart:
+                    images['fanart'] = fanart['src']
+                thumb = soup.find('img', {'class': 'thumb'})
+                if thumb:
+                    images['thumb'] = thumb['src']
+                banner = soup.find('img', {'class': 'banner'})
+                if banner:
+                    images['banner'] = banner['src']
+                return images
+        except Exception as e:
+            logger.log(f'Error scraping IMDb images: {e}', log_utils.LOGERROR)
+            return {}
+
 class OMDBScraper(Scraper):
     BASE_URL = 'http://www.omdbapi.com/'
     
     def get_images(self, ids):
         art_dict = {}
-        omdb_api_key = OMDB_API
-        if 'imdb' in ids and ids['imdb'] and OMDB_ENABLED and POSTER_ENABLED and omdb_api_key:
-            url = self.BASE_URL
-            params = {'i': ids['imdb'], 'plot': 'short', 'r': 'json', 'apikey': omdb_api_key}
+        if 'imdb' in ids and ids['imdb'] and OMDB_ENABLED and POSTER_ENABLED:
+            url = ''
+            params = {'i': ids['imdb'], 'plot': 'short', 'r': 'json'}
             images = self._get_url(url, params)
-            if 'Poster' in images and images['Poster'].startswith('http'):
-                art_dict['poster'] = images['Poster']
+            if 'Poster' in images and images['Poster'].startswith('http'): art_dict['poster'] = images['Poster']
         return self._clean_art(art_dict)
 
-
+fanart_scraper = FanartTVScraper()
+imdb_scraper = IMDBScraper()
 tvdb_scraper = TVDBScraper()
 tmdb_scraper = TMDBScraper()
 def get_person_images(video_ids, person, cached=True):
     ids = person['person']['ids']
-    person_art = {'thumb': None}
+    person_art = {}
     
     if 'tvdb' in ids and ids['tvdb']:
         person_art.update(tvdb_scraper.get_person_images(ids))
@@ -637,7 +738,7 @@ def get_person_images(video_ids, person, cached=True):
         return scrape_person_images(video_ids, person, cached)
 
 def scrape_person_images(video_ids, person, cached=True):
-    person_art = {'thumb': None}
+    person_art = {}
     ids = person['person']['ids']
     if cached:
         cached_art = db_connection.get_cached_images(OBJ_PERSON, ids['trakt'])
@@ -682,39 +783,48 @@ def clear_cache(video_type, video_ids, season='', episode=''):
         res = urllib.request.urlopen(url, timeout=30).read()
     except Exception as e: 
         logger.log(f"Failed to clear cache: {str(e)}", log_utils.LOGWARNING)
-        res = b''
-    return res == b'OK'
+        res = ''
+    return res == 'OK'
+
 
 def get_images(video_type, video_ids, season='', episode='', cached=True):
     if isinstance(video_ids, int):
-        video_ids = {'trakt': video_ids}
-    
-        art_dict = {'banner': None, 'fanart': None, 'thumb': None, 'poster': None, 'clearart': None, 'clearlogo': None}
+        trakt_id = video_ids['trakt']
+        video_ids = json.dumps(video_ids)
         
-        if video_type == VIDEO_TYPES.MOVIE:
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(tmdb_scraper.get_movie_images(video_ids))
-            if 'tvdb' in video_ids and video_ids['tvdb']:
-                art_dict.update(tvdb_scraper.get_movie_images(video_ids))
-        elif video_type == VIDEO_TYPES.TVSHOW:
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(tmdb_scraper.get_tvshow_images(video_ids))
+    
+        art_dict = {}
+        for image_type in ['banner', 'fanart', 'thumb', 'poster', 'clearart', 'clearlogo']:
+            params = {'image_type': image_type, 'video_type': video_type, 'trakt_id': trakt_id, 'video_ids': video_ids}
+            if video_type == VIDEO_TYPES.SEASON or video_type == VIDEO_TYPES.EPISODE:
+                params['season'] = season
+            if video_type == VIDEO_TYPES.EPISODE:
+                params['episode'] = episode
+            if video_type == VIDEO_TYPES.MOVIE:
+                if 'tmdb' in video_ids and video_ids['tmdb']:
+                    art_dict.update(tmdb_scraper.get_movie_images(video_ids))
+            elif 'tvdb' in video_ids and video_ids['tvdb']:
+                art_dict.update(fanart_scraper.get_movie_images(video_ids))
+        if video_type == VIDEO_TYPES.TVSHOW:
             if 'tvdb' in video_ids and video_ids['tvdb']:
                 art_dict.update(tvdb_scraper.get_tvshow_images(video_ids))
-        elif video_type == VIDEO_TYPES.SEASON:
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(tmdb_scraper.get_season_images(video_ids))
+            elif 'imdb' in video_ids and video_ids['imdb']:
+                art_dict.update(imdb_scraper.get_tvshow_images(video_ids))
+        if video_type == VIDEO_TYPES.SEASON:
             if 'tvdb' in video_ids and video_ids['tvdb']:
                 art_dict.update(tvdb_scraper.get_season_images(video_ids))
-        elif video_type == VIDEO_TYPES.EPISODE:
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(tmdb_scraper.get_episode_images(video_ids, season, episode))
+            elif 'tmdb' in video_ids and video_ids['tmdb']:
+                art_dict.update(fanart_scraper.get_season_images(video_ids))
+        if video_type == VIDEO_TYPES.EPISODE:
             if 'tvdb' in video_ids and video_ids['tvdb']:
-                art_dict.update(tvdb_scraper.get_episode_images(video_ids, season, episode))
+                art_dict.update(tvdb_scraper.get_episode_images(video_ids, episode))
+            elif 'imdb' in video_ids and video_ids['imdb']:
+                art_dict.update(imdb_scraper.get_episode_images(video_ids, episode))
         
-        return art_dict
+        return art_dict[image_type]
     else:
         return scrape_images(video_type, video_ids, season, episode, cached)
+
 
 def scrape_images(video_type, video_ids, season='', episode='', cached=True):
     art_dict = {'banner': None, 'fanart': DEFAULT_FANART, 'thumb': None, 'poster': PLACE_POSTER, 'clearart': None, 'clearlogo': None}
@@ -732,8 +842,9 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
         omdb_scraper = OMDBScraper()
         tvmaze_scraper = TVMazeScraper()
         if video_type == VIDEO_TYPES.MOVIE:
-            if  POSTER_ENABLED:
-                art_dict.update(fanart_scraper.get_movie_images(video_ids))
+            art_dict.update(fanart_scraper.get_movie_images(video_ids))
+            # if GIF_ENABLED and POSTER_ENABLED:
+            #     art_dict.update(gif_scraper.get_movie_images(video_ids))
              
             need = []
             if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
@@ -775,9 +886,10 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
                 db_connection.cache_images(object_type, trakt_id, temp_dict, key)
                   
             art_dict.update(season_art.get(str(season), {}))
-        elif video_type == VIDEO_TYPES.EPISODE:
+        if video_type == VIDEO_TYPES.EPISODE:
             art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
             art_dict.update(tvdb_scraper.get_episode_images(video_ids, season, episode))
+
             if not art_dict['thumb'] or art_dict['poster'] == PLACE_POSTER:
                 tvmaze_art = tvmaze_scraper.get_episode_images(video_ids, season, episode)
                 art_dict['thumb'] = tvmaze_art.get('thumb')
@@ -801,4 +913,3 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
         db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
     
     return art_dict
-
