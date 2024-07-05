@@ -477,43 +477,39 @@ class DB_Connection():
         if not xbmcvfs.copy(full_path, temp_path):
             raise Exception('Import: Copy from |%s| to |%s| failed' % (full_path, temp_path))
 
-        progress = None
         try:
-            with open(temp_path, 'r', encoding='latin-1') as f:
-                num_lines = sum(1 for _ in f)
+            num_lines = sum(1 for line in open(temp_path, encoding='utf-8'))
             if self.progress:
                 progress = self.progress
-                progress.update(0, 'Importing 0 of %s' % (num_lines))
+                progress.update(0, line2='Importing Saved Data', line3='Importing 0 of %s' % (num_lines))
             else:
                 progress = xbmcgui.DialogProgress()
-                progress.create('Asguard', 'Import from %s' % (full_path))
-                progress.update(0, 'Importing 0 of %s' % (num_lines))
-            
-            with open(temp_path, 'r', encoding='latin-1') as f:
-                reader = csv.reader(f)
-                mode = ''
-                _ = f.readline()  # read header
-                i = 0
-                for line in reader:
-                    line = self.__unicode_encode(line)
-                    progress.update(int(i * 100 / num_lines), 'Importing %s of %s' % (i, num_lines))
-                    if progress.iscanceled():
-                        return
-                    if line[0] in [CSV_MARKERS.REL_URL, CSV_MARKERS.OTHER_LISTS, CSV_MARKERS.SAVED_SEARCHES, CSV_MARKERS.BOOKMARKS]:
-                        mode = line[0]
-                        continue
-                    elif mode == CSV_MARKERS.REL_URL:
-                        self.set_related_url(line[0], line[1], line[2], line[5], line[6], line[3], line[4])
-                    elif mode == CSV_MARKERS.OTHER_LISTS:
-                        name = None if len(line) != 4 else line[3]
-                        self.add_other_list(line[0], line[1], line[2], name)
-                    elif mode == CSV_MARKERS.SAVED_SEARCHES:
-                        self.save_search(line[1], line[3], line[2])  # column order is different than method order
-                    elif mode == CSV_MARKERS.BOOKMARKS:
-                        self.set_bookmark(line[0], line[3], line[1], line[2])
-                    else:
-                        raise Exception('CSV line found while in no mode')
-                    i += 1
+                progress.create('Asguard', line2='Import from %s' % (full_path), line3='Importing 0 of %s' % (num_lines))
+            with open(temp_path, 'r', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    mode = ''
+                    _ = f.readline()  # read header
+                    i = 0
+                    for line in reader:
+                        line = self.__unicode_encode(line)
+                        progress.update(i * 100 / num_lines, line3='Importing %s of %s' % (i, num_lines))
+                        if progress.iscanceled():
+                            return
+                        if line[0] in [CSV_MARKERS.REL_URL, CSV_MARKERS.OTHER_LISTS, CSV_MARKERS.SAVED_SEARCHES, CSV_MARKERS.BOOKMARKS]:
+                            mode = line[0]
+                            continue
+                        elif mode == CSV_MARKERS.REL_URL:
+                            self.set_related_url(line[0], line[1], line[2], line[5], line[6], line[3], line[4])
+                        elif mode == CSV_MARKERS.OTHER_LISTS:
+                            name = None if len(line) != 4 else line[3]
+                            self.add_other_list(line[0], line[1], line[2], name)
+                        elif mode == CSV_MARKERS.SAVED_SEARCHES:
+                            self.save_search(line[1], line[3], line[2])  # column order is different than method order
+                        elif mode == CSV_MARKERS.BOOKMARKS:
+                            self.set_bookmark(line[0], line[3], line[1], line[2])
+                        else:
+                            raise Exception('CSV line found while in no mode')
+                        i += 1
         except Exception as e:
             logger.log('Import Failed: %s' % e, log_utils.LOGERROR)
             raise
@@ -532,9 +528,9 @@ class DB_Connection():
     def __unicode_encode(self, items):
         l = []
         for i in items:
-            if isinstance(i, bytes):
+            if isinstance(i, str):
                 try:
-                    l.append(i.decode('utf-8'))
+                    l.append(i.encode('utf-8'))
                 except UnicodeDecodeError:
                     l.append(i)
             else:
