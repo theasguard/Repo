@@ -1,7 +1,7 @@
 # Repo
 
 # Still in Development
-to-do 
+# todo 
 - sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with)
 - finish updating the settings.xml and sorting it respectively.
 - finish the 1337x scraper (just filtering titles and episodes now)
