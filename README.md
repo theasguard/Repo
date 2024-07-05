@@ -1,6 +1,8 @@
 # Repo
 # Asguard Kodi Addon
 
+# Still in Development
+
 Asguard is a Kodi addon that provides access to a wide range of streaming content. It is designed to be a successor to the popular SALTS (Stream All The Sources) addon, offering improved performance and additional features.
 
 ## Features
