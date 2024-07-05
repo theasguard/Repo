@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 """
 import abc
 import log_utils  # @UnusedImport
-import scraper
+from . import scraper
 
 logger = log_utils.Logger.get_logger()
 
