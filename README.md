@@ -6,7 +6,8 @@
 - finish updating the settings.xml and sorting it respectively.
 - finish the 1337x scraper (just filtering titles and episodes now)
 - update the Orion scraper.
-- update the get quality checks to be more relevent and use the 1080p etc checks rather than assuming low or high quality. 
+- update the get quality checks to be more relevent and use the 1080p etc checks rather than assuming low or high quality.
+- remove the auth settings for all debrid for now until something can be sorted for integrated all debrid in the add-on. 
 - if I think of a anything else I'll update this. 
 
 # Asguard Kodi Addon
