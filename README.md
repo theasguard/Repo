@@ -1,8 +1,14 @@
 # Repo
-# Asguard Kodi Addon
 
 # Still in Development
+to-do 
+- sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with)
+- finish updating the settings.xml and sorting it respectively.
+- finish the 1337x scraper (just filtering titles and episodes now)
+- update the Orion scraper.
+- if I think of a anything else I'll update this. 
 
+# Asguard Kodi Addon
 Asguard is a Kodi addon that provides access to a wide range of streaming content. It is designed to be a successor to the popular SALTS (Stream All The Sources) addon, offering improved performance and additional features.
 
 ## Features
