@@ -3188,7 +3188,7 @@
 				</setting>
 				<setting id="Elfhosted-base_url" type="string" label="30175" help="">
 					<level>0</level>
-					<default>https://torrentio.elfhosted.com</default>
+					<default>https://knightcrawler.elfhosted.com</default>
 					<dependencies>
 						<dependency type="visible">
 							<condition operator="is" setting="Elfhosted-enable">true</condition>
