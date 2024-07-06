@@ -12,15 +12,15 @@
 from orion import *
 from orion.modules.orionnetworker import *
 import threading
-import urlparse
+import urllib.parse
 import base64
 import time
 import sys
 import re
 import xbmc
 import kodi
-import scraper
-import proxy
+from . import scraper
+from . import proxy
 from asguard_lib import scraper_utils
 from asguard_lib.trakt_api import Trakt_API
 from asguard_lib.constants import VIDEO_TYPES
@@ -51,7 +51,7 @@ class Scraper(scraper.Scraper):
 	@classmethod
 	def _hosts(self):
 		hosts = []
-		for key, value in HOST_Q.iteritems():
+		for key, value in HOST_Q.items():
 			hosts.extend(value)
 		hosts = [i.lower() for i in hosts]
 		return hosts
@@ -128,7 +128,7 @@ class Scraper(scraper.Scraper):
 			except: return None
 
 	def _domain(self, data):
-		elements = urlparse.urlparse(self._link(data))
+		elements = urllib.parse.urlparse(self._link(data))
 		domain = elements.netloc or elements.path
 		domain = domain.split('@')[-1].split(':')[0]
 		result = re.search('(?:www\.)?([\w\-]*\.[\w\-]{2,3}(?:\.[\w\-]{2,3})?)$', domain)
@@ -177,7 +177,7 @@ class Scraper(scraper.Scraper):
 						hash = i['file']['hash']
 						if hash: hashes.append(hash)
 				except: pass
-			chunks = [hashes[i:i + Scraper.CacheLimit] for i in xrange(0, len(hashes), Scraper.CacheLimit)]
+			chunks = [hashes[i:i + Scraper.CacheLimit] for i in range(0, len(hashes), Scraper.CacheLimit)]
 			threads = [threading.Thread(target = self._cachedCheck, args = (i,)) for i in chunks]
 			self.cachedHashes = []
 			self.cachedLock = threading.Lock()
