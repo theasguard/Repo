@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import log_utils  # @UnusedImport
-import proxy
+from . import proxy
 logger = log_utils.Logger.get_logger()
 
 class Proxy(proxy.Proxy):
