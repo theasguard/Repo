@@ -42,7 +42,7 @@ BASE_URL = 'https://example.com'
 SEARCH_URL = '/search'
 QUALITY_MAP = {'1080p': QUALITIES.HD1080, '720p': QUALITIES.HD720, '3D': QUALITIES.HD1080}
 
-class ExampleScraper(scraper.Scraper):
+class Scraper(scraper.Scraper):
     """
     Example scraper for the Asguard Kodi addon.
     """
