@@ -37,7 +37,7 @@ FLARESOLVERR_URL = 'http://localhost:8191/v1'
 MAX_RESPONSE = 1024 * 1024 * 5
 CF_CAPCHA_ENABLED = kodi.get_setting('cf_captcha') == 'true'
 
-class ExampleScraper(scraper.Scraper):
+class Scraper(scraper.Scraper):
     """
     Example scraper for the SALTS Kodi addon.
     """
