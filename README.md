@@ -1,6 +1,7 @@
 # Repo
 
 # Still in Development
+- contribution scrapers, if you need help remember to either post it as an issue or whatever here, or post it in telegram as a file and I will help, Im also open to voice chats.. 
 # todo 
 - sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with the resolveurl for full season packs)
 - finish updating the settings.xml and sorting it respectively.
