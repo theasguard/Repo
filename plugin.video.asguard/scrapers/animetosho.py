@@ -79,31 +79,23 @@ class Scraper(scraper.Scraper):
         hosters = []
         query = self._build_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL)
-        logging.debug("Retrieved show from database: %s", search_url)
         html = self._http_get(search_url, data=urllib.parse.urlencode(query).encode('utf-8'), require_debrid=True)
-        logging.debug("Retrieved html: %s", html)
         soup = BeautifulSoup(html, "html.parser")
         soup_all = soup.find('div', id='content').find_all('div', class_='home_list_entry')
-        logging.debug("Retrieved soup_all: %s", soup_all)
 
 
         for entry in soup_all:
             try:
                 name = entry.find('div', class_='link').a.text
-                logging.debug("Retrieved name: %s", name)
                 magnet = entry.find('a', {'href': re.compile(r'(magnet:)+[^"]*')}).get('href')
-                logging.debug("Retrieved magnet: %s", magnet)
                 size = entry.find('div', class_='size').text
-                logging.debug("Retrieved size: %s", size)
                 torrent = entry.find('a', class_='dllink').get('href')
-                logging.debug("Retrieved torrent: %s", torrent)
                 # Extract quality from the name
                 quality_match = re.search(r'\b(1080p|720p|480p|360p)\b', name)
                 if quality_match:
                     quality = QUALITY_MAP.get(quality_match.group(0), QUALITIES.HD1080)
                 else:
                     quality = QUALITIES.HD1080
-                logging.debug("Retrieved quality: %s", quality)
 
                 host = scraper_utils.get_direct_hostname(self, name)
                 label = f"{name} | {quality} | {size}"
@@ -135,16 +127,12 @@ class Scraper(scraper.Scraper):
         :return: The search query as a dictionary.
         """
         query = {'q': video.title}
-        logging.debug("Retrieved query: %s", query)
         if video.video_type == VIDEO_TYPES.EPISODE:
             query['q'] += f' S{int(video.season):02d}E{int(video.episode):02d}'
-            logging.debug("Retrieved query: %s", query)
         elif video.video_type == VIDEO_TYPES.MOVIE:
             query['q'] += f' {video.year}'
-            logging.debug("Retrieved query: %s", query)
         query['q'] = query['q'].replace(' ', '+').replace('+-', '-')
         query['qx'] = 1
-        logging.debug("Retrieved query: %s", query)
         return query
 
     def _filter_sources(self, hosters, video):
@@ -211,7 +199,6 @@ class Scraper(scraper.Scraper):
         try:
             headers = {'User-Agent': scraper_utils.get_ua()}
             req = urllib.request.Request(url, data=data, headers=headers)
-            logging.debug("Retrieved req: %s", req)
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 return response.read().decode('utf-8')
         except urllib.error.HTTPError as e:
