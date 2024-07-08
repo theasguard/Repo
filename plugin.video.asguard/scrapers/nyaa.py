@@ -46,29 +46,21 @@ class Scraper(scraper.Scraper):
         if video.video_type == VIDEO_TYPES.TVSHOW:
             query = self._build_season_pack_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL % urllib.parse.quote_plus(query))
-        logging.debug("Search URL: %s", search_url)
         html = self._http_get(search_url, require_debrid=True)
-        logging.debug("Retrieved HTML: %s", html)
         soup = BeautifulSoup(html, "html.parser", parse_only=SoupStrainer('div', {'class': 'table-responsive'}))
-        logging.debug("Parsed HTML: %s", soup)
 
         for entry in soup.select("tr.danger,tr.default,tr.success"):
             try:
                 name = entry.find_all('a', {'class': None})[1].get('title')
-                logging.debug("Retrieved name: %s", name)
                 magnet = entry.find('a', {'href': re.compile(r'(magnet:)+[^"]*')}).get('href')
-                logging.debug("Retrieved magnet: %s", magnet)
                 size = entry.find_all('td', {'class': 'text-center'})[1].text.replace('i', '')
-                logging.debug("Retrieved size: %s", size)
                 downloads = int(entry.find_all('td', {'class': 'text-center'})[-1].text)
-                logging.debug("Retrieved downloads: %s", downloads)
 
                 quality_match = re.search(r'\b(1080p|720p|480p|360p)\b', name)
                 if quality_match:
                     quality = QUALITY_MAP.get(quality_match.group(0), QUALITIES.HD1080)
                 else:
                     quality = QUALITIES.HD1080
-                logging.debug("Retrieved quality: %s", quality)
 
                 host = scraper_utils.get_direct_hostname(self, magnet)
                 label = f"{name} | {quality} | {size}"
@@ -94,15 +86,11 @@ class Scraper(scraper.Scraper):
 
     def _build_query(self, video):
         query = video.title
-        logging.debug("Initial query: %s", query)
         if video.video_type == VIDEO_TYPES.EPISODE:
             query += f' S{int(video.season):02d}E{int(video.episode):02d}'
-            logging.debug("Episode query: %s", query)
         elif video.video_type == VIDEO_TYPES.MOVIE:
             query += f' {video.year}'
-            logging.debug("Movie query: %s", query)
         query = query.replace(' ', '+').replace('+-', '-')
-        logging.debug("Final query: %s", query)
         return query
 
     def _build_season_pack_query(self, video):
