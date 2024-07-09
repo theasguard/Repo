@@ -1,6 +1,7 @@
 # Repo
 
 # Still in Development
+- make sure the urllib.request functions can either hand abstract auth errors or replace with requests. 
 - contribution scrapers, if you need help remember to either post it as an issue or whatever here, or post it in telegram as a file and I will help, Im also open to voice chats.. 
 # todo 
 the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. 
