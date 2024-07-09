@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 tknorris
+    Copyright (C) 2024 tknorris, MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,26 +22,24 @@ import threading
 import time
 import gzip
 from io import StringIO
+from typing import Any, Union
 from six.moves import urllib_parse, urllib_request, urllib_error
-import urllib.request
 import urllib.error
 import urllib.parse
 import kodi
 import log_utils
 import utils
-from . import utils2  # Use relative import
+from asguard_lib import utils2  # Use relative import
 import logging
 
-from .constants import SECTIONS, TEMP_ERRORS, TRAKT_SECTIONS  # Ensure relative import
-from .db_utils import DB_Connection  # Ensure relative import
+from asguard_lib.constants import SECTIONS, TEMP_ERRORS, TRAKT_SECTIONS  # Ensure relative import
+from asguard_lib.db_utils import DB_Connection  # Ensure relative import
 
 logger = log_utils.Logger.get_logger(__name__)
-
 logging.basicConfig(level=logging.DEBUG)
 
 def __enum(**enums):
     return type('Enum', (), enums)
-
 
 TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
 SECTIONS = __enum(TV='TV', MOVIES='Movies')
@@ -73,7 +71,7 @@ class Trakt_API():
         self.timeout = None if timeout == 0 else timeout
         self.list_size = list_size
         self.offline = offline
-        self.__db_connection = None
+        self.__db_connection = DB_Connection()
         self.__worker_id = None
 
     def get_code(self):
@@ -246,6 +244,46 @@ class Trakt_API():
         params = {'extended': 'full', 'auth': True}
         return self.__call_trakt(url, params=params, auth=True, cache_limit=24, cached=cached)
 
+    def cache_show_aliases(self, show_id):
+        """
+        Fetches and caches aliases for a show
+        :param show_id: Trakt ID of show item
+        :return: list of aliases
+        """
+        url = f"/shows/{show_id}/aliases"
+        response = self.__call_trakt(url, cache_limit=24 * 7)
+        country = getattr(self, 'country', 'us')
+        aliases = sorted(
+            {
+                i["title"]
+                for i in response
+                if i["country"] in [country, 'us']
+            }
+        )
+        # Cache the aliases
+        self.__db_connection.cache_url(url, json.dumps(aliases), None, None)
+        return aliases
+
+    def get_show_aliases(self, show_id):
+        """
+        Fetches aliases for a show, using cache if available
+        :param show_id: Trakt ID of show item
+        :return: list of aliases
+        """
+        url = f"/shows/{show_id}/aliases"
+        cached_result = self.__db_connection.get_cached_url(url)
+        if cached_result:
+            # Ensure cached_result is a string before loading JSON
+            if isinstance(cached_result, tuple):
+                cached_result = cached_result[0]
+            if isinstance(cached_result, (str, bytes, bytearray)):
+                return json.loads(cached_result)
+            else:
+                logger.log(f"Unexpected cached result type: {type(cached_result)}", log_utils.LOGERROR)
+                return []
+        else:
+            return self.cache_show_aliases(show_id)
+
     def get_seasons(self, show_id):
         url = '/shows/%s/seasons' % (show_id)
         params = {'extended': 'full'}
@@ -264,12 +302,12 @@ class Trakt_API():
     def get_episode_details(self, show_id, season, episode):
         url = '/shows/%s/seasons/%s/episodes/%s' % (show_id, season, episode)
         params = {'extended': 'full'}
-        return self.__call_trakt(url, params=params, cache_limit=48)
+        return self.__call_trakt(url, params=params, cache_limit=8)
 
     def get_movie_details(self, show_id):
         url = '/movies/%s' % (show_id)
         params = {'extended': 'full'}
-        return self.__call_trakt(url, params=params, cache_limit=48)
+        return self.__call_trakt(url, params=params, cache_limit=8)
 
     def get_people(self, section, show_id, full=False):
         url = '/%s/%s/people' % (TRAKT_SECTIONS[section], show_id)
@@ -282,8 +320,13 @@ class Trakt_API():
     def search(self, section, query, page=None):
         url = '/search/%s' % (TRAKT_SECTIONS[section][:-1])
         params = {'query': query, 'limit': self.list_size}
-        if page: params['page'] = page
+        if page:
+            params['page'] = page
         params.update({'extended': 'full'})
+        
+        logger.log('Trakt API Search URL: %s' % url, log_utils.LOGDEBUG)
+        logger.log('Trakt API Search Params: %s' % params, log_utils.LOGDEBUG)
+        
         response = self.__call_trakt(url, params=params)
         return [item[TRAKT_SECTIONS[section][:-1]] for item in response]
 
@@ -334,13 +377,15 @@ class Trakt_API():
     def get_hidden_progress(self, cached=True):
         url = '/users/hidden/progress_watched'
         params = {'type': 'show', 'limit': HIDDEN_SIZE, 'page': 1}
-        length = -1
         result = []
-        while length != 0 or length == HIDDEN_SIZE:
+        while True:
             cache_limit = self.__get_cache_limit('shows', 'hidden_at', cached)
             hidden = self.__call_trakt(url, params=params, cache_limit=cache_limit, cached=cached)
-            length = len(hidden)
+            if not hidden:
+                break
             result += hidden
+            if len(hidden) < HIDDEN_SIZE:
+                break
             params['page'] += 1
         return result
     
@@ -348,7 +393,26 @@ class Trakt_API():
         if username is None: username = 'me'
         url = '/users/%s' % (utils.to_slug(username))
         return self.__call_trakt(url, cached=cached)
-        
+
+    def get_next_episode(self, trakt_id, season, episode):
+        url = f"{self.protocol}{BASE_URL}/shows/{trakt_id}/seasons/{season}/episodes/{episode + 1}"
+        headers = {'Content-Type': 'application/json', 'trakt-api-key': V2_API_KEY, 'trakt-api-version': 2}
+        if self.token:
+            headers['Authorization'] = f"Bearer {self.token}"
+
+        request = urllib_request.Request(url, headers=headers)
+        try:
+            response = urllib_request.urlopen(request)
+            result = response.read().decode('utf-8')
+            return json.loads(result)
+        except urllib_error.HTTPError as e:
+            if e.code == 404:
+                return None
+            else:
+                raise TraktError(f"Trakt API Error: {e.reason}")
+        except Exception as e:
+            raise TraktError(f"Unexpected Error: {str(e)}")
+
     def get_bookmarks(self, section=None, full=False):
         url = '/sync/playback'
         if section == SECTIONS.MOVIES:
@@ -392,7 +456,7 @@ class Trakt_API():
 
     def get_last_activity(self, media=None, activity=None):
         url = '/sync/last_activities'
-        result = self.__call_trakt(url, cache_limit=0.01)
+        result = self.__call_trakt(url, cache_limit=0.10)
         if media and media in result:
             if activity and activity in result[media]:
                 return result[media][activity]
@@ -454,13 +518,13 @@ class Trakt_API():
         return data
 
     def __get_db_connection(self):
-        worker_id = threading.get_ident()
+        worker_id = threading.current_thread().ident
         if not self.__db_connection or self.__worker_id != worker_id:
             self.__db_connection = DB_Connection()
             self.__worker_id = worker_id
         return self.__db_connection
 
-    def __call_trakt(self, url, method=None, data=None, params=None, auth=True, cache_limit=.25, cached=True):
+    def __call_trakt(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True, cache_limit: float = .25, cached: bool = True) -> Union[str, list, dict, Any]:
         res_headers = {}
         if not cached: cache_limit = 0
         if self.offline:
@@ -489,7 +553,7 @@ class Trakt_API():
             auth_retry = False
             while True:
                 try:
-                    if auth: 
+                    if auth and self.token: 
                         headers.update({'Authorization': 'Bearer %s' % (self.token)})
                     logger.log('***Trakt Call: %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
                     request = urllib_request.Request(url, data=json_data, headers=headers)
