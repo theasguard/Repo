@@ -2,7 +2,7 @@
 
 '''
     Covenant Add-on
-    Copyright (C) 2017 homik
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,18 +20,31 @@
 import json
 from asguard_lib import client
 
-URL_PATTERN = 'http://thexem.de/map/single?id=%s&origin=tvdb&season=%s&episode=%s&destination=scene'
+TRAKT_API_URL = 'https://api.trakt.tv'
+TRAKT_API_KEY = '523a3a5e356f78b0e4d3b4eddfc23b704f7576d69cd4229317304cc21e9753a7'  # Replace with your Trakt API key
+TRAKT_API_VERSION = '2'
 
 def get_scene_episode_number(tvdbid, season, episode):
+    headers = {
+        'Content-Type': 'application/json',
+        'trakt-api-key': TRAKT_API_KEY,
+        'trakt-api-version': TRAKT_API_VERSION
+    }
 
     try:
-        url = URL_PATTERN % (tvdbid, season, episode)
-        r = client.request(url)
-        r = json.loads(r)
-        if r['result'] == 'success':
-            data = r['data']['scene']
-            return data['season'], data['episode']            
-    except:
-        pass
+        url = f'{TRAKT_API_URL}/search/tvdb/{tvdbid}?type=show'
+        response = client.request(url, headers=headers)
+        if response:
+            show_data = json.loads(response)
+            if show_data:
+                show_id = show_data[0]['show']['ids']['trakt']
+                url = f'{TRAKT_API_URL}/shows/{show_id}/seasons/{season}/episodes/{episode}'
+                response = client.request(url, headers=headers)
+                if response:
+                    episode_data = json.loads(response)
+                    if episode_data:
+                        return episode_data['season'], episode_data['number']
+    except Exception as e:
+        print(f'Error fetching data from Trakt API: {e}')
 
-    return season, episode    
+    return season, episode
