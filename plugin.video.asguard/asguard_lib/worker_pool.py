@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2016 tknorris
+    Copyright (C) 2024 tknorris, MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,21 +15,21 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import Queue
+import queue
 import threading
 import log_utils
 
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
 
-Empty = Queue.Empty
+Empty = queue.Empty
 
 class WorkerPool(object):
     def __init__(self, max_workers=None):
         self.max_workers = max_workers
         self.workers = []
-        self.out_q = Queue.Queue()
-        self.in_q = Queue.Queue()
+        self.out_q = queue.Queue()
+        self.in_q = queue.Queue()
         self.new_job = threading.Event()
         self.manager = None
         self.closing = False
@@ -80,7 +80,7 @@ class WorkerPool(object):
                     if new_workers > max_new:
                         new_workers = max_new
                         
-                    for _ in xrange(new_workers):
+                    for _ in range(new_workers):
                         try:
                             worker = threading.Thread(target=self.consumer)
                             worker.daemon = True
