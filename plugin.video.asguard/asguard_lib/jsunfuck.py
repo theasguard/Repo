@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
     Asguard Add-on
-    Copyright (C) 2016 tknorris
+    Copyright (C) 2024 tknorris, MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
 """
 import re
 import sys
-import urllib
+import six
+from six.moves import urllib_request, urllib_parse
 import string
 import json
 
@@ -97,7 +98,7 @@ class JSUnfuck(object):
     
     def repl_arrays(self, words):
         for word in sorted(words.values(), key=lambda x: len(x), reverse=True):
-            for index in xrange(0, 100):
+            for index in range(0, 100):
                 try:
                     repl = word[index]
                     self.js = self.js.replace('%s[%d]' % (word, index), repl)
@@ -117,7 +118,7 @@ class JSUnfuck(object):
                 break
         
     def repl_uniqs(self, uniqs):
-        for key, value in uniqs.iteritems():
+        for key, value in uniqs.items():
             if key in self.js:
                 if value == 1:
                     self.__handle_tostring()
@@ -128,7 +129,7 @@ class JSUnfuck(object):
                                                 
     def __handle_tostring(self):
         for match in re.finditer('(\d+)\[t\+o\+S\+t\+r\+i\+n\+g\](\d+)', self.js):
-            repl = to_base(match.group(1), match.group(2))
+            repl = self.to_base(match.group(1), match.group(2))
             self.js = self.js.replace(match.group(0), repl)
     
     def __handle_escape(self, key):
@@ -137,7 +138,7 @@ class JSUnfuck(object):
             offset = self.js.find(key) + len(key)
             if self.js[offset] == '(' and self.js[offset + 2] == ')':
                 c = self.js[offset + 1]
-                self.js = self.js.replace('%s(%s)' % (key, c), urllib.quote(c))
+                self.js = self.js.replace('%s(%s)' % (key, c), urllib_parse.quote(c))
             
             if start_js == self.js:
                 break
@@ -166,7 +167,7 @@ class JSUnfuck(object):
                 last_c = c
                  
             if not abort:
-                self.js = self.js.replace(key + extra, urllib.unquote(expr))
+                self.js = self.js.replace(key + extra, urllib_parse.unquote(expr))
             
                 if start_js == self.js:
                     break
@@ -183,7 +184,7 @@ class JSUnfuck(object):
              '[+[]]': '[0]', '!+[]+!+[]': '2', '[+!+[]]': '[1]', '(+20)': '20',
              '[+!![]]': '[1]', '[+!+[]+[+[]]]': '[10]', '+(1+1)': '11'}
              
-        for i in xrange(2, 20):
+        for i in range(2, 20):
             key = '+!![]' * (i - 1)
             key = '!+[]' + key
             n['(' + key + ')'] = str(i)
@@ -191,7 +192,7 @@ class JSUnfuck(object):
             n['(' + key + ')'] = str(i)
             n['[' + key + ']'] = '[' + str(i) + ']'
      
-        for i in xrange(2, 10):
+        for i in range(2, 10):
             key = '!+[]+' * (i - 1) + '!+[]'
             n['(' + key + ')'] = str(i)
             n['[' + key + ']'] = '[' + str(i) + ']'
@@ -199,33 +200,33 @@ class JSUnfuck(object):
             key = '!+[]' + '+!![]' * (i - 1)
             n['[' + key + ']'] = '[' + str(i) + ']'
                 
-        for i in xrange(0, 10):
+        for i in range(0, 10):
             key = '(+(+!+[]+[%d]))' % (i)
             n[key] = str(i + 10)
             key = '[+!+[]+[%s]]' % (i)
             n[key] = '[' + str(i + 10) + ']'
             
-        for tens in xrange(2, 10):
-            for ones in xrange(0, 10):
+        for tens in range(2, 10):
+            for ones in range(0, 10):
                 key = '!+[]+' * (tens) + '[%d]' % (ones)
                 n['(' + key + ')'] = str(tens * 10 + ones)
                 n['[' + key + ']'] = '[' + str(tens * 10 + ones) + ']'
         
-        for hundreds in xrange(1, 10):
-            for tens in xrange(0, 10):
-                for ones in xrange(0, 10):
+        for hundreds in range(1, 10):
+            for tens in range(0, 10):
+                for ones in range(0, 10):
                     key = '+!+[]' * hundreds + '+[%d]+[%d]))' % (tens, ones)
                     if hundreds > 1: key = key[1:]
                     key = '(+(' + key
                     n[key] = str(hundreds * 100 + tens * 10 + ones)
         return n
     
-    def to_base(n, base, digits="0123456789abcdefghijklmnopqrstuvwxyz"):
+    def to_base(self,n, base, digits="0123456789abcdefghijklmnopqrstuvwxyz"):
         n, base = int(n), int(base)
         if n < base:
             return digits[n]
         else:
-            return to_base(n // base, base, digits).lstrip(digits[0]) + digits[n % base]
+            return self.to_base(n // base, base, digits).lstrip(digits[0]) + digits[n % base]
 
             
 def cfunfuck(fuckedup):
@@ -249,7 +250,7 @@ def main():
     with open(sys.argv[1]) as f:
         start_js = f.read()
     
-    print JSUnfuck(start_js).decode()
+    print(JSUnfuck(start_js).decode())
 
 if __name__ == '__main__':
     sys.exit(main())
