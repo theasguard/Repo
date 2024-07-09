@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 tknorris
+    Copyright (C) 2024 tknorris, MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,18 +17,18 @@
 """
 import os
 import time
-import urllib
-import urllib2
 import resolveurl
 import re
 import xbmcvfs
 import log_utils
 import kodi
-from asguard_lib import utils2
-from constants import VIDEO_TYPES
-from constants import SRT_SOURCE
-from constants import USER_AGENT
-from db_utils import DB_Connection
+
+import six
+from six.moves import urllib_request, urllib_parse, urllib_error, http_client, http_cookiejar
+
+from asguard_lib import utils2, control
+from .constants import VIDEO_TYPES, SRT_SOURCE, USER_AGENT
+from .db_utils import DB_Connection
 
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
@@ -159,12 +159,12 @@ class SRT_Scraper():
 
     def __get_url(self, url):
         try:
-            req = urllib2.Request(url)
+            req = urllib_request.Request(url)
             host = BASE_URL.replace('http://', '')
             req.add_header('User-Agent', USER_AGENT)
             req.add_header('Host', host)
             req.add_header('Referer', BASE_URL)
-            response = urllib2.urlopen(req, timeout=10)
+            response = urllib_request.urlopen(req, timeout=10)
             body = response.read()
             body = utils2.cleanse_title(body)
             body = body.encode('utf-8')
@@ -185,14 +185,14 @@ class SRT_Scraper():
             return html.decode('utf-8')
 
         logger.log('No cached url found for: %s' % url, log_utils.LOGDEBUG)
-        req = urllib2.Request(url)
+        req = urllib_request.Request(url)
 
         host = BASE_URL.replace('http://', '')
         req.add_header('User-Agent', USER_AGENT)
         req.add_header('Host', host)
         req.add_header('Referer', BASE_URL)
         try:
-            response = urllib2.urlopen(req, timeout=10)
+            response = urllib_request.urlopen(req, timeout=10)
             html = response.read()
             html = utils2.cleanse_title(html)
         except Exception as e:
@@ -250,7 +250,7 @@ def GLinks(doc):
     match = re.compile('itag\\\u003d.*?\\\u0026url\\\u003d(.*?)%3B').findall(link.content)
 
     for doc_url in match:
-        doc_url = urllib.unquote(doc_url)
+        doc_url = urllib_parse.unquote(doc_url)
         doc_url = doc_url.replace('\\u003d','=').replace('\\u0026','&')
         
         try:
@@ -261,7 +261,7 @@ def GLinks(doc):
 
             cookie = link.cookies.get_dict()
             if 'DRIVE_STREAM' in cookie:
-                cookie = urllib.quote('Cookie:DRIVE_STREAM=%s; NID=%s' %(cookie['DRIVE_STREAM'],cookie['NID']))
+                cookie = urllib_parse.quote('Cookie:DRIVE_STREAM=%s; NID=%s' %(cookie['DRIVE_STREAM'],cookie['NID']))
                 g_url = a['url'] + '|' + cookie
             else:
                 g_url = a['url']
