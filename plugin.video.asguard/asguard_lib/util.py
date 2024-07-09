@@ -1,40 +1,31 @@
-# -*- coding: UTF-8 -*-
-# /*
-# *      Copyright (C) 2011 Libor Zoubek
-# *
-# *
-# *  This Program is free software; you can redistribute it and/or modify
-# *  it under the terms of the GNU General Public License as published by
-# *  the Free Software Foundation; either version 2, or (at your option)
-# *  any later version.
-# *
-# *  This Program is distributed in the hope that it will be useful,
-# *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-# *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# *  GNU General Public License for more details.
-# *
-# *  You should have received a copy of the GNU General Public License
-# *  along with this program; see the file COPYING.  If not, write to
-# *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-# *  http://www.gnu.org/copyleft/gpl.html
-# *
-# */
-import os
-import re
-import sys
-import urllib
-import urllib2
+"""
+    Asguard Addon
+    Copyright (C) 2024 MrBlamo
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+import os, json, re, sys, pickle, queue
+import url_dispatcher
 import traceback
-import cookielib
-from htmlentitydefs import name2codepoint as n2cp
+import six
+from six.moves import urllib_request, urllib_parse, urllib_error, html_entities
+from six.moves import http_cookiejar as cookielib
 import threading
-import Queue
-import pickle
+
 import string
-import json
-from demjson import demjson
 from bs4 import BeautifulSoup
-import cloudflare
+from . import cloudflare
 
 UA = 'Mozilla/6.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.5) Gecko/2008092417 Firefox/3.0.3'
 LOG = 2
@@ -68,8 +59,8 @@ def init_urllib(cache=None):
         _cookie_jar = _StringCookieJar(data, cache=cache)
     else:
         _cookie_jar = _StringCookieJar(data)
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(_cookie_jar))
-    urllib2.install_opener(opener)
+    opener = urllib_request.build_opener(urllib_request.HTTPCookieProcessor(_cookie_jar))
+    urllib_request.install_opener(opener)
 
 
 def cache_cookies(cache=None):
@@ -97,53 +88,53 @@ def _solve_http_errors(url, error):
 
 def request(url, headers={}):
     debug('request: %s' % url)
-    req = urllib2.Request(url, headers=headers)
+    req = urllib_request.Request(url, headers=headers)
     req.add_header('User-Agent', UA)
     if _cookie_jar is not None:
         _cookie_jar.add_cookie_header(req)
     try:
-        response = urllib2.urlopen(req)
+        response = urllib_request.urlopen(req)
         data = response.read()
         response.close()
-    except urllib2.HTTPError, error:
+    except urllib_error.HTTPError as error:
         data = _solve_http_errors(url, error)
     debug('len(data) %s' % len(data))
     return data
 
 
 def post(url, data, headers={}):
-    postdata = urllib.urlencode(data)
-    req = urllib2.Request(url, postdata, headers)
+    postdata = urllib_parse.urlencode(data).encode('utf-8')
+    req = urllib_request.Request(url, postdata, headers)
     req.add_header('User-Agent', UA)
     if _cookie_jar is not None:
         _cookie_jar.add_cookie_header(req)
     try:
-        response = urllib2.urlopen(req)
+        response = urllib_request.urlopen(req)
         data = response.read()
         response.close()
-    except urllib2.HTTPError, error:
+    except urllib_error.HTTPError as error:
         data = _solve_http_errors(url, error)
     return data
 
 
 def post_json(url, data, headers={}):
-    postdata = json.dumps(data)
+    postdata = json.dumps(data).encode('utf-8')
     headers['Content-Type'] = 'application/json'
-    req = urllib2.Request(url, postdata, headers)
+    req = urllib_request.Request(url, postdata, headers)
     req.add_header('User-Agent', UA)
     if _cookie_jar is not None:
         _cookie_jar.add_cookie_header(req)
     try:
-        response = urllib2.urlopen(req)
+        response = urllib_request.urlopen(req)
         data = response.read()
         response.close()
-    except urllib2.HTTPError, error:
+    except urllib_error.HTTPError as error:
         data = _solve_http_errors(url, error)
     return data
 
 
 def run_parallel_in_threads(target, args_list):
-    result = Queue.Queue()
+    result = queue.Queue()
     # wrapper to collect return value in a Queue
 
     def task_wrapper(*args):
@@ -169,10 +160,11 @@ def substr(data, start, end):
 
 def _create_plugin_url(params, plugin=sys.argv[0]):
     url = []
+    print(url)
     for key in params.keys():
         value = decode_html(params[key])
         value = value.encode('ascii', 'ignore')
-        url.append(key + '=' + value.encode('hex', ) + '&')
+        url.append(key + '=' + value.encode('hex') + '&')
     return plugin + '?' + ''.join(url)
 
 
@@ -185,9 +177,8 @@ def save_to_file(url, file):
 
 def save_data_to_file(data, file):
     try:
-        f = open(file, 'wb')
-        f.write(data)
-        f.close()
+        with open(file, 'wb') as f:
+            f.write(data)
         info('File %s saved' % file)
         return True
     except:
@@ -197,11 +188,12 @@ def save_data_to_file(data, file):
 def read_file(file):
     if not os.path.exists(file):
         return ''
-    f = open(file, 'r')
-    data = f.read()
-    f.close()
+    with open(file, 'r') as f:
+        data = f.read()
     return data
 
+
+n2cp = html_entities.name2codepoint
 
 def _substitute_entity(match):
     ent = match.group(3)
@@ -209,30 +201,30 @@ def _substitute_entity(match):
         # decoding by number
         if match.group(2) == '':
             # number is in decimal
-            return unichr(int(ent))
+            return six.unichr(int(ent))
         elif match.group(2) == 'x':
             # number is in hex
-            return unichr(int('0x' + ent, 16))
+            return six.unichr(int('0x' + ent, 16))
     else:
         # they were using a name
         cp = n2cp.get(ent)
         if cp:
-            return unichr(cp)
+            return six.unichr(cp)
         else:
             return match.group()
 
 
 def decode_html(data):
-    if not type(data) == str:
+    if not isinstance(data, str):
         return data
     try:
-        if not type(data) == unicode:
-            data = unicode(data, 'utf-8', errors='ignore')
+        if not isinstance(data, str):
+            data = str(data, 'utf-8', errors='ignore')
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(_substitute_entity, data)[0]
     except:
         traceback.print_exc()
-        print[data]
+        print([data])
         return data
 
 
@@ -310,12 +302,12 @@ def params(url=None):
             if (len(splitparams)) == 2:
                 param[splitparams[0]] = splitparams[1]
     for p in param.keys():
-        param[p] = param[p].decode('hex')
+        param[p] = bytes.fromhex(param[p]).decode('utf-8')
     return param
 
 
 def int_to_base(number, base):
-    digs = string.digits + string.letters
+    digs = string.digits + string.ascii_letters
     if number < 0:
         sign = -1
     elif number == 0:
@@ -326,7 +318,7 @@ def int_to_base(number, base):
     digits = []
     while number:
         digits.append(digs[number % base])
-        number /= base
+        number //= base
     if sign < 0:
         digits.append('-')
     digits.reverse()
@@ -349,7 +341,9 @@ def extract_jwplayer_setup(data):
                 data = re.sub(r'\b%s\b' % int_to_base(i, 36), replacements[i], data)
         data = re.search(r'\.setup\(([^\)]+?)\);', data)
         if data:
-            return demjson.decode(data.group(1).decode('string_escape'))
+            # Decode the string escape sequences
+            decoded_data = data.group(1).encode().decode('unicode_escape')
+            return json.loads(decoded_data)
     return None
 
 
