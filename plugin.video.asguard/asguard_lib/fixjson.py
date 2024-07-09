@@ -1,7 +1,5 @@
 import datetime
 import re
-import urllib
-import urlparse
 import kodi
 import log_utils  # @UnusedImport
 
