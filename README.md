@@ -13,7 +13,8 @@ the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve 
 - update the get quality checks to be more relevent and use the 1080p etc checks rather than assuming low or high quality.
 - remove the auth settings for all debrid for now until something can be sorted for integrated all debrid in the add-on. 
 - check the trakt context for making new menu items
-- make sure all the trakt functions for adding to lists making new lists copying etc function properly. 
+- make sure all the trakt functions for adding to lists making new lists copying etc function properly.
+- create more scrapers for the addon.
 - if I think of a anything else I'll update this. 
 
 # Asguard Kodi Addon
