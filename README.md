@@ -5,7 +5,7 @@
 # todo 
 the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. 
 - make sure the urllib.request functions can either handle abstract auth errors or replace with requests. 
-- sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with the resolveurl for full season packs)
+- (Important) sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with the resolveurl for full season packs)
 - finish updating the settings.xml and sorting it respectively.
 - finish the 1337x scraper (just filtering titles and episodes now)
 - update the Orion scraper.
