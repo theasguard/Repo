@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,22 +22,23 @@ import os
 import re
 import urllib.error
 import urllib.parse
+import urllib.request
 import http.cookiejar
 from io import StringIO
-from asguard_lib import control
 import requests
+from bs4 import BeautifulSoup
+from asguard_lib import control
 
 from asguard_lib import cloudflare
 from asguard_lib import cf_captcha
 import kodi
 import log_utils  # @UnusedImport
-import six
-from six.moves import urllib_request, urllib_parse, urllib_error
-from six.moves import http_cookiejar as cookielib
+
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH, Q_ORDER, SHORT_MONS, VIDEO_TYPES, DEFAULT_TIMEOUT
 from asguard_lib.db_utils import DB_Connection
 from asguard_lib.utils2 import i18n, ungz
+
 import xbmcgui
 
 try:
@@ -48,7 +49,8 @@ except ImportError:
 logger = log_utils.Logger.get_logger()
 
 BASE_URL = ''
-FLARESOLVERR_URL = 'http://localhost:8191/v1'
+CAPTCHA_BASE_URL = 'https://www.google.com/recaptcha/api'
+FLARESOLVERR_URL = 'http://localhost:8191'
 COOKIEPATH = kodi.translate_path(kodi.get_profile())
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 MAX_RESPONSE = 1024 * 1024 * 10
@@ -57,7 +59,7 @@ CF_CAPCHA_ENABLED = kodi.get_setting('cf_captcha') == 'true'
 class ScrapeError(Exception):
     pass
 
-class NoRedirection(urllib_request.HTTPErrorProcessor):
+class NoRedirection(urllib.request.HTTPErrorProcessor):
     def http_response(self, request, response):  # @UnusedVariable
         logger.log('Stopping Redirect', log_utils.LOGDEBUG)
         return response
@@ -130,46 +132,12 @@ class Scraper(object):
         """
         if link.startswith('magnet:') or link.endswith('.torrent') or link.startswith('http') or link.startswith('https') or link.startswith('ftp'):
             return link
-        elif not link.startswith('http') or link.endswith('.torrent') or link.startswith('magnet:') or link.startswith('ftp'):
+        elif not link.startswith('http') or link.startswith('ftp'):
             return scraper_utils.urljoin(self.base_url, link)
         elif link.startswith('http'):
             return link
         else:
             return link
-
-    def resolve_all_debrid(self, link):
-        """
-        Resolves a magnet or torrent link using AllDebrid's API.
-
-        link: a magnet or torrent link
-
-        Returns a resolved link if successful, otherwise None.
-        """
-        try:
-            # Retrieve the AllDebrid API key from Kodi settings
-            # not sure about this yet 
-            api_key = kodi.get_setting('alldebrid_api_key')
-            if not api_key:
-                raise Exception("AllDebrid API key not found in settings")
-
-            if link.startswith('magnet:'):
-                url = f'https://api.alldebrid.com/v4/magnet/upload?agent=Asguard&apikey={api_key}&magnets[]={link}'
-                logger.log(f'Resolving AllDebrid magnet: {link}', log_utils.LOGDEBUG)
-            if link.startswith('http'):
-                url = f'https://api.alldebrid.com/v4/link/unlock?agent=Asguard&apikey={api_key}&link={link}'
-                logger.log(f'Resolving AllDebrid link: {url}', log_utils.LOGDEBUG)
-
-            response = requests.get(url)
-            logger.log(f'Response: {response}', log_utils.LOGDEBUG)
-            if response.status_code == 200:
-                data = response.json()
-                logger.log(f'Data: {data}', log_utils.LOGDEBUG)
-                if data['status'] == 'success':
-                    return data['data']['link']
-            return None
-        except Exception as e:
-            logger.log(f'Error resolving AllDebrid link: {str(e)}', log_utils.LOGERROR)
-            return None
 
 
     def format_source_label(self, item):
@@ -298,6 +266,7 @@ class Scraper(object):
             f'         <setting id="{name}-base_url" type="text" label="    {i18n("base_url")}" default="{cls.base_url}" visible="eq(-1,true)"/>',
             f'         <setting id="{name}-sub_check" type="bool" label="    {i18n("page_existence")}" default="true" visible="eq(-2,true)"/>',
         ]
+
     @classmethod
     def has_proxy(cls):
         return False
@@ -355,6 +324,9 @@ class Scraper(object):
         return url
 
     def _http_get(self, url, params=None, data=None, multipart_data=None, headers=None, cookies=None, allow_redirect=True, method=None, require_debrid=False, read_error=False, cache_limit=8):
+        if isinstance(url, bytes):
+            url = url.decode('utf-8')
+
         html = self._cached_http_get(url, self.base_url, self.timeout, params=params, data=data, multipart_data=multipart_data,
                                      headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method, require_debrid=require_debrid,
                                      read_error=read_error, cache_limit=cache_limit)
@@ -371,14 +343,14 @@ class Scraper(object):
         return html
     
     def _cached_http_get(self, url, base_url, timeout, params=None, data=None, multipart_data=None, headers=None, cookies=None, allow_redirect=True,
-                         method=None, require_debrid=False, read_error=False, cache_limit=8):
+                        method=None, require_debrid=False, read_error=False, cache_limit=8):
         if require_debrid:
             if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers(url) if resolver.isUniversal()]
+                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.resolve(url) if resolver.isUniversal()]
             if not Scraper.debrid_resolvers:
                 logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
                 return ''
-                
+
         if cookies is None: cookies = {}
         if timeout == 0: timeout = None
         if headers is None: headers = {}
@@ -388,18 +360,19 @@ class Scraper(object):
             if url == base_url and not url.endswith('/'):
                 url += '/'
             
-            parts = urllib_parse.urlparse(url)
+            parts = urllib.parse.urlparse(url)
             if parts.query:
                 params.update(scraper_utils.parse_query(url))
-                url = urllib_parse.urlunparse((parts.scheme, parts.netloc, parts.path, parts.params, '', parts.fragment))
+                url = urllib.parse.urlunparse((parts.scheme, parts.netloc, parts.path, parts.params, '', parts.fragment))
                 
-            url += '?' + urllib_parse.urlencode(params)
+            url += '?' + urllib.parse.urlencode(params)
+
         logger.log('Getting Url: %s cookie=|%s| data=|%s| extra headers=|%s|' % (url, cookies, data, headers), log_utils.LOGDEBUG)
         if data is not None:
             if isinstance(data, str):
                 data = data
             else:
-                data = urllib_parse.urlencode(data, True)
+                data = urllib.parse.urlencode(data, True)
 
         if multipart_data is not None:
             headers['Content-Type'] = 'multipart/form-data; boundary=X-X-X'
@@ -412,28 +385,29 @@ class Scraper(object):
 
         try:
             self.cj = self._set_cookies(base_url, cookies)
-            if isinstance(url, str): url = url.encode('utf-8')
-            request = urllib_request.Request(url, data=data)
+            if isinstance(url, str): url = url
+            request = urllib.request.Request(url, data=data)
             headers = headers.copy()
             request.add_header('User-Agent', scraper_utils.get_ua())
             request.add_header('Accept', '*/*')
-            request.add_unredirected_header('Host', request.host)
+            request.add_header('Accept-Encoding', 'gzip')
+            request.add_unredirected_header('Host', request.get_host())
             if referer: request.add_unredirected_header('Referer', referer)
             if 'Referer' in headers: del headers['Referer']
             if 'Host' in headers: del headers['Host']
             for key, value in headers.items(): request.add_header(key, value)
             self.cj.add_cookie_header(request)
             if not allow_redirect:
-                opener = urllib_request.build_opener(NoRedirection)
-                urllib_request.install_opener(opener)
+                opener = urllib.request.build_opener(NoRedirection)
+                urllib.request.install_opener(opener)
             else:
-                opener = urllib_request.build_opener(urllib_request.HTTPRedirectHandler)
-                urllib_request.install_opener(opener)
-                opener2 = urllib_request.build_opener(urllib_request.HTTPCookieProcessor(self.cj))
-                urllib_request.install_opener(opener2)
+                opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler)
+                urllib.request.install_opener(opener)
+                opener2 = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cj))
+                urllib.request.install_opener(opener2)
 
             if method is not None: request.get_method = lambda: method.upper()
-            response = urllib_request.urlopen(request, timeout=timeout)
+            response = urllib.request.urlopen(request, timeout=timeout)
             self.cj.extract_cookies(response, request)
             if kodi.get_setting('cookie_debug') == 'true':
                 logger.log('Response Cookies: %s - %s' % (url, scraper_utils.cookies_as_str(self.cj)), log_utils.LOGDEBUG)
@@ -457,12 +431,12 @@ class Scraper(object):
                 return ''
             else:
                 if response.info().get('Content-Encoding') == 'gzip':
-                    html = scraper_utils.ungz(response.read(MAX_RESPONSE))
+                    html = ungz(response.read(MAX_RESPONSE))
                 else:
                     html = response.read(MAX_RESPONSE)
         except urllib.error.HTTPError as e:
             if e.info().get('Content-Encoding') == 'gzip':
-                html = scraper_utils.ungz(e.read(MAX_RESPONSE))
+                html = ungz(e.read(MAX_RESPONSE))
             else:
                 html = e.read(MAX_RESPONSE)
                 
@@ -492,7 +466,7 @@ class Scraper(object):
         except: pass
         if kodi.get_setting('cookie_debug') == 'true':
             logger.log(f'Before Cookies: {self} - {scraper_utils.cookies_as_str(cj)}', log_utils.LOGDEBUG)
-        domain = urllib_parse.urlsplit(base_url).hostname
+        domain = urllib.parse.urlsplit(base_url).hostname
         for key in cookies:
             c = http.cookiejar.Cookie(0, key, str(cookies[key]), port=None, port_specified=False, domain=domain, domain_specified=True,
                                  domain_initial_dot=False, path='/', path_specified=True, secure=False, expires=None, discard=False, comment=None,
@@ -503,7 +477,25 @@ class Scraper(object):
             logger.log(f'After Cookies: {self} - {scraper_utils.cookies_as_str(cj)}', log_utils.LOGDEBUG)
         return cj
 
-    def do_recaptcha(self, url, site_key):
+    def _do_recaptcha(self, key, tries=None, max_tries=None):
+        challenge_url = CAPTCHA_BASE_URL + '/challenge?k=%s' % (key)
+        html = self._cached_http_get(challenge_url, CAPTCHA_BASE_URL, timeout=DEFAULT_TIMEOUT, cache_limit=0)
+        match = re.search("challenge\s+\:\s+'([^']+)", html)
+        captchaimg = 'http://www.google.com/recaptcha/api.js/image?c=%s' % (match.group(1))
+        img = xbmcgui.ControlImage(450, 0, 400, 130, captchaimg)
+        wdlg = xbmcgui.WindowDialog()
+        wdlg.addControl(img)
+        wdlg.show()
+        header = 'Type the words in the image'
+        if tries and max_tries:
+            header += ' (Try: %s/%s)' % (tries, max_tries)
+        solution = kodi.get_keyboard(header)
+        if not solution:
+            raise Exception('You must enter text in the image to access video')
+        wdlg.close()
+        return {'recaptcha_challenge_field': match.group(1), 'recaptcha_response_field': solution}
+
+    def do_flaresolver(self, url):
         """
         Solves reCAPTCHA using FLARESOLVER.
 
@@ -522,11 +514,7 @@ class Scraper(object):
                 "maxTimeout": 60000,
                 "session": True,
                 "cookies": True,
-                "userAgent": scraper_utils.get_ua(),
-                "captcha": {
-                    "provider": "hcaptcha",
-                    "sitekey": site_key
-                }
+                "userAgent": scraper_utils.get_ua()
             }
 
             # Send the request to FLARESOLVER
@@ -534,12 +522,11 @@ class Scraper(object):
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'ok':
-                    return data.get('solution', {}).get('gRecaptchaResponse')
-            logger.log(f'Failed to solve reCAPTCHA: {response.text}', log_utils.LOGERROR)
+                    return data.get('solution', {})
+            logger.log(f'Failed FLARESOLVER: {response.text}', log_utils.LOGERROR)
         except Exception as e:
-            logger.log(f'Error solving reCAPTCHA: {str(e)}', log_utils.LOGERROR)
+            logger.log(f'Error FLARESOLVER: {str(e)}', log_utils.LOGERROR)
         return None
-
 
     def _default_get_episode_url(self, html, video, episode_pattern, title_pattern='', airdate_pattern=''):
         logger.log('Default Episode Url: |%s|%s|' % (self.get_name(), video), log_utils.LOGDEBUG)
@@ -714,8 +701,8 @@ class Scraper(object):
         Returns:
             str: The direct hostname if recognized, otherwise the scraper's name.
         """
-        host = urllib_parse.urlparse(link).hostname
-        direct_hosts = ['google', 'orion', 'blogspot', 'mixdrop', 'vidcloud', 'streamtape', 'dood', 'vidlox', 'mp4upload']
+        host = urllib.parse.urlparse(link).hostname
+        direct_hosts = ['google', 'orion', 'blogspot', 'okru', 'filemoon', 'mixdrop', 'vidcloud', 'embtaku', 'streamtape', 'dood', 'vidlox', 'mp4upload']
 
         if host and any(h in host for h in direct_hosts):
             return 'gvideo'
@@ -796,7 +783,7 @@ class Scraper(object):
                                 if isinstance(item3, list):
                                     for item4 in item3:
                                         if isinstance(item4, str):
-                                            s = urllib_parse.unquote(item4).replace('\\0026', '&').replace('\\003D', '=')
+                                            s = urllib.parse.unquote(item4).replace('\\0026', '&').replace('\\003D', '=')
                                             sources.extend(re.findall('url=([^&]+)', s))
         return sources
         
@@ -810,7 +797,7 @@ class Scraper(object):
                 for item in items:
                     _source_fmt, source_url = item.split('|')
                     source_url = source_url.replace('\\u003d', '=').replace('\\u0026', '&')
-                    source_url = urllib_parse.unquote(source_url)
+                    source_url = urllib.parse.unquote(source_url)
                     source_url += '|Cookie=%s' % (self._get_stream_cookies())
                     urls.append(source_url)
                     
@@ -823,7 +810,7 @@ class Scraper(object):
         
     def _get_stream_cookies(self):
         cookies = ['%s=%s' % (key, value) for key, value in self._get_cookies().items()]
-        return urllib_parse.quote('; '.join(cookies))
+        return urllib.parse.quote('; '.join(cookies))
 
     def db_connection(self):
         if self.__db_connection is None:
