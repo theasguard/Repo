@@ -26,10 +26,6 @@ from asguard_lib import scraper_utils, control, db_utils
 from asguard_lib.constants import VIDEO_TYPES, QUALITIES
 from . import scraper
 
-try:
-    import resolveurl
-except ImportError:
-    kodi.notify(msg=i18n('smu_failed'), duration=5000)
     
 logger = log_utils.Logger.get_logger()
 
@@ -106,7 +102,8 @@ class Scraper(scraper.Scraper):
                     if self.min_seeders > seeders:
                         continue
 
-                    quality, info = scraper_utils.get_release_quality(name, url)
+                    quality = scraper_utils.get_tor_quality(name)
+                    info = []
                     size_match = re.search(r'\s*([\d.]+)\s*(GB|MB)', name)
                     size = 0
                     if size_match:
@@ -146,6 +143,7 @@ class Scraper(scraper.Scraper):
         return sources
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
+        import resolveurl
         if require_debrid:
             if Scraper.debrid_resolvers is None:
                 Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
