@@ -125,7 +125,7 @@ def check_title(title, aliases, release_title, hdlr, year, years=None): # non pa
 				if alias in title_list: continue
 				title_list_append(alias)
 			except:
-				from cocoscrapers.modules import log_utils
+				import log_utils
 				log_utils.error()
 	try:
 		
@@ -207,7 +207,6 @@ def filter_season_pack(show_title, aliases, year, season, release_title):
 		for regex in range_regex:
 			match = re.search(regex, release_title)
 			if match:
-				# from cocoscrapers.modules import log_utils
 				# log_utils.log('pack episode range found -- > release_title=%s' % release_title)
 				episode_start = int(match.group(1))
 				episode_end = int(match.group(2))
