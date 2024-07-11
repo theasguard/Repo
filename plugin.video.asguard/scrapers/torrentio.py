@@ -106,7 +106,8 @@ class Scraper(scraper.Scraper):
                     if self.min_seeders > seeders:
                         continue
 
-                    quality, info = scraper_utils.get_release_quality(name, url)
+                    quality= scraper_utils.get_tor_quality(name)
+                    info = []
                     size_match = re.search(r'💾\s*([\d.]+)\s*(GB|MB)', name)
                     size = 0
                     if size_match:
