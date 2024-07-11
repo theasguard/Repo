@@ -107,6 +107,7 @@ def getAudio_lang(release_title):
 
     return lang
 
+
 def check_title(title, aliases, release_title, hdlr, year, years=None): # non pack file title check, single eps and movies
 	if years: # for movies only, scraper to pass None for episodes
 		if not any(value in release_title for value in years): return False
@@ -206,7 +207,7 @@ def filter_season_pack(show_title, aliases, year, season, release_title):
 		for regex in range_regex:
 			match = re.search(regex, release_title)
 			if match:
-				# import log_utils
+				# from cocoscrapers.modules import log_utils
 				# log_utils.log('pack episode range found -- > release_title=%s' % release_title)
 				episode_start = int(match.group(1))
 				episode_end = int(match.group(2))
@@ -590,6 +591,31 @@ def height_get_quality(height):
         quality = QUALITIES.LOW
     return quality
 
+def get_tor_quality(name):
+    """
+    Determines the quality of a torrent based on its name.
+
+    Args:
+        torrent_name (str): The name of the torrent.
+
+    Returns:
+        str: The quality of the torrent.
+    """
+    quality_patterns = {
+        QUALITIES.HD4K: r'\b(4K|2160p)\b',
+        QUALITIES.HD1080: r'\b(1080p|FHD)\b',
+        QUALITIES.HD720: r'\b(720p|HD)\b',
+        QUALITIES.HIGH: r'\b(480p|SD)\b',
+        QUALITIES.MEDIUM: r'\b(360p)\b',
+        QUALITIES.LOW: r'\b(240p)\b'
+    }
+
+    for quality, pattern in quality_patterns.items():
+        if re.search(pattern, name, re.IGNORECASE):
+            return quality
+
+    return QUALITIES.HIGH  # Default to HIGH if no quality is found
+
 def gv_get_quality(stream_url):
     stream_url = unquote(stream_url)
     if 'itag=18' in stream_url or '=m18' in stream_url or '/m18' in stream_url:
@@ -687,28 +713,6 @@ def getFileType(url):
         else: type = 'SUBS'
     type = type.rstrip('/')
     return type
-
-def check_sd_url(release_link):
-
-    try:
-        release_link = release_link.lower()
-        if '4k' in release_link:
-            quality = QUALITIES.HD4K
-        elif '1080' in release_link:
-            quality = QUALITIES.HD1080
-        elif '720' in release_link:
-            quality = QUALITIES.HD720
-        elif '.hd.' in release_link:
-            quality = QUALITIES.HD720
-        elif any(i in ['dvdscr', 'r5', 'r6'] for i in release_link):
-            quality = QUALITIES.LOW
-        elif any(i in ['camrip', 'tsrip', 'hdcam', 'hdts', 'dvdcam', 'dvdts', 'cam', 'telesync', 'ts'] for i in release_link):
-            quality = QUALITIES.LOW
-        else:
-            quality = QUALITIES.LOW
-        return quality
-    except:
-        return QUALITIES.LOW
 
 def get_release_quality(release_name, release_link=None):
     if release_name is None:
@@ -875,6 +879,22 @@ def get_size(url):
     except Exception as e:
         log_utils.log(f"Error in get_size: {e}", log_utils.LOGWARNING)
         return False
+
+def _size(siz):
+	try:
+		if siz in ('0', 0, '', None): return 0, ''
+		div = 1 if siz.lower().endswith(('gb', 'gib')) else 1024
+		# if ',' in siz and siz.lower().endswith(('mb', 'mib')): siz = size.replace(',', '')
+		# elif ',' in siz and siz.lower().endswith(('gb', 'gib')): siz = size.replace(',', '.')
+		dec_count = len(re.findall(r'[.]', siz))
+		if dec_count == 2: siz = siz.replace('.', ',', 1) # torrentproject2 likes to randomly use 2 decimals vs. a comma then a decimal
+		float_size = round(float(re.sub(r'[^0-9|/.|/,]', '', siz.replace(',', ''))) / div, 2) #comma issue where 2,750 MB or 2,75 GB (sometimes replace with "." and sometimes not)
+		str_size = '%.2f GB' % float_size
+		return float_size, str_size
+	except:
+		import log_utils
+		log_utils.error('failed on siz=%s' % siz)
+		return 0, ''
 
 def convert_size(size_bytes):
     import math
