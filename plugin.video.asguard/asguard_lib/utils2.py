@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 tknorris
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,22 +16,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import io, re, json, gzip, datetime, time, os, html, hashlib
-import xbmc, xbmcaddon, xbmcvfs, xbmcgui
+import io
+import re
+import json
+import gzip
+import datetime
+import time
+import os
+import html
 import html.entities
 import six
 from six.moves import urllib_request, urllib_parse, urllib_error, urllib_response, http_cookiejar
+import xbmcgui
+import hashlib
 import _strptime  # @UnusedImport
 import xml.etree.ElementTree as ET
 import log_utils
 import utils
+import xbmc, xbmcaddon, xbmcvfs
 import kodi
-
 try:
     from . import pyaes
 except ImportError:
     import pyaes
-
 from .constants import *  # @UnusedWildImport
 from asguard_lib import strings
 
@@ -191,17 +198,7 @@ def make_trailer(trailer_url):
         return 'plugin://plugin.video.youtube/?action=play_video&videoid=%s' % (match.group(1))
 
 def make_ids(item):
-    info = {
-        'imdbnumber': None,
-        'imdb_id': None,  # Ensures the key exists even if it's not in the item
-        'tmdb_id': None,
-        'tvdb_id': None,
-        'trakt_id': None,
-        'slug': None,
-        'tvrage_id': None,  # Added for completeness
-        'anidb_id': None,   # Added for completeness
-        'mal_id': None      # Added for completeness
-    }
+    info = {}
     if 'ids' in item:
         ids = item['ids']
         if 'imdb' in ids: 
@@ -309,16 +306,19 @@ def get_sort_key(item):
         elif field in SORT_KEYS:
             if field == 'source':
                 value = item['class'].get_name()
-            elif isinstance(field, list):
+            if isinstance(field, list):
                 value = field[0] if field else None
             else:
-                value = item[field]
+                value = item.get(field)
+            if isinstance(value, list):
+                value = value[0] if value else None
 
             if value in SORT_KEYS[field]:
                 item_sort_key.append(sign * int(SORT_KEYS[field][value]))
+            else:  # assume all unlisted values sort as worst
+                item_sort_key.append(sign * -1)
 
             if isinstance(value, list):
-                # Handle the case where value is a list
                 value = value[0] if value else None
             else:  # assume all unlisted values sort as worst
                 item_sort_key.append(sign * -1)
@@ -328,11 +328,11 @@ def get_sort_key(item):
             else:
                 item_sort_key.append(0)
         else:
-            if item[field] is None:
+            if item.get(field) is None:
                 item_sort_key.append(sign * -1)
             else:
                 item_sort_key.append(sign * int(item[field]))
-    # logger.log('item: %s sort_key: %s' % (item, item_sort_key), log_utils.LOGDEBUG)
+    logger.log('item: %s sort_key: %s' % (item, item_sort_key), log_utils.LOGDEBUG)
     return tuple(item_sort_key)
 
 def pick_source(sources, auto_pick=None):
@@ -528,21 +528,21 @@ def format_episode_label(label, season, episode, srts):
                 if not req_hd or srt['hd']:
                     if srt['completed']:
                         color = 'green'
-                        if hi is None: hi = srt['hi']
-                        if hd is None: hd = srt['hd']
-                        if corrected is None: corrected = srt['corrected']
+                        if not hi: hi = srt['hi']
+                        if not hd: hd = srt['hd']
+                        if not corrected: corrected = srt['corrected']
                     elif color != 'green':
                         color = 'yellow'
                         if float(srt['percent']) > percent:
-                            if hi is None: hi = srt['hi']
-                            if hd is None: hd = srt['hd']
-                            if corrected is None: corrected = srt['corrected']
+                            if not hi: hi = srt['hi']
+                            if not hd: hd = srt['hd']
+                            if not corrected: corrected = srt['corrected']
                             percent = srt['percent']
 
     if color != 'red':
-        label += ' [COLOR %s](SRT: ' % color
+        label += ' [COLOR %s](SRT: ' % (color)
         if color == 'yellow':
-            label += ' %s%%, ' % percent
+            label += ' %s%%, ' % (percent)
         if hi: label += 'HI, '
         if hd: label += 'HD, '
         if corrected: label += 'Corrected, '
@@ -759,6 +759,13 @@ def get_next_rewatch(trakt_id, plays, progress):
 def i18n(string_id):
     return translations.i18n(string_id)
 
+def chunks(l, n):
+    """
+    Yield successive n-sized chunks from l.
+    """
+    for i in list(range(0, len(l), n)):
+        yield l[i:i + n]
+
 def cleanse_title(text):
     def fixup(m):
         text = m.group(0)
@@ -783,6 +790,14 @@ def cleanse_title(text):
         # replace nbsp with a space
         text = text.replace('\xa0', ' ')
         return text
+    if isinstance(text, str):
+        try: 
+            text = text
+        except:
+            try: 
+                text = text.decode('utf-8', 'ignore')
+            except: 
+                pass
 
     return re.sub("&(\w+;|#x?\d+;?)", fixup, text.strip())
 
@@ -792,6 +807,9 @@ def normalize_title(title):
     title = cleanse_title(title)
     new_title = title.upper()
     new_title = re.sub('[^A-Za-z0-9]', '', new_title)
+    if isinstance(new_title, str):
+        new_title = new_title
+    # logger.log('In title: |%s| Out title: |%s|' % (title,new_title), log_utils.LOGDEBUG)
     return new_title
 
 def crc32(s):
@@ -812,10 +830,12 @@ def crc32(s):
 
 def ungz(compressed):
     buf = io.BytesIO(compressed)
-    with gzip.GzipFile(fileobj=buf) as f:
-        html = f.read()
-    if isinstance(html, bytes):
-        html = html.decode('utf-8')
+    f = gzip.GzipFile(fileobj=buf)
+    html = f.read().decode('utf-8')
+#     before = len(compressed) / 1024.0
+#     after = len(html) / 1024.0
+#     saved = (after - before) / after
+#     logger.log('Uncompressing gzip input Before: {before:.2f}KB After: {after:.2f}KB Saved: {saved:.2%}'.format(before=before, after=after, saved=saved))
     return html
 
 def copy2clip(txt):
