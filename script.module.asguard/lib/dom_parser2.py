@@ -1,6 +1,6 @@
 '''
    Based on Parsedom for XBMC plugins
-   Copyright (C) 2010-2011 Tobias Ussing And Henrik Mosgaard Jensen
+   Copyright (C) 2010-2024 Tobias Ussing And Henrik Mosgaard Jensen, MrBlamo
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -109,20 +109,15 @@ def __get_attribs(element):
 def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
     if attrs is None: attrs = {}
     name = name.strip()
-    if isinstance(html, str):
+    if isinstance(html, bytes):
+        encoding = chardet.detect(html)['encoding']
         try:
-            html = [html.decode("utf-8")]
-        except AttributeError:
-            encoding = chardet.detect(html)['encoding']
-            try:
-                html = [html.decode(encoding)]
-            except:
-                logger.log("HTML Decode Failed. Data length: %d" % len(html), log_utils.LOGWARNING)
-                try:
-                    html = [html.decode("utf-8", "replace")]
-                except:
-                    logger.log("HTML Decode Failed (Replace). Data length: %d" % len(html), log_utils.LOGWARNING)
-                    html = [html]
+            html = html.decode(encoding)
+        except:
+            logger.log("HTML Decode Failed. Data length: %d" % len(html), log_utils.LOGWARNING)
+            html = html.decode("utf-8", "replace")
+    if isinstance(html, str):
+        html = [html]
     elif not isinstance(html, list):
         logger.log("Input isn't list or string/unicode.", log_utils.LOGWARNING)
         return ''

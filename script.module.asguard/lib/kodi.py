@@ -15,13 +15,13 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import xbmcaddon, xbmc, xbmcgui, xbmcplugin, xbmcvfs, os, sys, re, json
+import gettext
+import xbmcaddon, xbmc, xbmcgui, xbmcplugin, xbmcvfs, os, sys, re, json, time
 import six
-
+from urllib.parse import urlencode, parse_qs
 from kodi_six import xbmc, xbmcgui, xbmcplugin, xbmcaddon, xbmcvfs
-from six.moves import urllib_parse
-import time
-from lib import CustomProgressDialog
+from six.moves.urllib.parse import urlencode
+import CustomProgressDialog
 from urllib.parse import urlencode, quote, unquote
 from html.parser import HTMLParser
 
@@ -54,9 +54,16 @@ def translate_path(path):
     return xbmcvfs.translatePath(path)
 
 def set_setting(id, value):
-    if not isinstance(value, str):
+    if not isinstance(value, six.string_types):
         value = str(value)
     addon.setSetting(id, value)
+
+def supported_video_extensions():
+    supported_video_extensions = xbmc.getSupportedMedia('video').split('|')
+    unsupported = ['.url', '.zip', '.rar', '.001', '.7z', '.tar.gz', '.tar.bz2',
+                   '.tar.xz', '.tgz', '.tbz2', '.gz', '.bz2', '.xz', '.tar', '']
+    return [i for i in supported_video_extensions if i not in unsupported]
+
 
 def accumulate_setting(setting, addend=1):
     cur_value = get_setting(setting)
@@ -82,48 +89,42 @@ def get_kodi_version():
         
     class KodiVersion(metaclass=MetaClass):
         version = xbmc.getInfoLabel('System.BuildVersion')
+        major, minor, tag, tag_version, revision = 0, 0, '', 0, ''
+        
         match = re.search(r'([0-9]+)\.([0-9]+)', version)
         if match:
-            major, minor = match.groups()
+            major, minor = map(int, match.groups())
+        
         match = re.search(r'-([a-zA-Z]+)([0-9]*)', version)
         if match:
             tag, tag_version = match.groups()
+            tag_version = int(tag_version) if tag_version else 0
+        
         match = re.search(r'\w+:(\w+-\w+)', version)
         if match:
             revision = match.group(1)
         
-        try:
-            major = int(major)
-        except:
-            major = 0
-        try:
-            minor = int(minor)
-        except:
-            minor = 0
-        try:
-            revision = revision
-        except:
-            revision = ''
-        try:
-            tag = tag
-        except:
-            tag = ''
-        try:
-            tag_version = int(tag_version)
-        except:
-            tag_version = 0
     return KodiVersion
 
 def get_plugin_url(queries):
+    """
+    Constructs a plugin URL with the given query parameters.
+
+    Args:
+        queries (dict): A dictionary of query parameters.
+
+    Returns:
+        str: The constructed plugin URL.
+    """
     try:
         query = urlencode(queries)
     except UnicodeEncodeError:
-        for k in queries:
-            if isinstance(queries[k], str):
-                queries[k] = queries[k].encode('utf-8')
+        for k, v in queries.items():
+            if isinstance(v, str):
+                queries[k] = v.encode('utf-8')
         query = urlencode(queries)
 
-    return sys.argv[0] + '?' + query
+    return f"{sys.argv[0]}?{query}"
 
 def end_of_directory(cache_to_disc=True):
     xbmcplugin.endOfDirectory(int(sys.argv[1]), cacheToDisc=cache_to_disc)
@@ -162,7 +163,7 @@ def parse_query(query):
     q = {'mode': 'main'}
     if query.startswith('?'):
         query = query[1:]
-    queries = urllib_parse.parse_qs(query)
+    queries = parse_qs(query)
     for key in queries:
         if len(queries[key]) == 1:
             q[key] = queries[key][0]
@@ -229,8 +230,11 @@ def set_view(content, set_view=False, set_sort=False):
         xbmcplugin.addSortMethod(handle=int(sys.argv[1]), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME)
         xbmcplugin.addSortMethod(handle=int(sys.argv[1]), sortMethod=xbmcplugin.SORT_METHOD_GENRE)
 
+def yesnoDialog(heading=get_name(), line1='', line2='', line3='', nolabel='', yeslabel=''):
+    return xbmcgui.Dialog().yesno(heading, line1 + '[CR]' + line2 + '[CR]' + line3, nolabel=nolabel, yeslabel=yeslabel)
+
 def refresh_container():
-    xbmc.executebuiltin("XBMC.Container.Refresh")
+    xbmc.executebuiltin("Container.Refresh")
 
 def update_container(url):
     xbmc.executebuiltin(f'Container.Update({url})')
@@ -317,12 +321,28 @@ def strip_tags(html):
 class Translations(object):
     def __init__(self, strings):
         self.strings = strings
+        self.addon = xbmcaddon.Addon()
+        self.language = xbmc.getLanguage(xbmc.ISO_639_1)
+        self.locale_path = os.path.join(self.addon.getAddonInfo('path'), 'resources', 'language', self.language, 'strings.po')
+        self.translation = None
+
+        if os.path.exists(self.locale_path):
+            try:
+                self.translation = gettext.translation('base', localedir=os.path.dirname(self.locale_path), languages=[self.language])
+                self.translation.install()
+            except Exception as e:
+                xbmc.log('%s: Failed to load .po translations: %s' % (self.addon.getAddonInfo('id'), e), xbmc.LOGWARNING)
 
     def i18n(self, string_id):
+        if self.translation:
+            try:
+                return self.translation.gettext(self.strings[string_id])
+            except KeyError:
+                xbmc.log('%s: Failed String Lookup in .po: %s' % (self.addon.getAddonInfo('id'), string_id), xbmc.LOGWARNING)
         try:
-            return addon.getLocalizedString(self.strings[string_id])
-        except Exception as e:
-            xbmc.log('%s: Failed String Lookup: %s (%s)' % (get_name(), string_id, e), xbmc.LOGWARNING)
+            return self.addon.getLocalizedString(self.strings[string_id])
+        except KeyError as e:
+            xbmc.log('%s: Failed String Lookup in strings.py: %s (%s)' % (self.addon.getAddonInfo('id'), string_id, e), xbmc.LOGWARNING)
             return string_id
 
 class WorkingDialog(object):
@@ -402,15 +422,15 @@ class ProgressDialog(object):
         if self.pd is not None:
             if self.background:
                 msg = line1 + line2 + line3
-                self.pd.update(percent, self.heading, msg)
+                self.pd.update(int(percent), self.heading, msg)
             else:
                 if six.PY2:
-                    self.pd.update(percent, line1, line2, line3)
+                    self.pd.update(int(percent), line1, line2, line3)
                 else:
-                    self.pd.update(percent,
-                                   line1 + '\n'
-                                   + line2 + '\n'
-                                   + line3)
+                    self.pd.update(int(percent),
+                                line1 + '\n'
+                                + line2 + '\n'
+                                + line3)
 
 
 class CountdownDialog(object):
