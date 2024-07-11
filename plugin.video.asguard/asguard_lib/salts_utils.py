@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2015 tknorris
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,20 +15,27 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import os
-import time
-import datetime
-import xbmc
-import xbmcgui
-import xbmcvfs
+import os, time, datetime, xbmc, xbmcgui, xbmcvfs, sys
+import string
+try:
+    HANDLE = int(sys.argv[1])
+except IndexError:
+    HANDLE = -1
+
+addon_dir = os.path.dirname(os.path.dirname(__file__)) 
+scrapers_dir = os.path.join(addon_dir, 'scrapers')
+sys.path.append(scrapers_dir)
+
+from scrapers import proxy, scraper
+
 import log_utils
 import kodi
 import utils
-from . import utils2 
-from . import image_scraper
-from .constants import *  # @UnusedWildImport
-from .trakt_api import Trakt_API
-from .db_utils import DB_Connection
+from asguard_lib import utils2 
+from asguard_lib import image_scraper
+from asguard_lib.constants import *  # @UnusedWildImport
+from asguard_lib.trakt_api import Trakt_API
+from asguard_lib.db_utils import DB_Connection
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 
 logger = log_utils.Logger.get_logger(__name__)
@@ -47,8 +54,9 @@ WATCHLIST_SLUG = 'watchlist_slug'
 def make_info(item, show=None, people=None):
     if people is None: people = {}
     if show is None: show = {}
-    
-    # Ensure 'title' key is present in item
+    logger.log('Making Info: Show: %s' % (show), log_utils.LOGDEBUG)
+    logger.log('Making Info: Item: %s' % (item), log_utils.LOGDEBUG)
+        # Ensure 'title' key is present in item
     if 'title' not in item:
         logger.log('Missing key "title" in item: {}'.format(item), log_utils.LOGERROR)
         return {}
@@ -96,7 +104,30 @@ def make_info(item, show=None, people=None):
     if show: info['mediatype'] = 'episode'
     info.update(utils2.make_ids(show))
     info.update(utils2.make_people(people))
+    logger.log('Final Info: %s' % (info), log_utils.LOGDEBUG)
+    # Fetch and apply translations
+    if 'translations' in show:
+        for translation in show.get('translations', []):
+            if translation.get('language') == 'en':
+                for k, v in translation.items():
+                    if v and str(info.get('number', 0)) not in v and info.get('title') and str(info.get('number', 0)) not in info.get('title'):
+                        info[k] = v
+
+    # Fetch aliases
+    aliases = trakt_api.get_show_aliases(show.get('ids', {}).get('trakt'))
+    if aliases:
+        info['aliases'] = aliases
+
+    logger.log('Final Info: %s' % (info), log_utils.LOGDEBUG)
     return info
+
+def strip_non_ascii_and_unprintable(text):
+    result = ''.join(char for char in text if char in string.printable)
+    return result.encode('ascii', errors='ignore').decode('ascii', errors='ignore')
+
+def make_global_list():
+	global global_list
+	global_list = []
 
 def get_genres():
     global GENRES
@@ -113,6 +144,10 @@ def make_cast(ids, people, cached=True):
             art = image_scraper.get_person_images(ids, person, cached)
         else:
             art = {'thumb': ''}
+        
+        # Ensure 'thumb' key is present in art
+        if 'thumb' not in art:
+            art['thumb'] = ''
             
         cast.append({'name': person['person']['name'], 'role': person['character'], 'thumbnail': art['thumb']})
     
@@ -184,36 +219,108 @@ def parallel_get_url(scraper, video):
 
 def parallel_get_sources(scraper, video):
     start = time.time()
+
     hosters = scraper.get_sources(video)
+        
     if hosters is None: hosters = []
     if kodi.get_setting('filter_direct') == 'true':
-        # BLAMO
-        # hosters = [hoster for hoster in hosters if not hoster['direct'] or utils2.test_stream(hoster)]
         import threading
         def _parallel_get_sources(hoster):
-            hoster['valid'] = utils2.test_stream(hoster)
-        threads = [threading.Thread(target = _parallel_get_sources, args = (hoster,)) for hoster in hosters if hoster['direct']]
+            try:
+                hoster['valid'] = utils2.test_stream(hoster)
+            except Exception as e:
+                logger.log(f'Error testing stream: {e}', log_utils.LOGERROR)
+                hoster['valid'] = False
+        threads = [threading.Thread(target=_parallel_get_sources, args=(hoster,)) for hoster in hosters if hoster['direct']]
         [thread.start() for thread in threads]
         [thread.join() for thread in threads]
         hosters = [hoster for hoster in hosters if not hoster['direct'] or ('valid' in hoster and hoster['valid'])]
-        # BLAMO
 
     found = False
     for hoster in hosters:
         if hoster['host'] is None:
-            logger.log('Hoster missing host: %s - %s' % (scraper.get_name(), hoster), log_utils.LOGWARNING)
+            logger.log(f'Hoster missing host: {scraper.get_name()} - {hoster}', log_utils.LOGWARNING)
             found = True
         elif not hoster['direct']:
             hoster['host'] = hoster['host'].lower().strip()
             if isinstance(hoster['host'], str):
-                hoster['host'] = hoster['host'].encode('utf-8')
+                hoster['host'] = hoster['host']
     
     if found:
         hosters = [hoster for hoster in hosters if hoster['host'] is not None]
         
-    logger.log('%s returned %s sources in %.2fs' % (scraper.get_name(), len(hosters), time.time() - start), log_utils.LOGDEBUG)
+    logger.log(f'{scraper.get_name()} returned {len(hosters)} sources in {time.time() - start:.2f}s', log_utils.LOGDEBUG)
     result = {'name': scraper.get_name(), 'hosters': hosters}
     return result
+
+def get_cache_check_reg(episode):
+    try:
+        playList = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+        info = playList[playList.getposition()].getVideoInfoTag()
+        season = str(info.getSeason()).zfill(2)
+    except:
+        season = ''
+
+    reg_string = r'''(?ix)                              # Ignore case (i), and use verbose regex (x)
+                 (?:                                    # non-grouping pattern
+                   s|season                             # s or season
+                   )?
+                 ({})?                                  #season num format
+                 (?:                                    # non-grouping pattern
+                   e|x|episode|ep|ep\.|_|-|\(              # e or x or episode or start of a line
+                   )                                    # end non-grouping pattern
+                 \s*                                    # 0-or-more whitespaces
+                 (?<![\d])
+                 ({}|{})                                # episode num format: xx or xxx
+                 (?![\d])
+                 '''.format(season, episode.zfill(2), episode.zfill(3))
+
+    return re.compile(reg_string)
+
+def get_best_match(dict_key, dictionary_list, episode, pack_select=False):
+    regex = get_cache_check_reg(episode)
+
+    files = []
+    for i in dictionary_list:
+        path = re.sub(r'\[.*?\]', '', i[dict_key].split('/')[-1])
+        i['regex_matches'] = regex.findall(path)
+        files.append(i)
+
+    if control.getSetting('general_manual_select') == 'true' or pack_select:
+        files = user_select(files, dict_key)
+    else:
+        files = [i for i in files if len(i['regex_matches']) > 0]
+
+        if len(files) == 0:
+            return None
+
+        files = sorted(files, key=lambda x: len(' '.join(list(x['regex_matches'][0]))), reverse=True)
+
+        if len(files) != 1:
+            files = user_select(files, dict_key)
+
+    return files[0]
+
+def user_select(files, dict_key):
+    idx = control.select_dialog('Select File', [i[dict_key].rsplit('/')[-1] for i in files])
+    if idx == -1:
+        file = [{'path': ''}]
+    else:
+        file = [files[idx]]
+    return file
+
+def is_file_ext_valid(file_name):
+    try:
+        COMMON_VIDEO_EXTENSIONS = xbmc.getSupportedMedia('video').split('|')
+
+        COMMON_VIDEO_EXTENSIONS = [i for i in COMMON_VIDEO_EXTENSIONS if i != '' and i != '.zip']
+    except:
+        pass
+
+    if '.' + file_name.split('.')[-1] not in COMMON_VIDEO_EXTENSIONS:
+        return False
+
+    return True
 
 # Run a task on startup. Settings and mode values must match task name
 def do_startup_task(task):
@@ -230,14 +337,14 @@ def do_scheduled_task(task, isPlaying):
     now = datetime.datetime.now()
     if kodi.get_setting('auto-%s' % task) == 'true':
         if last_check < now - datetime.timedelta(minutes=1):
-            # logger.log('Check Triggered: Last: %s Now: %s' % (last_check, now), log_utils.LOGDEBUG)
+            logger.log('Check Triggered: Last: %s Now: %s' % (last_check, now), log_utils.LOGDEBUG)
             next_run = get_next_run(task)
             last_check = now
         else:
             # hack next_run to be in the future
             next_run = now + datetime.timedelta(seconds=1)
 
-        # logger.log("Update Status on [%s]: Currently: %s Will Run: %s Last Check: %s" % (task, now, next_run, last_check), log_utils.LOGDEBUG)
+        logger.log("Update Status on [%s]: Currently: %s Will Run: %s Last Check: %s" % (task, now, next_run, last_check), log_utils.LOGDEBUG)
         if now >= next_run:
             is_scanning = xbmc.getCondVisibility('Library.IsScanningVideo')
             if not is_scanning:
@@ -350,7 +457,7 @@ def do_disable_check():
                 line1 = utils2.i18n('disable_line1') % (cls.get_name(), fails)
                 line2 = utils2.i18n('disable_line2')
                 line3 = utils2.i18n('disable_line3')
-                ret = dialog.yesno('SALTS', line1, line2, line3, utils2.i18n('keep_enabled'), utils2.i18n('disable_it'))
+                ret = dialog.yesno('Asguard', line1, line2, line3, utils2.i18n('keep_enabled'), utils2.i18n('disable_it'))
                 if ret:
                     kodi.set_setting('%s-enable' % (cls.get_name()), 'false')
                     cur_failures[cls.get_name()] = 0
@@ -394,6 +501,8 @@ def is_salts():
 def clear_thumbnails(images):
     for url in images.values():
         crc = utils2.crc32(url)
+        if crc is None:
+            continue
         for ext in ['jpg', 'png']:
             file_name = crc + '.' + ext
             file_path = os.path.join('special://thumbnails', file_name[0], file_name)
