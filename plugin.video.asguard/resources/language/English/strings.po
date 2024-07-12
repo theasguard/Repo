@@ -2540,5 +2540,25 @@ msgid "DebridSearch Enabled"
 msgstr ""
 
 msgctxt "#40614"
-msgid "Annatar Enabled"
+msgid "IsoHunt2 Enabled"
+msgstr ""
+
+msgctxt "#40615"
+msgid "Media API Key"
+msgstr ""
+
+msgctxt "#40616"
+msgid "BitCQ Enabled"
+msgstr ""
+
+msgctxt "#40617"
+msgid "TorrentFunk Enabled"
+msgstr ""
+
+msgctxt "#40618"
+msgid "Real Debrid API"
+msgstr ""
+
+msgctxt "#40619"
+msgid "Premiumize API"
 msgstr ""
