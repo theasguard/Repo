@@ -9,6 +9,7 @@
 	this stuff is worth it, you can buy me a beer in return.
 '''
 
+import logging
 from orion import *
 from orion.modules.orionnetworker import *
 import threading
@@ -65,7 +66,7 @@ class Scraper(scraper.Scraper):
 		errormessage = str(errortype) + ' -> ' + str(value.message)
 		parameters = [filename, linenumber, name, errormessage]
 		parameters = ' | '.join([str(parameter) for parameter in parameters])
-		xbmc.log('DEATH STREAMS ORION [ERROR]: ' + parameters, xbmc.LOGERROR)
+		logging.log('DEATH STREAMS ORION [ERROR]: ' + parameters)
 
 	def _link(self, data, orion = False):
 		links = data['links']
@@ -206,7 +207,9 @@ class Scraper(scraper.Scraper):
 	def get_sources(self, video):
 		sources = []
 		try:
-			orion = Orion(base64.b64decode(base64.b64decode(base64.b64decode(self.key))).replace(' ', ''))
+			# Decode the key properly
+			decoded_key = base64.b64decode(base64.b64decode(base64.b64decode(self.key.encode('utf-8')))).decode('utf-8').replace(' ', '')
+			orion = Orion(decoded_key)
 			if not orion.userEnabled() or not orion.userValid(): raise Exception()
 
 			type = Orion.TypeMovie if video.video_type == VIDEO_TYPES.MOVIE else Orion.TypeShow
