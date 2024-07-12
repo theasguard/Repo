@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--suppress ALL -->
+<addon id="context.asguard.tools" version="0.0.1" name="Asguard Context Tools" provider-name="Thor">
+    <requires>
+        <import addon="xbmc.python" version="2.2.0"/>
+        <import addon="plugin.video.asguard"/>
+        <import addon="script.module.asguard"/>
+    </requires>
+    <extension point="kodi.context.item" library="default.py">        
+      <item>
+        <label>Asguard Tools.</label>
+        <visible>!StringCompare(ListItem.dbid,)+[StringCompare(ListItem.dbtype,movie)|StringCompare(ListItem.dbtype,tvshow)|StringCompare(ListItem.dbtype,season)|StringCompare(ListItem.dbtype,episode)]</visible>
+      </item>
+    </extension>    
+    <extension point="xbmc.addon.metadata">
+        <summary>Library Context Menu Tools for Asguard</summary>
+        <description>This addon provides context menu tools for Asguard</description>
+        <platform>all</platform>
+	</extension>
+</addon>
