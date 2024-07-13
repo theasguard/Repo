@@ -15,6 +15,7 @@
 - check the trakt context for making new menu items
 - make sure all the trakt functions for adding to lists making new lists copying etc function properly.
 - create more scrapers for the addon.
+- add some extra filtering for titles like "You", and "See" some single title names return wrong sources in torrentdownload and the other, look into that further 
 - if I think of a anything else I'll update this. 
 
 # Asguard Kodi Addon
