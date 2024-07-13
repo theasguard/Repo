@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addons>
+<!--suppress ALL -->
+<addon id="context.asguard.tools" version="0.0.1" name="Asguard Context Tools" provider-name="Thor">
+    <requires>
+        <import addon="xbmc.python" version="2.2.0"/>
+        <import addon="plugin.video.asguard"/>
+        <import addon="script.module.asguard"/>
+    </requires>
+    <extension point="kodi.context.item" library="default.py">
+      <item>
+        <label>Asguard Tools.</label>
+        <visible>!StringCompare(ListItem.dbid,)+[StringCompare(ListItem.dbtype,movie)|StringCompare(ListItem.dbtype,tvshow)|StringCompare(ListItem.dbtype,season)|StringCompare(ListItem.dbtype,episode)]</visible>
+      </item>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>Library Context Menu Tools for Asguard</summary>
+        <description>This addon provides context menu tools for Asguard</description>
+        <platform>all</platform>
+	</extension>
+</addon>
+
+<addon id="plugin.video.asguard" version="0.1.5" name="Asguard" provider-name="MrBlamo">
+    <requires>
+<!-- 		<import addon="xbmc.python" version="2.19.0"/> -->
+        <import addon="script.module.pyxbmct"/>
+        <import addon="script.module.resolveurl" />
+<!-- 		<import addon="script.module.futures"/> -->
+        <import addon="script.module.myconnpy" />
+        <import addon="script.module.asguard"/>
+		<import addon="script.module.requests" />
+        <import addon="script.module.dateutil"/>
+        <import addon="script.module.arrow" version="1.0.3"/>
+		<import addon="script.module.beautifulsoup4" version="4.5.3" />
+		<import addon="script.module.inputstreamhelper" version="0.3.3" />
+		<import addon="script.module.six" version="1.15.0"/>
+		<import addon="script.module.kodi-six" version="0.1.3"/>
+		<import addon="script.module.orion" />
+		<import addon="script.module.html5lib" />
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides>video</provides>
+    </extension>
+    <extension point="xbmc.service" library="service.py" start="startup"/>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en">Stream video from many difference sources, SALTS fork by Thor</summary>
+        <summary lang="hr">Gledajte video iz različitih izvora, SALTS fork by Thor</summary>
+        <summary lang="he">הזרמת וידאו ממקורות שונים רבים, פיתוח משנה של SALT על ידי Thor</summary>
+        <description lang="en">This addon uses trakt.tv for most show and movie meta data and uses a variety of websites for hoster sources</description>
+        <description lang="hr">Ovaj dodatak koristi trakt.tv za većinu metapodataka filmova i TV serija a koristi različite web stranice za izvore</description>
+        <description lang="he">ההרחבה הזו משתמשת ב- trakt.tv עבור רוב נתוני מידע-מטא של הסרטים והסדרות ומשתמשת במגוון אתרי אינטרנט עבור מקורות מארחים</description>
+        <disclaimer lang="en">The author is not responsible for the use of this addon. The author is not responsible for the content found using this addon. The author does not host or own any content found within this addon.
+The author is in no way affiliated with Kodi, Team Kodi, or the XBMC Foundation.
+This is a Non-profit resource, organized solely for educational purposes which is protected under the Fair-Use doctrine of the Copyright Act, Specifically section 107, which does promote freedom of expression, by permitting the unlicensed use of copyright-protected works.
+</disclaimer>
+		<platform>all</platform>
+        <reuselanguageinvoker>false</reuselanguageinvoker>
+		<license>Beerware rev. 42</license>
+		<assets>
+		  <icon>icon.png</icon>
+		  <fanart>fanart.jpg</fanart>
+		</assets>
+	</extension>
+</addon>
+
+    <addon id="repository.asgardrepo" name="[COLOR red]Asgard Repo[/COLOR]" version="0.0.1" provider-name="MrBlamo">
+        <requires>
+            <import addon="xbmc.addon" version="12.0.0"/>
+        </requires>
+        <extension point="xbmc.addon.repository" name="[COLOR red]Asgard Repo[/COLOR]">
+            <info compressed="false">https://raw.githubusercontent.com/theasguard/Repo/master/zips/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/theasguard/Repo/master/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/theasguard/Repo/master/zips/</datadir>
+            <hashes>false</hashes>
+            <dir>
+                <info compressed="false">https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/addons.xml</info>
+                <checksum>https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/addons.xml.md5</checksum>
+                <datadir zip="true">https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/</datadir>
+            </dir>
+            <dir>
+                <info compressed="false">https://raw.githubusercontent.com/jsergio123/zips/master/addons.xml</info>
+                <checksum>https://raw.githubusercontent.com/jsergio123/zips/master/addons.xml.md5</checksum>
+                <datadir zip="true">https://raw.githubusercontent.com/jsergio123/zips/master/</datadir>
+            </dir>
+        </extension>
+        <extension point="xbmc.addon.metadata">
+            <summary>The Official Repo for MrBlamo</summary>
+            <description>The Official Repo for MrBlamo</description>
+            <platform>all</platform>
+            <genre>movies,usa</genre>
+        </extension>
+    </addon>
+
+<addon id="script.asguard.themepak" version="1.0.5" name="Asguards Themepak" provider-name="Thor">
+    <requires>
+        <import addon="kodi.resource" version="1.0.0"/>
+    </requires>
+    <extension point="kodi.resource.images" compile="false" type="themepak" />
+    <extension point="xbmc.addon.metadata">
+        <summary>These are Themes for the Asguard Addon</summary>
+        <description>Themes are maintained separately to make distribution of the the addon itself easier and faster credit to k3l3vra for some good themes.</description>
+        <disclaimer lang="en">The author is not responsible for the use of this addon. The author is not responsible for the content found using this addon. The author does not host or own any content found within this addon.
+The author is in no way affiliated with Kodi, Team Kodi, or the XBMC Foundation.
+This is a Non-profit resource, organized solely for educational purposes which is protected under the Fair-Use doctrine of the Copyright Act, Specifically section 107, which does promote freedom of expression, by permitting the unlicensed use of copyright-protected works.
+</disclaimer>
+		<platform>all</platform>
+		<license>Beerware rev. 42</license>
+        <platform>all</platform>
+    </extension>
+</addon>
+
+<addon id="script.module.asguard" name="Asguards Libraries" version="0.0.2" provider-name="Thor">
+	<requires>
+		<import addon="xbmc.python" version="2.19.0" />
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Credit to TKnorris</summary>
+        <disclaimer lang="en">The author is not responsible for the use of this addon. The author is not responsible for the content found using this addon. The author does not host or own any content found within this addon.
+The author is in no way affiliated with Kodi, Team Kodi, or the XBMC Foundation.
+This is a Non-profit resource, organized solely for educational purposes which is protected under the Fair-Use doctrine of the Copyright Act, Specifically section 107, which does promote freedom of expression, by permitting the unlicensed use of copyright-protected works.
+</disclaimer>
+		<platform>all</platform>
+        <reuselanguageinvoker>false</reuselanguageinvoker>
+		<license>Beerware rev. 42</license>
+	</extension>
+</addon>
+
+<addon id="script.module.orion" version="5.0.1" name="Orion" provider-name="Orion">
+	<requires>
+		<import addon="xbmc.addon" version="17.0.000" />
+		<import addon="repository.orion" version="1.0.0" optional="true" />
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="lib/addon.py">
+		<provides>executable</provides>
+	</extension>
+	<extension point="xbmc.python.module" library="lib" /> <!-- Must be placed after xbmc.python.pluginsource, otherwise the addon does not show in the repository. -->
+	<extension point="xbmc.service" library="lib/service.py" start="startup" />
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en">Torrent, Usenet, and Hoster Providers</summary>
+		<description lang="en">Orion is a system for caching search and scraping results for later reuse. Metadata and links on Orion are maintained by the community. Searches are cached so that subsequent users can quickly access the results without having to go through a lengthy scraping process themselves. The Orion Kodi addon does not provide any search or playback features, but it can easily be integrated into any other addon, website, or standalone program with minimal effort.</description>
+		<disclaimer lang="en">Orion does not create, host, or distribute any files or videos. Orion is a caching service providing low-level API access to a community-maintained storage of textual data. All metadata and links available through Orion are scraped, processed, and submitted by community users. Due to the volume, velocity, and complexity of the data, Orion cannot inspect or validate the content submitted by users. Data on Orion may therefore be inaccurate, out-dated, or in other ways unusable. Orion does not guarantee the validity or integrity of the data available through its API and does not take liability for any of the data submitted by its users. Users take the risk and are responsible for the manner in which they utilize the Orion API.</disclaimer>
+		<platform>all</platform>
+		<license>GPL 3.0</license>
+		<website>https://orionoid.com</website>
+		<forum>https://support.orionoid.com</forum>
+		<assets>
+			<icon>icon.png</icon>
+			<fanart>fanart.jpg</fanart>
+		</assets>
+	</extension>
+</addon>
+</addons>
