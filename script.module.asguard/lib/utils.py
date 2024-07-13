@@ -332,31 +332,31 @@ def format_time(seconds):
         return "%02d:%02d" % (minutes, seconds)
     
 
-def auth_alldebrid(Alldebrid_API, translations):
-    i18n = translations.i18n
-    start = time.time()
-    alldebrid_timeout = int(kodi.get_setting('alldebrid_timeout'))
-    alldebrid_api = Alldebrid_API()
-    result = alldebrid_api.authenticate()
-    code, expires, interval = result['device_code'], result['expires_in'], result['interval']
-    time_left = expires - int(time.time() - start)
-    line1 = i18n('verification_url') % (result['verification_url'])
-    line2 = i18n('prompt_code') % (result['user_code'])
-    with kodi.CountdownDialog(i18n('alldebrid_auth'), line1=line1, line2=line2, countdown=time_left, interval=interval) as cd:
-        result = cd.start(__auth_alldebrid, [alldebrid_api, code, i18n])
+# def auth_alldebrid(Alldebrid_API, translations):
+    # i18n = translations.i18n
+    # start = time.time()
+    # alldebrid_timeout = int(kodi.get_setting('alldebrid_timeout'))
+    # alldebrid_api = Alldebrid_API()
+    # result = alldebrid_api.authenticate()
+    # code, expires, interval = result['device_code'], result['expires_in'], result['interval']
+    # time_left = expires - int(time.time() - start)
+    # line1 = i18n('verification_url') % (result['verification_url'])
+    # line2 = i18n('prompt_code') % (result['user_code'])
+    # with kodi.CountdownDialog(i18n('alldebrid_auth'), line1=line1, line2=line2, countdown=time_left, interval=interval) as cd:
+        # result = cd.start(__auth_alldebrid, [alldebrid_api, code, i18n])
 
-    try:
-        kodi.set_setting('alldebrid_api_key', result['access_token'])
-        alldebrid_api = Alldebrid_API(result['access_token'], timeout=alldebrid_timeout)
-        profile = alldebrid_api.get_user_info(cached=False)
-        kodi.set_setting('alldebrid_user', '%s (%s)' % (profile['username'], profile['name']))
-        kodi.notify(msg=i18n('alldebrid_auth_complete'), duration=3000)
-    except Exception as e:
-        logger.log('AllDebrid Authorization Failed: %s' % (e), log_utils.LOGDEBUG)
+    # try:
+        # kodi.set_setting('alldebrid_api_key', result['access_token'])
+        # alldebrid_api = Alldebrid_API(result['access_token'], timeout=alldebrid_timeout)
+        # profile = alldebrid_api.get_user_info(cached=False)
+        # kodi.set_setting('alldebrid_user', '%s (%s)' % (profile['username'], profile['name']))
+        # kodi.notify(msg=i18n('alldebrid_auth_complete'), duration=3000)
+    # except Exception as e:
+        # logger.log('AllDebrid Authorization Failed: %s' % (e), log_utils.LOGDEBUG)
 
-def __auth_alldebrid(alldebrid_api, code, i18n):
-    try:
-        return alldebrid_api.__poll_auth(code)
-    except Exception as e:
-        logger.log('AllDebrid Polling Failed: %s' % (e), log_utils.LOGDEBUG)
-        return None
+# def __auth_alldebrid(alldebrid_api, code, i18n):
+    # try:
+        # return alldebrid_api.__poll_auth(code)
+    # except Exception as e:
+        # logger.log('AllDebrid Polling Failed: %s' % (e), log_utils.LOGDEBUG)
+        # return None
