@@ -1,19 +1,17 @@
 # Repo
 
 # Still in Development
-- contribution scrapers, if you need help remember to either post it as an issue or whatever here, or post it in telegram as a file and I will help, Im also open to voice chats.. 
+
 # todo 
 - the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. 
 - make sure the urllib.request functions can either handle abstract auth errors or replace with requests. (I believe this is fixed)
+- test cfscrape if error occurs remove from moduel and use in plugin.
 - remember to add the torrentdownload and 1337x scrapers after label and title sorting has been fixed for them.
 - look into the sort_keys in utils 2 to see if we can make it more robust and handle more list structures.
 - (Important) sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with the resolveurl for full season packs)
-- finish updating the settings.xml and sorting it respectively.
 - finish the 1337x scraper (just filtering titles and episodes now)
-- update the Orion scraper.
 - connect the tmdb sections listing episodes and movies to the get sources or create an alternate get sources for it then we can pass it to the resolveurl as we already do. 
-- update the get quality checks to be more relevent and use the 1080p etc checks rather than assuming low or high quality.
-- remove the auth settings for all debrid for now until something can be sorted for integrated all debrid in the add-on. 
+- remove the auth settings for all debrid for now until something can be sorted for integrated all debrid in the add-on. (if an error it may be here)
 - check the trakt context for making new menu items
 - make sure all the trakt functions for adding to lists making new lists copying etc function properly.
 - create more scrapers for the addon.
