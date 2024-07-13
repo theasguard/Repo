@@ -5,6 +5,7 @@
 	logallrefupdates = true
 	symlinks = false
 	ignorecase = true
+ 	show_downloads: true
 [submodule]
 	active = .
 [remote "origin"]
