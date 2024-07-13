@@ -34,7 +34,7 @@ Asguard is a Kodi addon that provides access to a wide range of streaming conten
 
 ### From Zip File
 
-1. Download the zip file from the [releases page]([https://github.com/Repo/theasguard/releases](https://github.com/theasguard/Repo)).
+1. Download the zip file from the [[releases page](https://github.com/theasguard/Repo/releases/expanded_assets/release)]
 2. Open Kodi and go to _Settings_ > _Add-ons_ > _Install from zip file_.
 3. Navigate to the downloaded zip file and select it.
 4. Wait for the installation to complete.
