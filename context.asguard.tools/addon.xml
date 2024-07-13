@@ -2,7 +2,7 @@
 <!--suppress ALL -->
 <addon id="context.asguard.tools" version="0.0.1" name="Asguard Context Tools" provider-name="Thor">
     <requires>
-        <import addon="xbmc.python" version="2.2.0"/>
+<!--         <import addon="xbmc.python" version="2.2.0"/> -->
         <import addon="plugin.video.asguard"/>
         <import addon="script.module.asguard"/>
     </requires>

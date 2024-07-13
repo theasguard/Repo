@@ -3,7 +3,7 @@
 <!--suppress ALL -->
 <addon id="context.asguard.tools" version="0.0.1" name="Asguard Context Tools" provider-name="Thor">
     <requires>
-        <import addon="xbmc.python" version="2.2.0"/>
+<!--         <import addon="xbmc.python" version="2.2.0"/> -->
         <import addon="plugin.video.asguard"/>
         <import addon="script.module.asguard"/>
     </requires>
@@ -91,7 +91,7 @@ This is a Non-profit resource, organized solely for educational purposes which i
         </extension>
     </addon>
 
-<addon id="script.asguard.themepak" version="1.0.5" name="Asguards Themepak" provider-name="Thor">
+<addon id="script.asguard.themepak" version="1.0.5" name="Asguards Themepak" provider-name="MrBlamo">
     <requires>
         <import addon="kodi.resource" version="1.0.0"/>
     </requires>
@@ -111,7 +111,7 @@ This is a Non-profit resource, organized solely for educational purposes which i
 
 <addon id="script.module.asguard" name="Asguards Libraries" version="0.0.2" provider-name="Thor">
 	<requires>
-		<import addon="xbmc.python" version="2.19.0" />
+<!-- 		<import addon="xbmc.python" version="2.19.0" /> -->
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">
