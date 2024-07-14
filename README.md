@@ -1,6 +1,6 @@
 # Repo
 
-[Repo](./zips)
+[Repo](./zips/repository.asgardrepo)
 # Still in Development
 
 # todo 
