@@ -266,6 +266,7 @@ class Scraper(scraper.Scraper):
 						stream = {
 							'orion' : orion,
 							'class' : self,
+							'label' : data['file']['name'],
 							'multi-part' : False,
 							'host' : self._source(data, True),
 							'quality' : self._quality(data),

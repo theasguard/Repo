@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-    <addon id="repository.asgardrepo" name="[COLOR red]Asgard Repo[/COLOR]" version="0.0.1" provider-name="MrBlamo">
+    <addon id="repository.asgardrepo" name="[COLOR red]Asgard Repo[/COLOR]" version="0.0.2" provider-name="MrBlamo">
         <requires>
             <import addon="xbmc.addon" version="12.0.0"/>
         </requires>

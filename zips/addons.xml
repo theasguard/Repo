@@ -63,7 +63,7 @@ This is a Non-profit resource, organized solely for educational purposes which i
 	</extension>
 </addon>
 
-    <addon id="repository.asgardrepo" name="[COLOR red]Asgard Repo[/COLOR]" version="0.0.1" provider-name="MrBlamo">
+    <addon id="repository.asgardrepo" name="[COLOR red]Asgard Repo[/COLOR]" version="0.0.2" provider-name="MrBlamo">
         <requires>
             <import addon="xbmc.addon" version="12.0.0"/>
         </requires>
