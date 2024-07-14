@@ -1,6 +1,6 @@
 # Repo
 
-[Repo](./Repo)
+[Repo](./)
 # Still in Development
 
 # todo 
