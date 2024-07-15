@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <addon id="{addonid}" name="{name}" version="{version}" provider-name="{author}">
-        <requires>
-            <import addon="xbmc.addon" version="12.0.0"/>
-        </requires>
         <extension point="xbmc.addon.repository" name="{name}">
+			<dir> minversion="20.0.0" maxversion="20.89.0">
             <info compressed="false">{url}{output_path}addons.xml</info>
             <checksum>{url}{output_path}addons.xml.md5</checksum>
             <datadir zip="true">{url}{output_path}</datadir>
-            <hashes>false</hashes>
-            <dir>
+            </dir> 
+			<dir> minversion="20.90.0" maxversion="22.9.9">
                 <info compressed="false">https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/addons.xml</info>
                 <checksum>https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/addons.xml.md5</checksum>
                 <datadir zip="true">https://raw.githubusercontent.com/marcelveldt/repository.marcelveldt/master/</datadir>
             </dir>
-            <dir>
+            <dir> minversion="20.90.0" maxversion="22.9.9">
                 <info compressed="false">https://raw.githubusercontent.com/jsergio123/zips/master/addons.xml</info>
                 <checksum>https://raw.githubusercontent.com/jsergio123/zips/master/addons.xml.md5</checksum>
                 <datadir zip="true">https://raw.githubusercontent.com/jsergio123/zips/master/</datadir>
@@ -23,6 +21,9 @@
             <summary>{summary}</summary>
             <description>{description}</description>
             <platform>all</platform>
+			<assets>
+				<icon>icon.png</icon>
+			</assets>
             <genre>movies,usa</genre>
         </extension>
     </addon>

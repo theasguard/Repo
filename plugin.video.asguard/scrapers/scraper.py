@@ -391,7 +391,8 @@ class Scraper(object):
             request.add_header('User-Agent', scraper_utils.get_ua())
             request.add_header('Accept', '*/*')
             request.add_header('Accept-Encoding', 'gzip')
-            request.add_unredirected_header('Host', request.get_host())
+            parsed_url = urllib.parse.urlparse(request.full_url)
+            request.add_unredirected_header('Host', parsed_url.netloc)
             if referer: request.add_unredirected_header('Referer', referer)
             if 'Referer' in headers: del headers['Referer']
             if 'Host' in headers: del headers['Host']
@@ -409,28 +410,30 @@ class Scraper(object):
             if method is not None: request.get_method = lambda: method.upper()
             response = urllib.request.urlopen(request, timeout=timeout)
             self.cj.extract_cookies(response, request)
+
             if kodi.get_setting('cookie_debug') == 'true':
                 logger.log('Response Cookies: %s - %s' % (url, scraper_utils.cookies_as_str(self.cj)), log_utils.LOGDEBUG)
             self.cj._cookies = scraper_utils.fix_bad_cookies(self.cj._cookies)
             self.cj.save(ignore_discard=True)
-            if not allow_redirect and (response.getcode() in [301, 302, 303, 307] or response.info().getheader('Refresh')):
-                if response.info().getheader('Refresh') is not None:
-                    refresh = response.info().getheader('Refresh')
+
+            if not allow_redirect and (response.getcode() in [301, 302, 303, 307] or response.headers.get('Refresh')):
+                if response.headers.get('Refresh') is not None:
+                    refresh = response.headers.get('Refresh')
                     return refresh.split(';')[-1].split('url=')[-1]
                 else:
-                    redir_url = response.info().getheader('Location')
+                    redir_url = response.headers.get('Location')
                     if redir_url.startswith('='):
                         redir_url = redir_url[1:]
                     return redir_url
             
-            content_length = response.info().getheader('Content-Length', 0)
+            content_length = response.headers.get('Content-Length', 0)
             if int(content_length) > MAX_RESPONSE:
                 logger.log('Response exceeded allowed size. %s => %s / %s' % (url, content_length, MAX_RESPONSE), log_utils.LOGWARNING)
             
             if method == 'HEAD':
                 return ''
             else:
-                if response.info().get('Content-Encoding') == 'gzip':
+                if response.headers.get('Content-Encoding') == 'gzip':
                     html = ungz(response.read(MAX_RESPONSE))
                 else:
                     html = response.read(MAX_RESPONSE)
