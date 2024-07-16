@@ -15,7 +15,8 @@
 - check the trakt context for making new menu items
 - make sure all the trakt functions for adding to lists making new lists copying etc function properly.
 - create more scrapers for the addon.
-- add some extra filtering for titles like "You", and "See" some single title names return wrong sources in torrentdownload and the other, look into that further 
+- add some extra filtering for titles like "You", and "See" some single title names return wrong sources in torrentdownload and the other, look into that further
+- incorporate an extended video function in the default.py and init of the scrapers directory for using anime ID's
 - if I think of a anything else I'll update this. 
 
 # Asguard Kodi Addon
