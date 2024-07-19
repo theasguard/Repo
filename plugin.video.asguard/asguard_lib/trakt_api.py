@@ -251,18 +251,22 @@ class Trakt_API():
         :return: list of aliases
         """
         url = f"/shows/{show_id}/aliases"
-        response = self.__call_trakt(url, cache_limit=24 * 7)
-        country = getattr(self, 'country', 'us')
-        aliases = sorted(
-            {
-                i["title"]
-                for i in response
-                if i["country"] in [country, 'us']
-            }
-        )
-        # Cache the aliases
-        self.__db_connection.cache_url(url, json.dumps(aliases), None, None)
-        return aliases
+        try:
+            response = self.__call_trakt(url, cache_limit=24 * 7)
+            country = getattr(self, 'country', 'us')
+            aliases = sorted(
+                {
+                    i["title"]
+                    for i in response
+                    if i["country"] in [country, 'us']
+                }
+            )
+            # Cache the aliases
+            self.__db_connection.cache_url(url, json.dumps(aliases))
+            return aliases
+        except Exception as e:
+            logger.log(f"Error fetching aliases for show_id {show_id}: {e}", log_utils.LOGERROR)
+            return []
 
     def get_show_aliases(self, show_id):
         """
@@ -277,7 +281,11 @@ class Trakt_API():
             if isinstance(cached_result, tuple):
                 cached_result = cached_result[0]
             if isinstance(cached_result, (str, bytes, bytearray)):
-                return json.loads(cached_result)
+                try:
+                    return json.loads(cached_result)
+                except json.JSONDecodeError as e:
+                    logger.log(f"Error decoding cached aliases for show_id {show_id}: {e}", log_utils.LOGERROR)
+                    return []
             else:
                 logger.log(f"Unexpected cached result type: {type(cached_result)}", log_utils.LOGERROR)
                 return []
