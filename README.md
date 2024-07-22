@@ -10,10 +10,9 @@
 - look into the sort_keys in utils 2 to see if we can make it more robust and handle more list structures.
 - (Important) sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with the resolveurl for full season packs)
 - fix 1337x to return season packs along with single episodes. 
-- connect the tmdb sections listing episodes and movies to the get sources or create an alternate get sources for it then we can pass it to the resolveurl as we already do. 
-- remove the auth settings for all debrid for now until something can be sorted for integrated all debrid in the add-on. (if an error it may be here)
-- check the trakt context for making new menu items
-- make sure all the trakt functions for adding to lists making new lists copying etc function properly.
+- connect the tmdb sections listing episodes and movies to the get sources or create an alternate get sources for it then we can pass it to the resolveurl as we already do.
+- check the trakt context for making new menu items (complete) 
+- make sure all the trakt functions for adding to lists making new lists copying etc function properly.(complete) 
 - create more scrapers for the addon.
 - add some extra filtering for titles like "You", and "See" some single title names return wrong sources in torrentdownload and the other, look into that further
 - incorporate an extended video function in the default.py and init of the scrapers directory for using anime ID's
