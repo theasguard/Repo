@@ -4,7 +4,6 @@ import urllib.parse
 from bs4 import BeautifulSoup, SoupStrainer
 import resolveurl
 import log_utils
-from asguard_lib.scraper_utils import check_title, info_from_name, get_release_quality
 from asguard_lib import scraper_utils
 from asguard_lib.utils2 import i18n
 from asguard_lib.constants import VIDEO_TYPES, QUALITIES
