@@ -1118,7 +1118,10 @@
 				</setting>
 				<setting id="tvdb_key" type="string" label="30713" help="">
 					<level>0</level>
-					<default></default>
+					<default>Y0Y29XATG6TC2PBW</default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
 					<control type="edit" format="string">
 						<heading>30713</heading>
 					</control>
