@@ -3,7 +3,7 @@
 # Still in Development
 
 # todo 
-- the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. 
+- the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. (Complete) 
 
 - test cfscrape if error occurs remove from module and use in plugin.
 - remember to add the torrentdownload and 1337x scrapers after label and title sorting has been fixed for them.
