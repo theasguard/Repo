@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2014 tknorris
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@ import time
 import kodi
 import random
 import json
+from asguard_lib import control
 import log_utils
-from utils2 import reset_base_url, i18n
-
+from . utils2 import reset_base_url, i18n
+from asguard_lib import control
 INTERVALS = 5
 logger = log_utils.Logger.get_logger()
 
@@ -53,7 +54,7 @@ def perform_auto_conf(responses):
             kodi.set_setting('sort6_field', '4')
     
         if responses[10]:
-            tiers = ['Local', 'Premiumize.V2', 'Premiumize.me', 'Furk.net', 'EasyNews', 'DD.tv', 'Orion', 'Orion',
+            tiers = ['Local', 'Premiumize.V2', 'Premiumize.me', 'Furk.net', 'EasyNews', 'DD.tv', 'Orion', 'Animetosho',
                      ['yify.tv', 'MoviesPlanet', 'goojara', '123Movies', '9Movies', 'DayT.se', 'mvgee', 'niter.tv', 'YesMovies', 'ororo.tv', 'MovieOcean'],
                      ['StreamLord', 'MovieFlix', 'CyberReel', 'm4ufree', 'tunemovie', 'fmovie.co', 'xmovies8', 'xmovies8.v2', 'KiwiHD', 'HDMovieFree', 'Mehliz'],
                      ['OLMovies', 'MovieGo', 'MovieXK', 'PelisPedia', 'PutMV', 'PirateJunkies', 'SeriesWatch', 'VidNow4K', 'VeoCube', 'Quikr', 'MovieBlast', 'Pubfilm.to'],
@@ -70,7 +71,7 @@ def perform_auto_conf(responses):
             sso = []
             random_sso = kodi.get_setting('random_sso') == 'true'
             for tier in tiers:
-                if isinstance(tier, basestring):
+                if isinstance(tier, str):
                     sso.append(tier)
                 else:
                     if random_sso:
