@@ -3689,7 +3689,7 @@
 				</setting>
 				<setting id="Orion-enable" type="boolean" label="30405" help="">
 					<level>0</level>
-					<default>true</default>
+					<default>false</default>
 					<dependencies>
 						<dependency type="visible">
 							<condition on="property" name="InfoBool">true</condition>
