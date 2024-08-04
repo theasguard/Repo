@@ -15,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import kodi
 import threading
 import json
 import os
@@ -27,14 +28,14 @@ def __enum(**enums):
 DB_TYPES = __enum(MYSQL='mysql', SQLITE='sqlite')
 
 class DBCache(object):
-    TMDB_API_KEY = 'b9dac73f34df572d5e551a8a66cfeb87'  # Replace with your TMDB API key
+    TMDB_API_KEY = kodi.get_setting('tmdb_key')
 
     def __init__(self, db_path=None):
         self.db_path = os.path.join(os.path.expanduser('~'), 'tmdb_cache.db') if db_path is None else db_path
         self.db_type = DB_TYPES.SQLITE
         self.db = None
         self.__create_db()
-        self.__execute('CREATE TABLE IF NOT EXISTS api_cache (tmdb_id INTEGER NOT NULL, object_type CHAR(1) NOT NULL, data TEXT, PRIMARY KEY(tmdb_id, object_type))')
+        self.__execute('CREATE TABLE IF NOT EXISTS api_cache (tmdb_id INTEGER NOT NULL, object_type CHAR(1) NOT NULL, data TEXT, overview TEXT, PRIMARY KEY(tmdb_id, object_type))')
         self.__execute('CREATE TABLE IF NOT EXISTS db_info (setting TEXT, value TEXT, PRIMARY KEY(setting))')
         
     def __create_db(self):
@@ -47,9 +48,6 @@ class DBCache(object):
     def close(self):
         if self.db:
             self.db.close()
-            
-    def update_movie(self, tmdb_id, js_data):
-        self.__update_object(tmdb_id, 'M', js_data)
     
     def get_movie(self, tmdb_id):
         return self.__get_object(tmdb_id, 'M')
@@ -61,21 +59,30 @@ class DBCache(object):
         return self.__get_object(tmdb_id, 'P')
         
     def __get_object(self, tmdb_id, object_type):
-        sql = 'SELECT data FROM api_cache WHERE tmdb_id = ? AND object_type = ?'
+        sql = 'SELECT data, overview FROM api_cache WHERE tmdb_id = ? AND object_type = ?'
         rows = self.__execute(sql, (tmdb_id, object_type))
         if rows:
-            return json.loads(rows[0][0])
+            data = json.loads(rows[0][0])
+            overview = rows[0][1]
+            return {'data': data, 'overview': overview}
         else:
             return {}
-        
+            
+    def update_movie(self, tmdb_id, js_data):
+        overview = js_data.get('overview', '')
+        self.__update_object(tmdb_id, 'M', js_data, overview)
+
     def update_tvshow(self, tmdb_id, js_data):
-        self.__update_object(tmdb_id, 'T', js_data)
-    
+        overview = js_data.get('overview', '')
+        self.__update_object(tmdb_id, 'T', js_data, overview)
+
     def update_person(self, tmdb_id, js_data):
-        self.__update_object(tmdb_id, 'P', js_data)
-    
-    def __update_object(self, tmdb_id, object_type, js_data):
-        self.__execute('REPLACE INTO api_cache (tmdb_id, object_type, data) VALUES (?, ?, ?)', (tmdb_id, object_type, json.dumps(js_data)))
+        overview = js_data.get('overview', '')
+        self.__update_object(tmdb_id, 'P', js_data, overview)
+
+    def __update_object(self, tmdb_id, object_type, js_data, overview):
+        self.__execute('REPLACE INTO api_cache (tmdb_id, object_type, data, overview) VALUES (?, ?, ?, ?)', 
+                    (tmdb_id, object_type, json.dumps(js_data), overview))
         
     def get_setting(self, setting):
         sql = 'SELECT value FROM db_info WHERE setting = ?'

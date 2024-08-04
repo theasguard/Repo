@@ -22,6 +22,7 @@ import zipfile
 import xbmcvfs
 import kodi
 import utils
+from asguard_lib import control
 # Absolute imports
 from asguard_lib.image_cache.local_lib import strings
 from asguard_lib.image_cache.local_lib import db_utils
