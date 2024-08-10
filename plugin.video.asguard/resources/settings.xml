@@ -1380,10 +1380,10 @@
 				</setting>
 				<setting id="source_timeout" type="integer" label="30578" help="">
 					<level>0</level>
-					<default>50</default>
+					<default>20</default>
 					<constraints>
 						<minimum>0</minimum>
-						<maximum>300</maximum>
+						<maximum>100</maximum>
 					</constraints>
 					<control type="slider" format="integer">
 						<popup>false</popup>
