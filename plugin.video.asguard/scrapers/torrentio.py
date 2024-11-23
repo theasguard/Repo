@@ -22,7 +22,7 @@ import xbmcgui
 import kodi
 import log_utils
 from asguard_lib import scraper_utils, control
-from asguard_lib.constants import VIDEO_TYPES, QUALITIES
+from asguard_lib.constants import FORCE_NO_MATCH, VIDEO_TYPES, QUALITIES
 from . import scraper
 
 
@@ -85,7 +85,7 @@ class Scraper(scraper.Scraper):
 
             url = urllib.parse.urljoin(self.base_url, search_url)
             response = self._http_get(url, cache_limit=1, require_debrid=True)
-            if not response:
+            if not response or response == FORCE_NO_MATCH:
                 return sources
 
             try:
@@ -100,9 +100,12 @@ class Scraper(scraper.Scraper):
                     hash = file['infoHash']
                     logger.log('Found file: %s' % hash, log_utils.LOGDEBUG)
                     name = file['title']
+                    name_part = name.split('\n')[0]
                     url = 'magnet:?xt=urn:btih:%s&dn=%s' % (hash, name)
                     logger.log('Found file: %s' % url, log_utils.LOGDEBUG)
-                    seeders = int(file.get('seeds', 0))
+                    seeders = re.search(r'👤\s*(\d+)', name)
+                    if seeders:
+                        seeders = int(seeders.group(1))
                     if self.min_seeders > seeders:
                         continue
 
@@ -119,7 +122,7 @@ class Scraper(scraper.Scraper):
                             size = size_value
 
                     info = ' | '.join(info)
-                    label = f"{name} | {quality} | {size}MB | {seeders} seeders"
+                    label = f"{name_part} | {quality} | {size}MB | {seeders} seeders"
                     sources.append({
                         'host': 'magnet',
                         'label': label,

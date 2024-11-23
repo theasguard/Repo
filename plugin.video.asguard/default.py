@@ -17,6 +17,7 @@
 """
 
 import random, sys, os, re, datetime, time, json, gzip
+
 import js2py
 import shutil
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
@@ -30,12 +31,12 @@ from six.moves import urllib_request, urllib_parse
 from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
 from asguard_lib.srt_scraper import SRT_Scraper
+
 from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
-from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper
-from asguard_lib import tmdb_api
+from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper, worker_pool, tmdb_api
+
 from asguard_lib import control
-from asguard_lib import worker_pool
-from asguard_lib import image_scraper
+
 from asguard_lib.constants import *  # @UnusedWildImport
 from asguard_lib.utils2 import i18n
 from asguard_lib.image_proxy import ImageProxy
@@ -48,12 +49,22 @@ try:
     import resolveurl
 except ImportError:
     kodi.notify(msg=i18n('smu_failed'), duration=5000)
+try:
+    HANDLE = int(sys.argv[1])
+except IndexError:
+    HANDLE = -1
 
 logger = log_utils.Logger.get_logger()
 logging.basicConfig(level=logging.DEBUG)
 
 addon = xbmcaddon.Addon('plugin.video.asguard')
+datafolder = xbmcvfs.translatePath(os.path.join('special://profile/addon_data/', addon.getAddonInfo('id')))
+addonfolder = xbmcvfs.translatePath(os.path.join('special://home/addons/', addon.getAddonInfo('id')))
+addonicon = xbmcvfs.translatePath(os.path.join(addonfolder, 'icon.png'))
+addonfanart = xbmcvfs.translatePath(os.path.join(addonfolder, 'fanart.jpg'))
+execute = xbmc.executebuiltin
 TOKEN = kodi.get_setting('trakt_oauth_token')
+logger.log('Trakt OAuth Token: %s' % TOKEN, log_utils.LOGDEBUG)
 use_https = kodi.get_setting('use_https') == 'true'
 trakt_timeout = int(kodi.get_setting('trakt_timeout'))
 list_size = int(kodi.get_setting('list_size'))
@@ -78,7 +89,7 @@ def main_menu():
     if TOKEN:
         profile = trakt_api.get_user_profile()
         if isinstance(profile, dict) and 'username' in profile and 'name' in profile:
-            kodi.set_setting('trakt_user', '%s (%s)' % (profile['username'], profile['name']))
+            control.setSetting('trakt_user', '%s (%s)' % (profile['username'], profile['name']))
             
     kodi.set_content(CONTENT_TYPES.ADDONS)
     kodi.end_of_directory()
@@ -259,7 +270,7 @@ def browse_view(content_type):
 def set_default_view(content_type):
     current_view = kodi.get_current_view()
     if current_view:
-        kodi.set_setting('%s_view' % (content_type), current_view)
+        control.setSetting('%s_view' % (content_type), current_view)
         view_name = xbmc.getInfoLabel('Container.Viewmode')
         kodi.notify(msg=i18n('view_set') % (content_type.capitalize(), view_name))
 
@@ -279,7 +290,7 @@ def browse_urls():
 @url_dispatcher.register(MODES.DELETE_URL, ['url'], ['data'])
 def delete_url(url, data=''):
     db_connection.delete_cached_url(url, data)
-    kodi.refresh_container()
+    control.refresh()
 
 @url_dispatcher.register(MODES.RES_SETTINGS)
 def resolver_settings():
@@ -287,7 +298,7 @@ def resolver_settings():
 
 @url_dispatcher.register(MODES.ADDON_SETTINGS)
 def addon_settings():
-    kodi.show_settings()
+    control.settingsMenu()
 
 @url_dispatcher.register(MODES.AUTH_TRAKT)
 def auth_trakt():
@@ -949,7 +960,7 @@ def get_progress(cached=True):
         use_exclusion = kodi.get_setting('use_cached_exclusion') == 'true'
         progress_size = len(progress_list)
         try:
-            wp = worker_pool.WorkerPool(max_workers=50)
+            wp = worker_pool.WorkerPool(max_workers=30)
             for i, show in enumerate(progress_list):
                 trakt_id = show['show']['ids']['trakt']
                 # skip hidden shows
@@ -1013,6 +1024,7 @@ def get_progress(cached=True):
             db_connection.cache_function(get_progress.__name__, result=episodes)
         
     return workers, utils2.sort_progress(episodes, sort_order=SORT_MAP[int(kodi.get_setting('sort_progress'))])
+
 
 @url_dispatcher.register(MODES.SHOW_PROGRESS)
 def show_progress():
@@ -1186,8 +1198,16 @@ def clear_saved(section):
 
 @url_dispatcher.register(MODES.SEARCH_RESULTS, ['section', 'query'], ['page'])
 def search_results(section, query, page=1):
+    section_params = utils2.get_section_params(section)
+    logger.log('Searching for %s in section %s' % (query, section), log_utils.LOGDEBUG)
     results = trakt_api.search(section, query, page)
-    make_dir_from_list(section, results, query={'mode': MODES.SEARCH_RESULTS, 'section': section, 'query': query}, page=page)
+    
+    if results:
+        logger.log('Found %d results for query: %s' % (len(results), query), log_utils.LOGDEBUG)
+        make_dir_from_list(section, results, query={'mode': MODES.SEARCH_RESULTS, 'section': section, 'query': query}, page=page)
+    else:
+        logger.log('No results found for query: %s' % query, log_utils.LOGNOTICE)
+        kodi.notify(msg='No results found', duration=5000)
 
 @url_dispatcher.register(MODES.SEASONS, ['trakt_id', 'title', 'year'], ['tvdb_id'])
 def browse_seasons(trakt_id, title, year, tvdb_id=None):
@@ -1209,11 +1229,17 @@ def browse_seasons(trakt_id, title, year, tvdb_id=None):
 
 @url_dispatcher.register(MODES.EPISODES, ['trakt_id', 'season'])
 def browse_episodes(trakt_id, season):
+    logger.log('Entering browse_episodes: trakt_id=%s, season=%s' % (trakt_id, season), log_utils.LOGDEBUG)
     show = trakt_api.get_show_details(trakt_id)
+    logger.log('Show details: %s' % show, log_utils.LOGDEBUG)
     episodes = trakt_api.get_episodes(trakt_id, season)
+    logger.log('Episodes: %s' % episodes, log_utils.LOGDEBUG)
+    
     if TOKEN:
         progress = trakt_api.get_show_progress(trakt_id, hidden=True, specials=True)
+        logger.log('Show progress: %s' % progress, log_utils.LOGDEBUG)
         episodes = utils2.make_episodes_watched(episodes, progress)
+        logger.log('Episodes after progress update: %s' % episodes, log_utils.LOGDEBUG)
 
     totalItems = len(episodes)
     now = time.time()
@@ -1231,7 +1257,20 @@ def browse_episodes(trakt_id, season):
 @url_dispatcher.register(MODES.DOWNLOAD_SOURCE, ['mode', 'video_type', 'title', 'year', 'trakt_id'], ['season', 'episode', 'ep_title', 'ep_airdate'])
 @url_dispatcher.register(MODES.AUTOPLAY, ['mode', 'video_type', 'title', 'year', 'trakt_id'], ['season', 'episode', 'ep_title', 'ep_airdate'])
 def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', ep_title='', ep_airdate=''):
-    
+    """
+    Fetches sources for the given video details.
+
+    Args:
+        mode (str): The mode of operation.
+        video_type (str): The type of video (e.g., movie, episode).
+        title (str): The title of the video.
+        year (str): The release year of the video.
+        trakt_id (str): The Trakt ID of the video.
+        season (str, optional): The season number (for TV shows). Defaults to ''.
+        episode (str, optional): The episode number (for TV shows). Defaults to ''.
+        ep_title (str, optional): The episode title (for TV shows). Defaults to ''.
+        ep_airdate (str, optional): The episode air date (for TV shows). Defaults to ''.
+    """
     timeout = max_timeout = int(kodi.get_setting('source_timeout'))
     if max_timeout == 0: timeout = None
     max_results = int(kodi.get_setting('source_results'))
@@ -1239,6 +1278,7 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
     fails = set()
     counts = {}
     video = ScraperVideo(video_type, title, year, trakt_id, season, episode, ep_title, ep_airdate)
+    # video2 = ScraperVideoExtended(video, video_type, title, year, trakt_id)
     active = False if kodi.get_setting('pd_force_disable') == 'true' else True
     cancelled = False
     with kodi.ProgressDialog(i18n('getting_sources'), utils2.make_progress_msg(video), active=active) as pd:
@@ -1357,12 +1397,54 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
         except UnboundLocalError: pass
 
 def apply_urlresolver(hosters):
+    """
+    Filters and processes hosters using the resolveurl library and debrid services.
+
+    This function applies filtering to the provided list of hosters based on the user's settings for unusable links and debrid services.
+    It uses the resolveurl library to validate and resolve hosters, and it caches the results for known and unknown hosts.
+
+    Args:
+        hosters (list): A list of hoster dictionaries to be filtered and processed. Each dictionary should contain:
+            - 'direct' (bool): Indicates if the link is a direct link.
+            - 'host' (str): The hostname of the link.
+            - 'class' (object): The scraper class instance that provided the hoster.
+
+    Returns:
+        list: A filtered list of hosters that are valid and optionally supported by debrid services.
+
+    Detailed Description:
+    - The function first checks the user's settings for filtering unusable links and showing debrid links.
+    - If neither setting is enabled, the function returns the original list of hosters.
+    - The function initializes a list of debrid resolvers using the resolveurl library. These resolvers are used to check if a host is supported by debrid services.
+    - The function iterates over the list of hosters and applies the following logic:
+        - If the hoster is not a direct link and has a host:
+            - If filtering unusable links is enabled:
+                - The function checks if the host is in the cache of unknown or known hosts.
+                - If the host is unknown, it is added to the unknown hosts cache and skipped.
+                - If the host is known, it is added to the filtered hosters list.
+                - If the host is not in the cache, the function uses resolveurl to validate the host and updates the cache accordingly.
+            - If filtering unusable links is not enabled, the hoster is added to the filtered hosters list.
+            - The function checks if the host is supported by any debrid resolvers and updates the hoster with the supported debrid services.
+        - If the hoster is a direct link or does not have a host, it is added to the filtered hosters list.
+    - The function logs the discarded hosts and returns the filtered list of hosters.
+
+    Example Usage:
+        filtered_hosters = apply_urlresolver(hosters)
+
+    Notes:
+    - The `debrid_resolvers` list is initialized with relevant resolvers from the resolveurl library that support universal links.
+    - The `hmf` (HostedMediaFile) object is used to validate the host by creating a dummy media file with a fake media ID.
+
+    References:
+    - `resolveurl.relevant_resolvers`: Retrieves a list of relevant resolvers from the resolveurl library.
+    - `resolveurl.HostedMediaFile`: Creates a HostedMediaFile object to validate and resolve media links.
+    """
     filter_unusable = kodi.get_setting('filter_unusable') == 'true'
     show_debrid = kodi.get_setting('show_debrid') == 'true'
     if not filter_unusable and not show_debrid:
         return hosters
     
-    debrid_resolvers = [resolver() for resolver in resolveurl.relevant_resolvers(order_matters=True) if resolver.isUniversal()]
+    debrid_resolvers = [resolver() for resolver in resolveurl.relevant_resolvers(order_matters=True, include_universal=True) if resolver.isUniversal()]
     filtered_hosters = []
     debrid_hosts = {}
     unk_hosts = {}
@@ -1372,32 +1454,34 @@ def apply_urlresolver(hosters):
             host = hoster['host']
             if filter_unusable:
                 if host in unk_hosts:
-                    # logger.log('Unknown Hit: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
+                    logger.log('Unknown Hit: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
                     unk_hosts[host] += 1
                     continue
                 elif host in known_hosts:
-                    # logger.log('Known Hit: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
+                    logger.log('Known Hit: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
                     known_hosts[host] += 1
                     filtered_hosters.append(hoster)
                 else:
                     hmf = resolveurl.HostedMediaFile(host=host, media_id='12345678901')  # use dummy media_id to force host validation
+                    logger.log('Hoster URL for media: %s' % (host), log_utils.LOGDEBUG)
+
                     if hmf:
-                        # logger.log('Known Miss: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
+                        logger.log('Known Miss: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
                         known_hosts[host] = known_hosts.get(host, 0) + 1
                         filtered_hosters.append(hoster)
                     else:
-                        # logger.log('Unknown Miss: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
+                        logger.log('Unknown Miss: %s from %s' % (host, hoster['class'].get_name()), log_utils.LOGDEBUG)
                         unk_hosts[host] = unk_hosts.get(host, 0) + 1
                         continue
             else:
                 filtered_hosters.append(hoster)
             
             if host in debrid_hosts:
-                # logger.log('Debrid cache found for %s: %s' % (host, debrid_hosts[host]), log_utils.LOGDEBUG)
+                logger.log('Debrid cache found for %s: %s' % (host, debrid_hosts[host]), log_utils.LOGDEBUG)
                 hoster['debrid'] = debrid_hosts[host]
             else:
                 temp_resolvers = [resolver.name[:3].upper() for resolver in debrid_resolvers if resolver.valid_url('', host)]
-                # logger.log('%s supported by: %s' % (host, temp_resolvers), log_utils.LOGDEBUG)
+                logger.log('%s supported by: %s' % (host, temp_resolvers), log_utils.LOGDEBUG)
                 debrid_hosts[host] = temp_resolvers
                 if temp_resolvers:
                     hoster['debrid'] = temp_resolvers
@@ -1439,7 +1523,7 @@ def resolve_source(mode, class_url, direct, video_type, trakt_id, class_name, se
     - The `resolve_link` method of the scraper instance is called to resolve the media source URL.
     - If the mode is 'DIRECT_DOWNLOAD', the function ends the Kodi directory and returns.
     - Otherwise, the `play_source` function is called to play or download the media.
-    - Debrid check checks torrents on the debrid services, and if you have any of them enabled in resolveurl it uses the run def from the script on the hoster_url
+
     Example Usage:
         resolve_source(MODES.RESOLVE_SOURCE, 'http://example.com/video', False, VIDEO_TYPES.MOVIE, '12345', 'ExampleScraper')
     """
@@ -1465,6 +1549,7 @@ def resolve_source(mode, class_url, direct, video_type, trakt_id, class_name, se
     if mode == MODES.DIRECT_DOWNLOAD:
         kodi.end_of_directory()
     return play_source(mode, hoster_url, direct, video_type, trakt_id, season, episode)
+
 
 @url_dispatcher.register(MODES.PLAY_TRAILER, ['stream_url'])
 def play_trailer(stream_url):
@@ -1632,11 +1717,15 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
                 logger.log('Setting srt path: %s' % (srt_path), log_utils.LOGDEBUG)
                 win.setProperty('asguard.playing.srt', srt_path)
     
+
         listitem = xbmcgui.ListItem(path=stream_url)
         
         listitem.setArt({'icon': art['thumb'], 'thumb': art['thumb'], 'fanart': art['fanart']})
         listitem.setPath(stream_url)
         listitem.setInfo('video', info)
+        listitem.setUniqueIDs(
+            {i.split("_")[0]: info[i] for i in info if i.endswith("id")},
+        )
         wd.update_progress(100)
 
     if mode == MODES.RESOLVE_SOURCE or from_library or utils2.from_playlist():
@@ -1670,6 +1759,36 @@ def auto_play_sources(hosters, video_type, trakt_id, season, episode):
             kodi.notify(msg=msg, duration=5000)
 
 def pick_source_dialog(hosters):
+    """
+    Displays a dialog for the user to select a streaming source from a list of hosters.
+
+    This function iterates over the provided list of hosters, formats their labels, and presents them in a selection dialog.
+    If the user selects a source, the function attempts to resolve the URL using the appropriate scraper class and returns the resolved URL and its direct status.
+
+    Args:
+        hosters (list): A list of hoster dictionaries to be displayed in the selection dialog. Each dictionary should contain:
+            - 'multi-part' (bool): Indicates if the hoster is part of a multi-part source.
+            - 'label' (str): The formatted label for the hoster.
+            - 'url' (str): The URL of the hoster.
+            - 'class' (object): The scraper class instance that provided the hoster.
+            - 'direct' (bool): Indicates if the link is a direct link.
+
+    Returns:
+        tuple: A tuple containing the resolved URL (str) and a boolean indicating if the URL is direct. 
+               Returns (None, None) if no valid selection is made or an error occurs.
+
+    Raises:
+        Exception: If an error occurs while resolving the hoster URL.
+
+    Example Usage:
+        hosters = [
+            {'multi-part': False, 'label': 'Source 1', 'url': 'http://example.com/1', 'class': ExampleScraper(), 'direct': True},
+            {'multi-part': False, 'label': 'Source 2', 'url': 'http://example.com/2', 'class': ExampleScraper(), 'direct': False}
+        ]
+        url, direct = pick_source_dialog(hosters)
+        if url:
+            play_source(url, direct)
+    """
     for item in hosters:
         if item['multi-part']:
             continue
@@ -2575,6 +2694,7 @@ def make_dir_from_cal(mode, start_date, days):
     kodi.end_of_directory()
 
 def make_season_item(season, info, trakt_id, title, year, tvdb_id):
+    logger.log('Make Season: Season: %s, Info: %s, Trakt ID: %s, Title: %s, Year: %s, TVDB ID: %s' % (season, info, trakt_id, title, year, tvdb_id), log_utils.LOGDEBUG)
     label = '%s %s' % (i18n('season'), season['number'])
     ids = {'trakt': trakt_id, 'tvdb': tvdb_id}
     art = image_scraper.get_images(VIDEO_TYPES.SEASON, ids, season['number'])
@@ -2582,6 +2702,10 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id):
     logger.log('Season Info: %s' % (info), log_utils.LOGDEBUG)
     info['mediatype'] = 'season'
     liz.setInfo('video', info)
+    liz.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
+    liz.setUniqueIDs(
+        {i.split("_")[0]: info[i] for i in info if i.endswith("id")},
+    )
     menu_items = []
 
     if 'playcount' in info and info['playcount']:
@@ -2610,20 +2734,12 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id):
     return liz
 
 def make_episode_item(show, episode, show_subs=True, menu_items=None):
+    logger.log('Make Episode: Show: %s, Episode: %s, Show Subs: %s' % (show, episode, show_subs), log_utils.LOGDEBUG)
+    logger.log('Make Episode: Episode: %s' % (episode), log_utils.LOGDEBUG)
     if menu_items is None: menu_items = []
-    
-    # Ensure 'title' key is present in show
-    if 'title' not in show:
-        logger.log('Missing key "title" in show: {}'.format(show), log_utils.LOGERROR)
-        show['title'] = 'Unknown Title'
-    
+
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
-
-    # Ensure 'title' key is present in episode
-    if 'title' not in episode:
-        logger.log('Missing key "title" in episode: {}'.format(episode), log_utils.LOGERROR)
-        episode['title'] = 'Unknown Title'
-
+    logger.log('Make Episode: Show: %s' % (show), log_utils.LOGDEBUG)
     if episode['title'] is None:
         label = '%sx%s' % (episode['season'], episode['number'])
     else:
@@ -2655,6 +2771,9 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
     art = image_scraper.get_images(VIDEO_TYPES.EPISODE, show['ids'], episode['season'], episode['number'])
     liz = utils.make_list_item(label, meta, art)
     liz.setInfo('video', meta)
+    liz.setUniqueIDs(
+        {i.split("_")[0]: meta[i] for i in meta if i.endswith("id")},
+    )
     air_date = ''
     if episode['first_aired']:
         air_date = utils2.make_air_date(episode['first_aired'])
@@ -2759,6 +2878,10 @@ def make_item(section_params, show, menu_items=None):
     queries['random'] = time.time()
 
     liz.setInfo('video', info)
+    liz.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
+    liz.setUniqueIDs(
+        {i.split("_")[0]: info[i] for i in info if i.endswith("id")},
+    )
     liz_url = kodi.get_plugin_url(queries)
 
     queries = {'video_type': section_params['video_type'], 'title': show['title'], 'year': show['year'], 'trakt_id': trakt_id}
@@ -2900,7 +3023,8 @@ def tmdb_search(query=None):
         meta = {
             'ids': {
                 'imdb': result.get('imdb_id'),
-                'tvdb': result.get('tvdb_id')
+                'tvdb': result.get('tvdb_id'),
+                'trakt': result.get('trakt_id')
             }
         }
         art = image_scraper.get_images(VIDEO_TYPES.TVSHOW, {'imdb': result['id']})
@@ -2936,10 +3060,6 @@ def tmdb_tv_search():
 def make_tv_show_item(show):
     label = '{} ({})'.format(show['name'], show['first_air_date'][:4])
     art = image_scraper.get_images(VIDEO_TYPES.TVSHOW, {'trakt': show['id']})
-            # Check if essential art pieces are missing
-    if not art.get('poster') or not art.get('banner'):
-        fallback_art = image_scraper.tvdb_scraper.get_tvshow_images_v2(VIDEO_TYPES.TVSHOW, {'trakt': show['id']})
-        art.update(fallback_art)
 
     liz = utils.make_list_item(label, show, art)
     liz.setInfo('video', salts_utils.make_info(show))
@@ -2966,10 +3086,6 @@ def browse_tmdb_seasons(tv_id):
 def make_tmdb_season_item(season, show, tv_id):
     label = '{} {}'.format(i18n('season'), season['season_number'])
     art = image_scraper.get_images(VIDEO_TYPES.SEASON, {'trakt': tv_id}, season['season_number'])
-            # Check if essential art pieces are missing
-    if not art.get('poster')or not art.get('banner'):
-        fallback_art = image_scraper.tvdb_scraper.get_tvshow_images_v2(VIDEO_TYPES.SEASON, season['season_number'])
-        art.update(fallback_art)
 
     liz = utils.make_list_item(label, season, art)
     liz.setInfo('video', salts_utils.make_info(season, show))
@@ -2989,7 +3105,7 @@ def browse_tmdb_episodes(tv_id, season):
     totalItems = len(episodes)
     now = time.time()
     for episode in episodes:
-        utc_air_time = utils.iso_2_utc(episode['air_date'])
+        utc_air_time = utils.iso_2_utc_tmdb(episode['air_date'])
         if kodi.get_setting('show_unaired') == 'true' or utc_air_time <= now:
             if kodi.get_setting('show_unknown') == 'true' or utc_air_time:
                 liz, liz_url = make_tmdb_episode_item(show, episode)
@@ -3059,20 +3175,33 @@ def make_tmdb_episode_item(show, episode):
 
     return liz, url
 
+def timeIt(func):
+	# Thanks to 123Venom
+	import time
+	fnc_name = func.__name__
+	def wrap(*args, **kwargs):
+		started_at = time.time()
+		result = func(*args, **kwargs)
+		logger('%s.%s' % (__name__ , fnc_name), (time.time() - started_at))
+		return result
+	return wrap
+
 def main(argv=None):
     if sys.argv:
         argv = sys.argv
+
     queries = kodi.parse_query(sys.argv[2])
     logger.log('Version: |%s| Queries: |%s|' % (kodi.get_version(), queries), log_utils.LOGNOTICE)
     logger.log('Args: |%s|' % (argv), log_utils.LOGNOTICE)
 
-    # don't process params that don't match our url exactly. (e.g. plugin://plugin.video.1channel/extrafanart)
+    # don't process params that don't match our url exactly. (e.g. plugin://plugin.video.asguard/)
     plugin_url = 'plugin://%s/' % (kodi.get_id())
     if argv[0] != plugin_url:
         return
 
     try:
         global db_connection
+        # global mode
         db_connection = DB_Connection()
         mode = queries.get('mode', None)
         url_dispatcher.dispatch(mode, queries)

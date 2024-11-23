@@ -15,25 +15,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import abc
-import datetime
-import gzip
-import os
-import re
-import urllib.error
-import urllib.parse
-import urllib.request
-import http.cookiejar
+import abc, datetime, gzip, json, os, re, six
+
+import urllib.error, urllib.parse, urllib.request, http.cookiejar
 from io import StringIO
 import requests
 from bs4 import BeautifulSoup
-from asguard_lib import control
 
-from asguard_lib import cloudflare
-from asguard_lib import cf_captcha
+from asguard_lib import cloudflare, cf_captcha
+from six.moves import zip, reduce
 import kodi
 import log_utils  # @UnusedImport
-
+from asguard_lib.net import Net, get_ua  # @UnusedImport  # NOQA
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH, Q_ORDER, SHORT_MONS, VIDEO_TYPES, DEFAULT_TIMEOUT
 from asguard_lib.db_utils import DB_Connection
@@ -53,7 +46,7 @@ CAPTCHA_BASE_URL = 'https://www.google.com/recaptcha/api'
 FLARESOLVERR_URL = 'http://localhost:8191'
 COOKIEPATH = kodi.translate_path(kodi.get_profile())
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-MAX_RESPONSE = 1024 * 1024 * 10
+MAX_RESPONSE = 1024 * 1024 * 5
 CF_CAPCHA_ENABLED = kodi.get_setting('cf_captcha') == 'true'
 
 class ScrapeError(Exception):
@@ -81,6 +74,7 @@ class Scraper(object):
     base_url = BASE_URL
     __db_connection = None
     worker_id = None
+    net = Net()
     debrid_resolvers = resolveurl
     row_pattern = r'\s*<a\s+href="(?P<link>[^"]+)">(?P<title>[^<]+)</a>\s+(?P<date>\d+-[a-zA-Z]+-\d+ \d+:\d+)\s+(?P<size>-|\d+)'
     scrapers = []
@@ -136,8 +130,6 @@ class Scraper(object):
             return scraper_utils.urljoin(self.base_url, link)
         elif link.startswith('http'):
             return link
-        else:
-            return link
 
 
     def format_source_label(self, item):
@@ -178,17 +170,11 @@ class Scraper(object):
         if 'rating' in item and item['rating'] is not None:
             label_parts.append(f"({item['rating']}/100)")
 
-        if 'size' in item:
-            label_parts.append(f"({item['size']})")
-
         if item.get('subs'):
             label_parts.append(f"({item['subs']})")
 
         if 'extra' in item:
             label_parts.append(f"[{item['extra']}]")
-
-        if 'seeders' in item:
-            label_parts.append(f"({item['seeders']} seeders)")
 
         return ' '.join(label_parts)
 
@@ -324,8 +310,6 @@ class Scraper(object):
         return url
 
     def _http_get(self, url, params=None, data=None, multipart_data=None, headers=None, cookies=None, allow_redirect=True, method=None, require_debrid=False, read_error=False, cache_limit=8):
-        if isinstance(url, bytes):
-            url = url.decode('utf-8')
 
         html = self._cached_http_get(url, self.base_url, self.timeout, params=params, data=data, multipart_data=multipart_data,
                                      headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method, require_debrid=require_debrid,
@@ -366,10 +350,9 @@ class Scraper(object):
                 url = urllib.parse.urlunparse((parts.scheme, parts.netloc, parts.path, parts.params, '', parts.fragment))
                 
             url += '?' + urllib.parse.urlencode(params)
-
         logger.log('Getting Url: %s cookie=|%s| data=|%s| extra headers=|%s|' % (url, cookies, data, headers), log_utils.LOGDEBUG)
         if data is not None:
-            if isinstance(data, str):
+            if isinstance(data, six.string_types):
                 data = data
             else:
                 data = urllib.parse.urlencode(data, True)
@@ -427,7 +410,7 @@ class Scraper(object):
                     return redir_url
             
             content_length = response.headers.get('Content-Length', 0)
-            if int(content_length) > MAX_RESPONSE:
+            if content_length > MAX_RESPONSE:
                 logger.log('Response exceeded allowed size. %s => %s / %s' % (url, content_length, MAX_RESPONSE), log_utils.LOGWARNING)
             
             if method == 'HEAD':
@@ -461,6 +444,7 @@ class Scraper(object):
 
         self.db_connection().cache_url(url, html, data)
         return html
+
 
     def _set_cookies(self, base_url, cookies):
         cookie_file = os.path.join(COOKIEPATH, f'{self.get_name()}_cookies.lwp')
@@ -500,14 +484,8 @@ class Scraper(object):
 
     def do_flaresolver(self, url):
         """
-        Solves reCAPTCHA using FLARESOLVER.
+        Breaks Cloudflare using FLARESOLVER.
 
-        Args:
-            url (str): The URL of the page containing the reCAPTCHA.
-            site_key (str): The site key of the reCAPTCHA.
-
-        Returns:
-            str: The reCAPTCHA token if successful, otherwise None.
         """
         try:
             # Prepare the payload for FLARESOLVER
@@ -526,12 +504,35 @@ class Scraper(object):
                 data = response.json()
                 if data.get('status') == 'ok':
                     return data.get('solution', {})
-            logger.log(f'Failed FLARESOLVER: {response.text}', log_utils.LOGERROR)
+                else:
+                    logger.log(f'FLARESOLVER error: {data.get("message")}', log_utils.LOGERROR)
+            else:
+                logger.log(f'Failed FLARESOLVER: {response.text}', log_utils.LOGERROR)
         except Exception as e:
             logger.log(f'Error FLARESOLVER: {str(e)}', log_utils.LOGERROR)
         return None
 
     def _default_get_episode_url(self, html, video, episode_pattern, title_pattern='', airdate_pattern=''):
+        """
+        Retrieves the URL for a specific episode based on provided patterns.
+
+        Args:
+            html (str): The HTML content to search within.
+            video (ScraperVideo): An object containing metadata about the video.
+                - video_type: One of VIDEO_TYPES (e.g., EPISODE, TVSHOW, SEASON).
+                - title: The title of the TV show or movie.
+                - year: The year of the TV show or movie.
+                - season: The season number (only for TV shows).
+                - episode: The episode number (only for TV shows).
+                - ep_title: The episode title if available.
+                - ep_airdate: The airdate of the episode if available.
+            episode_pattern (str): The regex pattern to match the episode URL.
+            title_pattern (str, optional): The regex pattern to match the episode title. Defaults to ''.
+            airdate_pattern (str, optional): The regex pattern to match the episode airdate. Defaults to ''.
+
+        Returns:
+            str: The URL of the episode if found, otherwise None.
+        """
         logger.log('Default Episode Url: |%s|%s|' % (self.get_name(), video), log_utils.LOGDEBUG)
         if not html: return
         
@@ -568,6 +569,25 @@ class Scraper(object):
                     return scraper_utils.pathify_url(episode['url'])
 
     def _blog_proc_results(self, html, post_pattern, date_format, video_type, title, year):
+        """
+        Processes blog results to extract relevant video information.
+
+        Args:
+            html (str): The HTML content to search within.
+            post_pattern (str): The regex pattern to match blog posts.
+            date_format (str): The date format to parse post dates.
+            video_type (str): The type of video (e.g., VIDEO_TYPES.MOVIE, VIDEO_TYPES.EPISODE).
+            title (str): The title of the video.
+            year (str): The year of the video.
+
+        Returns:
+            list: A list of dictionaries containing the extracted video information.
+                Each dictionary contains:
+                    - url (str): The URL of the video.
+                    - title (str): The title of the video.
+                    - year (str): The year of the video.
+                    - quality (str): The quality of the video.
+        """
         results = []
         search_date = ''
         search_sxe = ''
@@ -693,6 +713,16 @@ class Scraper(object):
                 self.db_connection().set_related_url(video.video_type, video.title, video.year, self.get_name(), url, video.season, video.episode)
         return url
 
+    def getHostDict(self):
+        try:
+            hostDict = resolveurl.relevant_resolvers(order_matters=True)
+            hostDict = [i.domains for i in hostDict if not '*' in i.domains]
+            hostDict = [i.lower() for i in reduce(lambda x, y: x + y, hostDict)]
+            hostDict = [x for y, x in enumerate(hostDict) if x not in hostDict[:y]]
+            return hostDict
+        except:
+            logger.log('getHostDict', 1)
+            return []
 
     def _get_direct_hostname(self, link):
         """
@@ -705,7 +735,7 @@ class Scraper(object):
             str: The direct hostname if recognized, otherwise the scraper's name.
         """
         host = urllib.parse.urlparse(link).hostname
-        direct_hosts = ['google', 'orion', 'blogspot', 'okru', 'filemoon', 'mixdrop', 'vidcloud', 'embtaku', 'streamtape', 'dood', 'vidlox', 'mp4upload']
+        direct_hosts = ['google', 'orion', 'blogspot', 'okru', 'filemoon', 'mixdrop', 'vidcloud', 'embtaku', 'streamtape', 'dood', 'vidsrc.pro', 'mp4upload']
 
         if host and any(h in host for h in direct_hosts):
             return 'gvideo'
@@ -878,3 +908,4 @@ class Scraper(object):
             if row['size'] == '-': row['size'] = None
             rows.append(row)
         return rows
+
