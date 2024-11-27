@@ -835,7 +835,7 @@ def is_host_valid(url, domains):
             host = 'CDN'
         if hosts and any(h in host for h in ['vimeo', 'dailymotion', 'bitmovin', 'vidcloud', 'streamtape', 'mixdrop', 'vidlox']):
             host = 'streaming'
-        if hosts and any(h in host for h in ['torrent', 'magnet', 'alldebrid']):
+        if hosts and any(h in host for h in ['torrent', 'magnet', 'alldebrid', 'torbox']):
             host = 'torrent'
         return any(hosts), host
     except Exception as e:

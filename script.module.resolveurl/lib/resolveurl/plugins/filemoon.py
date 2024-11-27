@@ -28,8 +28,10 @@ class FileMoonResolver(ResolveUrl):
     name = 'FileMoon'
     domains = ['filemoon.sx', 'filemoon.to', 'filemoon.in', 'filemoon.link', 'filemoon.nl',
                'filemoon.wf', 'cinegrab.com', 'filemoon.eu', 'filemoon.art', 'moonmov.pro',
-               'kerapoxy.cc', 'furher.in', '1azayf9w.xyz']
-    pattern = r'(?://|\.)((?:filemoon|cinegrab|moonmov|kerapoxy|furher|1azayf9w)\.(?:sx|to|in|link|nl|wf|com|eu|art|pro|cc|xyz))' \
+               'kerapoxy.cc', 'furher.in', '1azayf9w.xyz', '81u6xl9d.xyz', 'smdfs40r.skin']
+    pattern = r'(?://|\.)((?:filemoon|cinegrab|moonmov|kerapoxy|furher|1azayf9w|81u6xl9d|' \
+              r'smdfs40r)' \
+              r'\.(?:sx|to|s?k?in|link|nl|wf|com|eu|art|pro|cc|xyz))' \
               r'/(?:e|d|download)/([0-9a-zA-Z$:/._-]+)'
 
     def get_media_url(self, host, media_id):
@@ -48,6 +50,11 @@ class FileMoonResolver(ResolveUrl):
             headers.update({'Referer': referer})
 
         html = self.net.http_GET(web_url, headers=headers).content
+        r = re.search(r'<iframe\s*src="([^"]+)', html, re.DOTALL)
+        if r:
+            headers.update({'accept-language': 'en-US,en;q=0.9'})
+            web_url = r.group(1)
+            html = self.net.http_GET(web_url, headers=headers).content
         if '<h1>Page not found</h1>' in html:
             web_url = web_url.replace('/e/', '/d/')
             html = self.net.http_GET(web_url, headers=headers).content

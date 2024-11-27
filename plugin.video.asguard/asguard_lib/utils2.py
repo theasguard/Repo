@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2016 tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,17 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import io
-import re
-import json
-import gzip
-import datetime
-import time
-import os
-import html
-import html.entities
-import six
-from six.moves import urllib_request, urllib_parse, urllib_error, urllib_response, http_cookiejar
+import io, re, json, gzip, datetime, time, os, html
+
+import html.entities, urllib.parse, urllib.request, urllib.error, six
 import xbmcgui
 import hashlib
 import _strptime  # @UnusedImport
@@ -313,7 +305,12 @@ def get_sort_key(item):
             if isinstance(value, list):
                 value = value[0] if value else None
 
-            if value in SORT_KEYS[field]:
+            if isinstance(SORT_KEYS[field], list):
+                if value in SORT_KEYS[field]:
+                    item_sort_key.append(sign * int(SORT_KEYS[field].index(value)))
+                else:
+                    item_sort_key.append(sign * -1)
+            elif value in SORT_KEYS[field]:
                 item_sort_key.append(sign * int(SORT_KEYS[field][value]))
             else:  # assume all unlisted values sort as worst
                 item_sort_key.append(sign * -1)
@@ -375,23 +372,23 @@ def test_stream(hoster):
     try:
         headers = dict([item.split('=') for item in (hoster['url'].split('|')[1]).split('&')])
         for key in headers:
-            headers[key] = urllib_parse.unquote_plus(headers[key])
+            headers[key] = urllib.parse.unquote_plus(headers[key])
     except:
         headers = {}
     logger.log('Testing Stream: %s from %s using Headers: %s' % (hoster['url'], hoster['class'].get_name(), headers), log_utils.LOGDEBUG)
-    request = urllib_request.Request(hoster['url'].split('|')[0], headers=headers)
+    request = urllib.request.Request(hoster['url'].split('|')[0], headers=headers)
 
     msg = ''
-    opener = urllib_request.build_opener(urllib_request.HTTPRedirectHandler)
-    urllib_request.install_opener(opener)
+    opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler)
+    urllib.request.install_opener(opener)
     try:
-        http_code = urllib_request.urlopen(request, timeout=2).getcode()
-    except urllib_error.URLError as e:
+        http_code = urllib.request.urlopen(request, timeout=2).getcode()
+    except urllib.error.URLError as e:
         # treat an unhandled url type as success
         if hasattr(e, 'reason') and 'unknown url type' in str(e.reason).lower():
             return True
         else:
-            if isinstance(e, urllib_error.HTTPError):
+            if isinstance(e, urllib.error.HTTPError):
                 http_code = e.code
             else:
                 http_code = 600
@@ -487,6 +484,7 @@ def format_sub_label(sub):
     return label
 
 def format_source_label(item):
+    logger.log('format_source_label: %s' % item, log_utils.LOGDEBUG)
     color = kodi.get_setting('debrid_color') or 'green'
     # BLAMO
     orion = 'orion' in item and kodi.get_setting('show_orion') == 'true'
@@ -494,7 +492,7 @@ def format_source_label(item):
     # BLAMO
     label = item['class'].format_source_label(item)
     label = '[%s] %s' % (item['class'].get_name(), label)
-    if kodi.get_setting('show_debrid') == 'true' and 'debrid' in item and item['debrid']:
+    if kodi.get_setting('show_debrid') == 'true' and ('debrid' in item or 'torbox' in item) and item['debrid']:
         label = '[COLOR %s]%s[/COLOR]' % (color, label)
     # BLAMO
     elif orion: label = '[COLOR %s]%s[/COLOR]' % (color, label)
@@ -630,13 +628,13 @@ def get_and_decrypt(url, password, old_lm=None):
 
         # only do the HEAD request if there's an old_lm to compare to
         if old_lm is not None:
-            req = urllib_request.Request(url)
+            req = urllib.request.Request(url)
             req.get_method = lambda: 'HEAD'
-            res = urllib_request.urlopen(req)
+            res = urllib.request.urlopen(req)
             new_lm = res.info().get('Last-Modified')
 
         if old_lm is None or new_lm != old_lm:
-            res = urllib_request.urlopen(url)
+            res = urllib.request.urlopen(url)
             cipher_text = res.read()
             if cipher_text:
                 scraper_key = hashlib.sha256(password.encode('utf-8')).digest()

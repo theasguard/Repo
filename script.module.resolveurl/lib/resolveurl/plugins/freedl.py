@@ -44,11 +44,11 @@ class FreeDLResolver(ResolveUrl):
             while tries < MAX_TRIES:
                 data = helpers.get_hidden(html)
                 data.update(captcha_lib.do_captcha(html))
-                common.kodi.sleep(61000)
+                common.kodi.sleep(76000)
                 html = self.net.http_POST(web_url, data, headers=headers).content
-                r = re.search(r'class="done.+?href="([^"]+)', html, re.DOTALL)
+                r = re.search(r'''sources:\s*\[{src:\s*["'](?P<url>[^"']+)''', html, re.DOTALL)
                 if r:
-                    return urllib_parse.quote(r.group(1), '/:') + helpers.append_headers(headers)
+                    return urllib_parse.quote(r.group(1), '/:=&?') + helpers.append_headers(headers)
 
                 common.kodi.sleep(4000)
                 tries = tries + 1
