@@ -32,7 +32,7 @@ from threading import Semaphore
 
 import requests
 import xbmc, xbmcaddon, xbmcvfs, xbmcgui, log_utils, kodi, cache, six
-
+from asguard_lib import control
 from .utils2 import i18n
 
 logger = log_utils.Logger.get_logger(__name__)
@@ -106,7 +106,73 @@ class DB_Connection():
         if self.db_type == DB_TYPES.SQLITE:
             self.__execute('VACUUM')
 
+    def clear_collection_cache(self, media_type):
+        """Clear Trakt collection cache for specific media type"""
+        try:
+            # Clear URL cache entries related to collection
+            patterns = [
+                f'/users/me/collection/{media_type}%',
+                f'/sync/collection%',
+                f'%collection%{media_type}%'
+            ]
+            
+            for pattern in patterns:
+                sql = 'DELETE FROM url_cache WHERE url LIKE ?'
+                self.__execute(sql, (pattern,))
+                
+            logger.log(f'Cleared {media_type} collection cache', log_utils.LOGDEBUG)
+        except Exception as e:
+            logger.log(f'Error clearing collection cache: {str(e)}', log_utils.LOGERROR)
 
+    def clear_watchlist_cache(self, media_type):
+        """Clear Trakt watchlist cache for specific media type"""
+        try:
+            # Clear URL cache entries related to watchlist
+            patterns = [
+                f'/users/me/watchlist/{media_type}%',
+                f'/sync/watchlist%',
+                f'%watchlist%{media_type}%'
+            ]
+            
+            for pattern in patterns:
+                sql = 'DELETE FROM url_cache WHERE url LIKE ?'
+                self.__execute(sql, (pattern,))
+                
+            logger.log(f'Cleared {media_type} watchlist cache', log_utils.LOGDEBUG)
+        except Exception as e:
+            logger.log(f'Error clearing watchlist cache: {str(e)}', log_utils.LOGERROR)
+
+    def clear_trakt_cache_by_activity(self, activity_type, media_type):
+        """Clear specific Trakt cache based on activity type and media type"""
+        try:
+            cache_patterns = {
+                'collection': [
+                    f'/users/me/collection/{media_type}%',
+                    f'/sync/collection%'
+                ],
+                'watchlist': [
+                    f'/users/me/watchlist/{media_type}%', 
+                    f'/sync/watchlist%'
+                ],
+                'watched': [
+                    f'/sync/watched/{media_type}%',
+                    f'/users/me/watched/%'
+                ],
+                'lists': [
+                    f'/users/me/lists%',
+                    f'/users/likes/lists%'
+                ]
+            }
+            
+            patterns = cache_patterns.get(activity_type, [])
+            for pattern in patterns:
+                sql = 'DELETE FROM url_cache WHERE url LIKE ?'
+                self.__execute(sql, (pattern,))
+                
+            logger.log(f'Cleared {activity_type} cache for {media_type}', log_utils.LOGDEBUG)
+        except Exception as e:
+            logger.log(f'Error clearing activity cache: {str(e)}', log_utils.LOGERROR)
+    
     def prune_cache(self, prune_age=31):
         min_age = time.time() - prune_age * (60 * 60 * 24)
         if self.db_type == DB_TYPES.SQLITE:
@@ -191,7 +257,7 @@ class DB_Connection():
         sql = 'DELETE FROM url_cache WHERE url = ? and data= ?'
         self.__execute(sql, (url, data))
 
-    def get_cached_url(self, url, data='', response='', cache_limit=8):
+    def get_cached_url(self, url, data='', cache_limit=8):
         if data is None: data = ''
         # truncate data if running mysql and greater than col size
         if self.db_type == DB_TYPES.MYSQL and len(data) > MYSQL_DATA_SIZE:
@@ -202,8 +268,8 @@ class DB_Connection():
         now = time.time()
         age = now - created
         limit = 60 * 60 * cache_limit
-        sql = 'SELECT timestamp, response, res_header FROM url_cache WHERE url = ? and data=? and response=?'
-        rows = self.__execute(sql, (url, data, response))
+        sql = 'SELECT timestamp, response, res_header FROM url_cache WHERE url = ? and data=?'
+        rows = self.__execute(sql, (url, data))
 
         if rows:
             created = float(rows[0][0])
@@ -211,8 +277,12 @@ class DB_Connection():
             age = now - created
             if age < limit:
                 html = rows[0][1]
+                if isinstance(html, (memoryview, bytes)):
+                    html = html.tobytes().decode('utf-8') if isinstance(html, memoryview) else html.decode('utf-8')
+                else:
+                    html = str(html)
         logger.log('DB Cache: Url: %s, Data: %s, Cache Hit: %s, created: %s, age: %.2fs (%.2fh), limit: %.2fs (%.2fh)' % (url, data, bool(html), created, age, age / (60 * 60), limit, limit / (60 * 60)), log_utils.LOGDEBUG)
-        return created, res_header, str(html)
+        return created, res_header, html
 
     def get_all_urls(self, include_response=False, order_matters=False):
         sql = 'SELECT url, data'
@@ -221,7 +291,8 @@ class DB_Connection():
         if order_matters: sql += ' ORDER BY url, data'
         rows = self.__execute(sql)
         return rows
-    
+
+
     def update_show_meta(self, anilist_id, meta_ids, art):
         if isinstance(meta_ids, dict):
             meta_ids = pickle.dumps(meta_ids)
@@ -244,15 +315,13 @@ class DB_Connection():
             logger.log('Failed to update show metadata for AniList ID: %s, Error: %s' % (anilist_id, str(e)), log_utils.LOGERROR)
             import traceback
             traceback.print_exc()
-        finally:
-            self.__close()
 
     def cache_function(self, name, args=None, kwargs=None, result=None):
         now = time.time()
         if args is None: args = []
         if kwargs is None: kwargs = {}
         pickle_result = pickle.dumps(result)
-        logging.debug("pickle_result: %s", pickle_result)
+
         if self.db_type == DB_TYPES.MYSQL and len(pickle_result) > MYSQL_MAX_BLOB_SIZE:
             logger.log('Result too large to cache', log_utils.LOGDEBUG)
             return
@@ -261,9 +330,9 @@ class DB_Connection():
             arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
         else:
             arg_hash = hashlib.md5(name.encode('utf8')).hexdigest() + hashlib.md5(str(args).encode('utf8')).hexdigest() + hashlib.md5(str(kwargs).encode('utf8')).hexdigest()
-        logging.debug("arg_hash: %s", arg_hash)
+
         sql = 'REPLACE INTO function_cache (name, args, result, timestamp) VALUES(?, ?, ?, ?)'
-        logging.debug("sql: %s", sql)
+
         logger.log('Executing SQL: %s with params: %s' % (sql, (name, arg_hash, pickle_result, now)), log_utils.LOGDEBUG)
         self.__execute(sql, (name, arg_hash, pickle_result, now))
         logger.log('Function Cached: |%s|%s|%s| -> |%s|' % (name, args, kwargs, len(pickle_result)), log_utils.LOGDEBUG)
@@ -276,9 +345,9 @@ class DB_Connection():
             arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
         else:
             arg_hash = hashlib.md5(name.encode('utf8')).hexdigest() + hashlib.md5(str(args).encode('utf8')).hexdigest() + hashlib.md5(str(kwargs).encode('utf8')).hexdigest()
-        logging.debug("arg_hash: %s", arg_hash)
+
         sql = 'SELECT result FROM function_cache WHERE name = ? and args = ? and timestamp >= ?'
-        logging.debug("sql: %s", sql)
+
         logger.log('Executing SQL: %s with params: %s' % (sql, (name, arg_hash, max_age)), log_utils.LOGDEBUG)
         rows = self.__execute(sql, (name, arg_hash, max_age))
         if rows:
@@ -322,7 +391,29 @@ class DB_Connection():
             if time.time() - float(created) < cache_limit * 60 * 60:
                 art_dict = {'banner': banner, 'fanart': fanart, 'thumb': thumb, 'poster': poster, 'clearart': clearart, 'clearlogo': clearlogo}
         return art_dict
-    
+
+    def get_cached_episode_numbers(self, object_type, trakt_id, season='', episode=''):
+        # 1. Try exact match first
+        sql = '''SELECT season, episode FROM image_cache 
+                WHERE object_type=? AND trakt_id=? AND season=? AND episode=?'''
+        rows = self.__execute(sql, (object_type, trakt_id, season, episode))
+        logger.log('Exact match results: %s' % rows, log_utils.LOGDEBUG)
+        
+        if not rows:
+            # 2. Try latest season/episode for this show
+            sql = '''SELECT season, episode FROM image_cache 
+                    WHERE object_type=? AND trakt_id=?
+                    ORDER BY timestamp DESC LIMIT 1'''
+            rows = self.__execute(sql, (object_type, trakt_id))
+            logger.log('Latest show results: %s' % rows, log_utils.LOGDEBUG)
+
+        if not rows:
+            # 3. Fallback to original values if no cache exists
+            logger.log('No cache found, using original values', log_utils.LOGDEBUG)
+            return season, episode
+
+        return rows[0][0], rows[0][1]
+
     def flush_image_cache(self):
         sql = 'DELETE FROM image_cache'
         self.__execute(sql)
@@ -477,39 +568,56 @@ class DB_Connection():
         if not xbmcvfs.copy(full_path, temp_path):
             raise Exception('Import: Copy from |%s| to |%s| failed' % (full_path, temp_path))
 
+        progress = None
         try:
-            num_lines = sum(1 for line in open(temp_path, encoding='utf-8'))
+            with open(temp_path, 'r', encoding='latin-1') as f:
+                num_lines = sum(1 for _ in f)
             if self.progress:
                 progress = self.progress
-                progress.update(0, line2='Importing Saved Data', line3='Importing 0 of %s' % (num_lines))
+                try:
+                    progress.update(0, 'Importing 0 of %s' % (num_lines))
+                except Exception as e:
+                    logger.log('Progress dialog update failed: %s' % str(e), log_utils.LOGWARNING)
+                    progress = None
             else:
-                progress = xbmcgui.DialogProgress()
-                progress.create('Asguard', line2='Import from %s' % (full_path), line3='Importing 0 of %s' % (num_lines))
-            with open(temp_path, 'r', encoding='utf-8') as f:
-                    reader = csv.reader(f)
-                    mode = ''
-                    _ = f.readline()  # read header
-                    i = 0
-                    for line in reader:
-                        line = self.__unicode_encode(line)
-                        progress.update(i * 100 / num_lines, line3='Importing %s of %s' % (i, num_lines))
-                        if progress.iscanceled():
-                            return
-                        if line[0] in [CSV_MARKERS.REL_URL, CSV_MARKERS.OTHER_LISTS, CSV_MARKERS.SAVED_SEARCHES, CSV_MARKERS.BOOKMARKS]:
-                            mode = line[0]
-                            continue
-                        elif mode == CSV_MARKERS.REL_URL:
-                            self.set_related_url(line[0], line[1], line[2], line[5], line[6], line[3], line[4])
-                        elif mode == CSV_MARKERS.OTHER_LISTS:
-                            name = None if len(line) != 4 else line[3]
-                            self.add_other_list(line[0], line[1], line[2], name)
-                        elif mode == CSV_MARKERS.SAVED_SEARCHES:
-                            self.save_search(line[1], line[3], line[2])  # column order is different than method order
-                        elif mode == CSV_MARKERS.BOOKMARKS:
-                            self.set_bookmark(line[0], line[3], line[1], line[2])
-                        else:
-                            raise Exception('CSV line found while in no mode')
-                        i += 1
+                try:
+                    progress = xbmcgui.DialogProgress()
+                    progress.create('Asguard', 'Import from %s' % (full_path))
+                    progress.update(0, 'Importing 0 of %s' % (num_lines))
+                except Exception as e:
+                    logger.log('Progress dialog creation failed during import, continuing without progress display: %s' % str(e), log_utils.LOGWARNING)
+                    progress = None
+            
+            with open(temp_path, 'r', encoding='latin-1') as f:
+                reader = csv.reader(f)
+                mode = ''
+                _ = f.readline()  # read header
+                i = 0
+                for line in reader:
+                    line = self.__unicode_encode(line)
+                    if progress:
+                        try:
+                            progress.update(int(i * 100 / num_lines), 'Importing %s of %s' % (i, num_lines))
+                            if progress.iscanceled():
+                                return
+                        except Exception as e:
+                            logger.log('Progress dialog update failed during import: %s' % str(e), log_utils.LOGWARNING)
+                            progress = None  # Disable further progress updates
+                    if line[0] in [CSV_MARKERS.REL_URL, CSV_MARKERS.OTHER_LISTS, CSV_MARKERS.SAVED_SEARCHES, CSV_MARKERS.BOOKMARKS]:
+                        mode = line[0]
+                        continue
+                    elif mode == CSV_MARKERS.REL_URL:
+                        self.set_related_url(line[0], line[1], line[2], line[5], line[6], line[3], line[4])
+                    elif mode == CSV_MARKERS.OTHER_LISTS:
+                        name = None if len(line) != 4 else line[3]
+                        self.add_other_list(line[0], line[1], line[2], name)
+                    elif mode == CSV_MARKERS.SAVED_SEARCHES:
+                        self.save_search(line[1], line[3], line[2])  # column order is different than method order
+                    elif mode == CSV_MARKERS.BOOKMARKS:
+                        self.set_bookmark(line[0], line[3], line[1], line[2])
+                    else:
+                        raise Exception('CSV line found while in no mode')
+                    i += 1
         except Exception as e:
             logger.log('Import Failed: %s' % e, log_utils.LOGERROR)
             raise
@@ -520,7 +628,10 @@ class DB_Connection():
             except Exception as e:
                 logger.log('Error deleting temp file: %s' % e, log_utils.LOGERROR)
             if progress:
-                progress.close()
+                try:
+                    progress.close()
+                except Exception as e:
+                    logger.log('Progress dialog close failed: %s' % str(e), log_utils.LOGWARNING)
             self.progress = None
             if self.db_type == DB_TYPES.SQLITE:
                 self.__execute('VACUUM')
@@ -528,9 +639,9 @@ class DB_Connection():
     def __unicode_encode(self, items):
         l = []
         for i in items:
-            if isinstance(i, str):
+            if isinstance(i, bytes):
                 try:
-                    l.append(i.encode('utf-8'))
+                    l.append(i.decode('utf-8'))
                 except UnicodeDecodeError:
                     l.append(i)
             else:
@@ -547,9 +658,15 @@ class DB_Connection():
             cur_version = kodi.get_version()
             if db_version is not None and cur_version != db_version:
                 logger.log('DB Upgrade from %s to %s detected.' % (db_version, cur_version), log_utils.LOGNOTICE)
-                self.progress = xbmcgui.DialogProgress()
-                self.progress.create('Asguard', line1='Migrating from %s to %s' % (db_version, cur_version), line2='Saving current data.')
-                self.progress.update(0)
+                # Try to create progress dialog, but handle case where GUI isn't ready
+                try:
+                    self.progress = xbmcgui.DialogProgress()
+                    self.progress.create('Asguard')
+                    self.progress.update(0, 'Migrating from %s to %s' % (db_version, cur_version), 'Saving current data.')
+                except Exception as e:
+                    logger.log('Progress dialog creation failed, continuing without progress display: %s' % str(e), log_utils.LOGWARNING)
+                    self.progress = None
+
                 self.__prep_for_reinit()
     
             logger.log('Building Asguard Database', log_utils.LOGDEBUG)
@@ -770,12 +887,130 @@ class DB_Connection():
 
     def reset_db(self):
         if self.db_type == DB_TYPES.SQLITE:
-            try: 
-                self.__get_db_connection().close()
-            except: pass
-            os.remove(self.db_path)
+            try:
+                # Close our own connection first
+                if self.db:
+                    self.db.close()
+                    self.db = None
+            except: 
+                pass
+            
+            # Force close any remaining SQLite connections by attempting to connect and close
+            try:
+                import gc
+                gc.collect()  # Force garbage collection to clean up any unused connections
+                
+                # Try to connect and immediately close to flush any remaining connections
+                temp_conn = self.db_lib.connect(self.db_path)
+                temp_conn.close()
+            except:
+                pass
+            
+            # Set db to None before attempting file operations
             self.db = None
+            self.worker_id = None
+            
+            # Try a more aggressive approach: rename/move the file instead of deleting
+            import time
+            import uuid
+            success = False
+            
+            # Generate unique backup name
+            backup_name = self.db_path + '.backup.' + str(int(time.time())) + '.' + str(uuid.uuid4())[:8]
+            
+            try:
+                # First, try to rename/move the database file (this usually works even when delete fails)
+                if os.path.exists(self.db_path):
+                    os.rename(self.db_path, backup_name)
+                    logger.log('Moved database file to backup: %s' % backup_name, log_utils.LOGDEBUG)
+                    success = True
+                
+                # Also move WAL and SHM files if they exist
+                wal_path = self.db_path + '-wal'
+                shm_path = self.db_path + '-shm'
+                
+                if os.path.exists(wal_path):
+                    try:
+                        os.rename(wal_path, backup_name + '-wal')
+                        logger.log('Moved WAL file to backup', log_utils.LOGDEBUG)
+                    except:
+                        pass
+                
+                if os.path.exists(shm_path):
+                    try:
+                        os.rename(shm_path, backup_name + '-shm')
+                        logger.log('Moved SHM file to backup', log_utils.LOGDEBUG)
+                    except:
+                        pass
+                        
+            except (OSError, PermissionError) as e:
+                logger.log('Failed to rename database file: %s' % e, log_utils.LOGWARNING)
+                
+                # Last resort: try the original delete approach with retries
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        if os.path.exists(self.db_path):
+                            os.remove(self.db_path)
+                            logger.log('Successfully removed database file: %s' % self.db_path, log_utils.LOGDEBUG)
+                        
+                        # Also clean up WAL and SHM files if they exist
+                        wal_path = self.db_path + '-wal'
+                        shm_path = self.db_path + '-shm'
+                        
+                        if os.path.exists(wal_path):
+                            try:
+                                os.remove(wal_path)
+                                logger.log('Removed WAL file: %s' % wal_path, log_utils.LOGDEBUG)
+                            except:
+                                pass
+                        
+                        if os.path.exists(shm_path):
+                            try:
+                                os.remove(shm_path)
+                                logger.log('Removed SHM file: %s' % shm_path, log_utils.LOGDEBUG)
+                            except:
+                                pass
+                        
+                        success = True
+                        break  # Success, exit retry loop
+                        
+                    except (OSError, PermissionError) as retry_e:
+                        if attempt < max_retries - 1:
+                            logger.log('Delete attempt %d/%d failed (retrying in 2s): %s' % (attempt + 1, max_retries, retry_e), log_utils.LOGWARNING)
+                            time.sleep(2)  # Wait before retry
+                        else:
+                            logger.log('All delete attempts failed: %s' % retry_e, log_utils.LOGERROR)
+                            raise Exception('Cannot remove database file - file is locked by other processes. Please close Kodi completely and restart, or manually delete: %s' % self.db_path)
+            
+            if not success:
+                raise Exception('Failed to reset database - file operations failed')
+            
+            # Now create a fresh database
             self.init_database(None)
+            
+            # Try to clean up the backup file after a delay (optional cleanup)
+            try:
+                import threading
+                def cleanup_backup():
+                    try:
+                        time.sleep(10)  # Wait 10 seconds
+                        if os.path.exists(backup_name):
+                            os.remove(backup_name)
+                            logger.log('Cleaned up backup file: %s' % backup_name, log_utils.LOGDEBUG)
+                        if os.path.exists(backup_name + '-wal'):
+                            os.remove(backup_name + '-wal')
+                        if os.path.exists(backup_name + '-shm'):
+                            os.remove(backup_name + '-shm')
+                    except:
+                        pass  # Ignore cleanup failures
+                
+                cleanup_thread = threading.Thread(target=cleanup_backup)
+                cleanup_thread.daemon = True
+                cleanup_thread.start()
+            except:
+                pass  # Ignore cleanup thread creation failures
+                
             return True
         else:
             return False
@@ -793,23 +1028,80 @@ class DB_Connection():
 
         return version
 
+    def force_close_all_connections(self):
+        """Force close database connections - used before recovery operations"""
+        try:
+            if self.db:
+                self.db.close()
+            self.db = None
+            self.worker_id = None
+            
+            # Force garbage collection to clean up any orphaned connections
+            import gc
+            gc.collect()
+            
+            logger.log('Forced closure of database connections', log_utils.LOGDEBUG)
+        except Exception as e:
+            logger.log('Error forcing connection closure: %s' % e, log_utils.LOGWARNING)
+
     def attempt_db_recovery(self):
         header = i18n('recovery_header')
-        if xbmcgui.Dialog().yesno(header, i18n('rec_mig_1'), i18n('rec_mig_2')):
-            try: self.init_database('Unknown')
+        dialog = None
+        
+        # Try to create dialog, but handle case where GUI isn't ready
+        try:
+            dialog = xbmcgui.Dialog()
+        except Exception as e:
+            logger.log('Dialog creation failed, proceeding with automatic recovery: %s' % str(e), log_utils.LOGWARNING)
+        
+        # If dialog is available, ask user; otherwise proceed automatically
+        should_migrate = True
+        if dialog:
+            try:
+                should_migrate = dialog.yesno(header, i18n('rec_mig_1'), i18n('rec_mig_2'))
+            except Exception as e:
+                logger.log('Dialog interaction failed, proceeding automatically: %s' % str(e), log_utils.LOGWARNING)
+                should_migrate = True
+        
+        if should_migrate:
+            try: 
+                # Force close connections before attempting recovery
+                self.force_close_all_connections()
+                self.init_database('Unknown')
+                logger.log('Database recovery completed successfully', log_utils.LOGNOTICE)
             except Exception as e:
                 logger.log('DB Migration Failed: %s' % (e), log_utils.LOGWARNING)
                 if self.db_type == DB_TYPES.SQLITE:
-                    if xbmcgui.Dialog().yesno(header, i18n('rec_reset_1'), i18n('rec_reset_2'), i18n('rec_reset_3')):
-                        try: self.reset_db()
+                    should_reset = True
+                    if dialog:
+                        try:
+                            should_reset = dialog.yesno(header, i18n('rec_reset_1'), i18n('rec_reset_2'), i18n('rec_reset_3'))
+                        except Exception as dialog_e:
+                            logger.log('Dialog interaction failed, proceeding with automatic reset: %s' % str(dialog_e), log_utils.LOGWARNING)
+                            should_reset = True
+                    
+                    if should_reset:
+                        try: 
+                            # Force close connections before reset as well
+                            self.force_close_all_connections()
+                            self.reset_db()
+                            try:
+                                kodi.notify(msg=i18n('db_reset_success'), duration=5000)
+                            except:
+                                logger.log('Database reset completed successfully', log_utils.LOGNOTICE)
                         except Exception as e:
                             logger.log('Reset Failed: %s' % (e), log_utils.LOGWARNING)
-                            try: msg = i18n('reset_failed') % (e)
-                            except: msg = 'Reset Failed: %s' % (e)
-                        else:
-                            msg = i18n('db_reset_success')
-                        kodi.notify(msg=msg, duration=5000)
-        
+                            if 'file may be in use' in str(e).lower() or 'cannot access the file' in str(e).lower():
+                                try:
+                                    kodi.notify(msg='Database reset failed: File is in use. Please close Kodi completely and restart.', duration=8000)
+                                except:
+                                    logger.log('Database reset failed: File is in use. Please close Kodi completely and restart.', log_utils.LOGERROR)
+                            else:
+                                try:
+                                    kodi.notify(msg=i18n('reset_failed') % str(e), duration=5000)
+                                except:
+                                    logger.log('Reset failed: %s' % str(e), log_utils.LOGERROR)
+
     def __execute(self, sql, params=None):
         if params is None:
             params = []
@@ -934,6 +1226,15 @@ class DB_Connection():
 
         return sql
 
+    # def delete_cached_url(self, url, data=None):
+    #     """Delete specific cached URL from database"""
+    #     try:
+    #         data_str = json.dumps(data) if data else None
+    #         self.execute_sql('DELETE FROM url_cache WHERE url=? AND data=?', (url, data_str))
+    #         self.__get_db_connection().commit()
+    #     except Exception as e:
+    #         logger.log(f'Error deleting cached URL: {e}', log_utils.LOGERROR)
+
     @abstractmethod
     def set(self, cache_id, data, checksum=None, expiration=None):
         """
@@ -949,3 +1250,133 @@ class DB_Connection():
         :return: None
         :rtype:
         """
+def get_mapping(anilist_id='', mal_id='', kitsu_id='', tmdb_id='', trakt_id=''):
+    # Acquire the lock to ensure thread safety
+    control.mappingDB_lock.acquire()
+    try:
+        # Establish a connection to the database
+        # Replace this with the appropriate connection method for SALTS
+        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cursor = conn.cursor()
+        
+        # Determine the ID type and value
+        mapping = {}
+        id_type, id_val = '', ''
+        if anilist_id:
+            id_type, id_val = 'anilist_id', anilist_id
+        elif mal_id:
+            id_type, id_val = 'mal_id', mal_id
+        elif kitsu_id:
+            id_type, id_val = 'kitsu_id', kitsu_id
+        elif tmdb_id:
+            id_type, id_val = 'themoviedb_id', tmdb_id
+        elif trakt_id:
+            id_type, id_val = 'trakt_id', trakt_id
+        
+        # Query the database if an ID type and value are provided
+        if id_type and id_val:
+            db_query = 'SELECT * FROM anime WHERE {0} IN ({1})'.format(id_type, id_val)
+            cursor.execute(db_query)
+            mapping = cursor.fetchone()
+        
+        # Close the cursor
+        cursor.close()
+    finally:
+        # Release the lock
+        control.try_release_lock(control.mappingDB_lock)
+    
+    return mapping
+
+def get_trakt_id_by_tmdb(tmdb_id):
+    control.mappingDB_lock.acquire()
+    try:
+        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cursor = conn.cursor()
+        mapping = None
+        if tmdb_id:
+            db_query = 'SELECT trakt_id FROM anime WHERE themoviedb_id = ?'
+            cursor.execute(db_query, (tmdb_id,))
+            mapping = cursor.fetchone()
+            cursor.close()
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+    return mapping['trakt_id'] if mapping else None
+
+def get_tvdb_season(trakt_id):
+    control.mappingDB_lock.acquire()
+    try:
+        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cursor = conn.cursor()
+        mapping = None
+        if trakt_id:
+            db_query = 'SELECT thetvdb_season FROM anime WHERE trakt_id = ?'
+            cursor.execute(db_query, (trakt_id,))
+            mapping = cursor.fetchall()
+            cursor.close()
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+    return mapping if mapping else None
+
+def get_tvdb_part(trakt_id):
+    control.mappingDB_lock.acquire()
+    try:
+        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cursor = conn.cursor()
+        mapping = None
+        if trakt_id:
+            db_query = 'SELECT thetvdb_part FROM anime WHERE trakt_id = ?'
+            cursor.execute(db_query, (trakt_id,))
+            mapping = cursor.fetchone()
+            cursor.close()
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+    return mapping['thetvdb_part'] if mapping else None
+
+def get_anidb_id(trakt_id):
+    control.mappingDB_lock.acquire()
+    try:
+        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cursor = conn.cursor()
+        mapping = None
+        if trakt_id:
+            db_query = 'SELECT anidb_id FROM anime WHERE trakt_id = ?'
+            cursor.execute(db_query, (trakt_id,))
+            mapping = cursor.fetchone()
+            cursor.close()
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+    return mapping['anidb_id'] if mapping else None
+
+
+def get_thetvdb_id(trakt_id):
+    control.mappingDB_lock.acquire()
+    try:
+        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cursor = conn.cursor()
+        mapping = None
+        if trakt_id:
+            db_query = 'SELECT thetvdb_id FROM anime WHERE trakt_id = ?'
+            cursor.execute(db_query, (trakt_id,))
+            mapping = cursor.fetchone()
+            cursor.close()
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+    return mapping['thetvdb_id'] if mapping else None
+
+def _dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d

@@ -437,11 +437,14 @@ class TVDBScraper(Scraper):
         art_dict = {}
         if need is None: need = ['fanart', 'poster', 'banner']
         any_art = any((BG_ENABLED, POSTER_ENABLED, BANNER_ENABLED))
+        logger.log('get_tvshow_images_v2: %s' % (ids), log_utils.LOGDEBUG)
         if 'tvdb' in ids and ids['tvdb'] and any_art and self.__get_token():
             url = '/series/%s/images/query' % (ids['tvdb'])
+            logger.log('url: %s' % (url), log_utils.LOGDEBUG)
             if BG_ENABLED and 'fanart' in need:
                 params = {'keyType': 'fanart'}
                 images = self._get_url(url, params, headers=self.headers)
+                logger.log('images: %s' % (images), log_utils.LOGDEBUG)
                 art_dict['fanart'] = self.__get_best_image(images.get('data', []))
             
             if POSTER_ENABLED and 'poster' in need:
@@ -460,9 +463,10 @@ class TVDBScraper(Scraper):
         season_art = {}
         if need is None: need = ['poster', 'banner']
         any_art = any((BANNER_ENABLED, POSTER_ENABLED))
+        logger.log('get_season_images: %s' % (ids), log_utils.LOGDEBUG)
         if 'tvdb' in ids and ids['tvdb'] and self.API_KEY and any_art:
             images = self.__get_images(self.__get_xml(ids['tvdb'], 'banners.xml'))
-            logger.log('images: %s' % images)
+            logger.log('images: %s' % (images), log_utils.LOGDEBUG)
             seasons = set([image['subKey'] for image in images.get('season', [])])
             seasons |= set([image['subKey'] for image in images.get('seasonwide', [])])
             
@@ -745,10 +749,13 @@ class TVMazeScraper(Scraper):
         url = '/lookup/shows'
         params = {key: video_id}
         js_data = self._get_url(url, params, cache_limit=24 * 7)
+        logger.log('js_data: %s' % (js_data), log_utils.LOGDEBUG)
         if 'id' in js_data and js_data['id']:
             art_dict['poster'] = self.__get_image(js_data)
             url = '/shows/%s/episodes' % (js_data['id'])
+            logger.log('url: %s' % (url), log_utils.LOGDEBUG)
             for ep_item in self._get_url(url, cache_limit=24):
+                logger.log('ep_item: %s' % (ep_item), log_utils.LOGDEBUG)
                 if ep_item['season'] == int(season) and ep_item['number'] == int(episode):
                     art_dict['thumb'] = self.__get_image(ep_item)
                     break
@@ -841,12 +848,14 @@ tvdbapi_scraper = TVDBAPI()
 tvdb_scraper = TVDBScraper()
 tmdb_scraper = TMDBScraper()
 def get_person_images(video_ids, person, cached=True):
-    ids = person['person']['ids']
-    person_art = {}
-    if 'tmdb' in ids and ids['tmdb']:
-        person_art.update(tmdb_scraper.get_person_images(ids))
-    elif 'tvdb' in ids and ids['tvdb']:
-        return person_art
+    if cached:
+        ids = person['person']['ids']
+        port = kodi.get_setting('proxy_port')
+        video_ids = urllib.parse.quote(json.dumps(video_ids))
+        params = {'image_type': 'thumb', 'video_type': OBJ_PERSON, 'trakt_id': ids['trakt'], 'video_ids': video_ids, 'name': person['person']['name'],
+                  'person_ids': json.dumps(ids)}
+        image_url = PROXY_TEMPLATE.format(port=port, action='') + '?' + urllib.parse.urlencode(params)
+        return {'thumb': image_url}
     else:
         return scrape_person_images(video_ids, person, cached)
 
@@ -863,7 +872,7 @@ def scrape_person_images(video_ids, person, cached=True):
     if not cached_art:
         logger.log('Getting person images for |%s| in media |%s|' % (person, video_ids), log_utils.LOGDEBUG)
         tried = False
-        if not person_art['thumb'] and 'tvdb' in video_ids and video_ids['tvdb']:
+        if not person_art.get('thumb') and 'tvdb' in video_ids and video_ids['tvdb']:
             norm_name = utils2.normalize_title(person['person']['name'])
             for member in tvdb_scraper.get_cast(video_ids['tvdb']):
                 tried = True
@@ -872,7 +881,7 @@ def scrape_person_images(video_ids, person, cached=True):
                     person_art['thumb'] = member['thumb']
                     break
         
-        if not person_art['thumb'] and 'tmdb' in ids and ids['tmdb']:
+        if not person_art.get('thumb') and 'tmdb' in ids and ids['tmdb']:
             tried = True
             person_art.update(tmdb_scraper.get_person_images(ids))
         
@@ -902,56 +911,23 @@ def clear_cache(video_type, video_ids, season='', episode=''):
 
 
 def get_images(video_type, video_ids, season='', episode='', cached=True):
-    art_dict = {}
-    max_retries = 3
-    retry_delay = 5  # seconds
-
-    if isinstance(video_ids, int):
+    if cached:
+        port = kodi.get_setting('proxy_port')
         trakt_id = video_ids['trakt']
         video_ids = json.dumps(video_ids)
-        image_types = ['poster', 'fanart', 'thumb', 'banner', 'clearart', 'clearlogo', 'seasonbanner', 'seasonposter']
-        
-        for image_type in image_types:
+        art_dict = {}
+        for image_type in ['banner', 'fanart', 'thumb', 'poster', 'clearart', 'clearlogo']:
             params = {'image_type': image_type, 'video_type': video_type, 'trakt_id': trakt_id, 'video_ids': video_ids}
+            # logger.log('image_scraper params: %s' % params)
             if video_type == VIDEO_TYPES.SEASON or video_type == VIDEO_TYPES.EPISODE:
                 params['season'] = season
+            
             if video_type == VIDEO_TYPES.EPISODE:
                 params['episode'] = episode
-
-            for attempt in range(max_retries):
-                if video_type == VIDEO_TYPES.MOVIE:
-                    if 'tmdb' in video_ids and video_ids['tmdb']:
-                        art_dict.update(tmdb_scraper.get_movie_images(video_ids))
-                if 'tvdb' in video_ids and video_ids['tvdb']:
-                    art_dict.update(fanart_scraper.get_movie_images(video_ids))
-                
-                if art_dict.get(image_type):
-                    break
-                else:
-                    time.sleep(retry_delay)
-        if video_type == VIDEO_TYPES.TVSHOW:
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(tmdb_scraper.get_tmdbshow_images(video_ids))
-            if 'tvdb' in video_ids and video_ids['tvdb']:
-                art_dict.update(tvdb_scraper.get_tvshow_images(video_ids))
-            if 'imdb' in video_ids and video_ids['imdb']:
-                art_dict.update(fanart_scraper.get_tvshow_images(video_ids))
-        if video_type == VIDEO_TYPES.SEASON:
-            if 'tvdb' in video_ids and video_ids['tvdb']:
-                art_dict.update(tvdb_scraper.get_season_images(video_ids))
-            if 'tvdb' in video_ids and video_ids['tvdb']:
-                art_dict.update(tvdb_scraper.get_season_images_v2(video_ids))
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(fanart_scraper.get_season_images(video_ids))
-        if video_type == VIDEO_TYPES.EPISODE:
-            if 'tmdb' in video_ids and video_ids['tmdb']:
-                art_dict.update(tmdb_scraper.__get_best_image(video_ids, season, episode))
-            if 'tvdb' in video_ids and video_ids['tvdb']:
-                art_dict.update(tvdb_scraper.get_episode_images(video_ids, episode))
-            if 'imdb' in video_ids and video_ids['imdb']:
-                art_dict.update(imdb_scraper.get_episode_images(video_ids, episode))
-        
-        return art_dict[image_type]
+            image_url = PROXY_TEMPLATE.format(port=port, action='') + '?' + urllib.parse.urlencode(params)
+            logger.log('image_scraper image_url: %s' % image_url)
+            art_dict[image_type] = image_url
+        return art_dict
     else:
         return scrape_images(video_type, video_ids, season, episode, cached)
 

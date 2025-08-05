@@ -1,6 +1,6 @@
 """
     tknorris shared module
-    Copyright (C) 2016 tknorris
+    Copyright (C) 2025 tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,11 +32,16 @@ sleep = xbmc.sleep
 _log = xbmc.log
 dialog = xbmcgui.Dialog()
 dp = xbmcgui.DialogProgress()
+try:
+    _kodiver = float(xbmcaddon.Addon('xbmc.addon').getAddonInfo('version')[:4])
+except ValueError:
+    pass  # Avoid error while executing unit tests
 datafolder = xbmcvfs.translatePath(os.path.join('special://profile/addon_data/', addon.getAddonInfo('id')))
 addonfolder = xbmcvfs.translatePath(os.path.join('special://home/addons/', addon.getAddonInfo('id')))
 addonicon = xbmcvfs.translatePath(os.path.join(addonfolder, 'icon.png'))
 addonfanart = xbmcvfs.translatePath(os.path.join(addonfolder, 'fanart.jpg'))
 execute = xbmc.executebuiltin
+
 
 def execute_jsonrpc(command):
     if not isinstance(command, str):
@@ -106,6 +111,25 @@ def get_kodi_version():
         
     return KodiVersion
 
+def getKodiVersion():
+    return int(xbmc.getInfoLabel("System.BuildVersion").split(".")[0])
+
+
+def metadataClean(metadata):
+    if metadata == None:
+        return metadata
+    allowed = ['aired', 'album', 'artist', 'cast',
+        'castandrole', 'code', 'country', 'credits', 'dateadded', 'dbid', 'director',
+        'duration', 'episode', 'episodeguide', 'genre', 'imdbnumber', 'lastplayed',
+        'mediatype', 'mpaa', 'originaltitle', 'overlay', 'path', 'playcount', 'plot',
+        'plotoutline', 'premiered', 'rating', 'season', 'set', 'setid', 'setoverview',
+        'showlink', 'sortepisode', 'sortseason', 'sorttitle', 'status', 'studio', 'tag',
+        'tagline', 'title', 'top250', 'totalepisodes', 'totalteasons', 'tracknumber',
+        'trailer', 'tvshowtitle', 'userrating', 'votes', 'watched', 'writer', 'year'
+    ]
+    return {k: v for k, v in six.iteritems(metadata) if k in allowed}
+
+
 def get_plugin_url(queries):
     """
     Constructs a plugin URL with the given query parameters.
@@ -132,11 +156,70 @@ def end_of_directory(cache_to_disc=True):
 def set_content(content):
     xbmcplugin.setContent(int(sys.argv[1]), content)
 
+def update_listitem(list_item, label):
+    if isinstance(label, dict):
+        cast2 = label.pop('cast2') if 'cast2' in label.keys() else []
+        unique_ids = label.pop('unique_ids') if 'unique_ids' in label.keys() else {}
+
+    if _kodiver > 19.8 and isinstance(label, dict):
+        vtag = list_item.getVideoInfoTag()
+        if label.get('mediatype'):
+            vtag.setMediaType(label['mediatype'])
+        if label.get('title'):
+            vtag.setTitle(label['title'])
+        if label.get('tvshowtitle'):
+            vtag.setTvShowTitle(label['tvshowtitle'])
+        if label.get('plot'):
+            vtag.setPlot(label['plot'])
+        if label.get('year'):
+            vtag.setYear(int(label['year']))
+        if label.get('premiered'):
+            vtag.setPremiered(label['premiered'])
+        if label.get('status'):
+            vtag.setTvShowStatus(label['status'])
+        if label.get('duration'):
+            vtag.setDuration(label['duration'])
+        if label.get('country'):
+            vtag.setCountries([label['country']])
+        if label.get('genre'):
+            vtag.setGenres(label['genre'])
+        if label.get('studio'):
+            vtag.setStudios(label['studio'])
+        if label.get('rating'):
+            vtag.setRating(label['rating'])
+        if label.get('trailer'):
+            vtag.setTrailer(label['trailer'])
+        if label.get('season'):
+            vtag.setSeason(int(label['season']))
+        if label.get('episode'):
+            vtag.setEpisode(int(label['episode']))
+        if label.get('aired'):
+            vtag.setFirstAired(label['aired'])
+        if label.get('playcount'):
+            vtag.setPlaycount(label['playcount'])
+        if cast2:
+            cast2 = [xbmc.Actor(p['name'], p['role'], cast2.index(p), p['thumbnail']) for p in cast2]
+            vtag.setCast(cast2)
+        if unique_ids:
+            vtag.setUniqueIDs(unique_ids)
+            if 'imdb' in list(unique_ids.keys()):
+                vtag.setIMDBNumber(unique_ids['imdb'])
+    else:
+        list_item.setInfo(type='Video', infoLabels=label)
+        if cast2:
+            list_item.setCast(cast2)
+        if unique_ids:
+            list_item.setUniqueIDs(unique_ids)
+    return
+
 def create_item(queries, label, thumb='', fanart='', is_folder=None, is_playable=None, total_items=0, menu_items=None, replace_menu=False):
     if not thumb:
         thumb = os.path.join(get_path(), 'icon.png')
+
     list_item = xbmcgui.ListItem(label)
     list_item.setArt({'icon': thumb, 'thumb': thumb, 'fanart': fanart})
+    # if isinstance(label, dict):
+    #     update_listitem(list_item, label)
     add_item(queries, list_item, fanart, is_folder, is_playable, total_items, menu_items, replace_menu)
 
 def add_item(queries, list_item, fanart='', is_folder=None, is_playable=None, total_items=0, menu_items=None, replace_menu=False):
@@ -344,6 +427,84 @@ class Translations(object):
         except KeyError as e:
             xbmc.log('%s: Failed String Lookup in strings.py: %s (%s)' % (self.addon.getAddonInfo('id'), string_id, e), xbmc.LOGWARNING)
             return string_id
+
+    def get_scraper_label_id(scraper_name):
+        """Maps scraper names to their language string IDs"""
+        SCRAPER_IDS = {
+            'AioStreams': 40643,
+            'DebridCloud': 30398,
+            'CouchTuner': 30399,
+            'Animetosho': 30400,
+            'DDLValley': 30401,
+            'EasyNews': 30402,
+            'Furk.net': 30403,
+            'Local': 30404,
+            'Orion': 30405,
+            'Premiumize.me': 30406,
+            'Premiumize.V2': 30407,
+            'RMZ': 30408,
+            'scene-rls': 30409,
+            'TorrentGalaxy': 30410,
+            'LosMovies': 30411,
+            'Torrentio': 30412,
+            'Bitlord': 30413,
+            'Aniwatch': 30414,
+            'Binged': 30415,
+            'SeriesOnline': 30416,
+            'Nyaa': 30418,
+            '1337x': 30419,
+            'Bitsearch': 30420,
+            'Anidex': 30421,
+            'Elfhosted': 30422,
+            'EZTV': 30423,
+            'KAT': 30424,
+            'H!anime': 30425,
+            'H!anime Alt': 30426,
+            'RARBG': 30427,
+            'Rutor': 30428,
+            'SkyTorrents': 30429,
+            'Torrentz2': 30430,
+            'Snowfl': 30431,
+            'Movie4K': 30432,
+            'TorrentDownload': 30433,
+            'Gogoanime': 30605,
+            'Gogoanime alt': 40606,
+            'NunFlix': 40607,
+            'Limetorrents': 40608,
+            'SolarMovie': 40609,
+            'Kickass2': 40611,
+            'Dailymotion': 40612,
+            'DebridSearch': 40613,
+            'IsoHunt2': 40614,
+            'YourBittorrent': 40615,
+            'BitCQ': 40616,
+            'TorrentFunk': 40617,
+            'GogoHD': 40621,
+            'TorrentFunk': 40622,
+            'ReleaseBB': 40624,
+            'Vidsrc': 40625,
+            'WatchSeriesHD': 40627,
+            'Thepiratebay': 40628,
+            'Mediafusion': 40629,
+            'PFTV': 40630,
+            'Jackettio': 40631,
+            'Comet': 40632,
+            'GloDLS': 40634,
+            'AniRena': 40639,
+            'AioStreams': 40643,
+            'Qbit': 40655,
+            'Torlock': 40656,
+            'iDope': 40812,
+            'CloudTorrents': 40635,
+            'WebStreamr': 40915,
+            'DoMovies': 40814,
+            'BstSrs': 40815,
+            'TVMovieFlix': 40816,
+            'SFlixWatch': 40817,
+            'M4UHD': 40818,
+            # Add more mappings as needed
+        }
+        return SCRAPER_IDS.get(scraper_name, 30000)  # Fallback to default
 
 class WorkingDialog(object):
     def __init__(self):

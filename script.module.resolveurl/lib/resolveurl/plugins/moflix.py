@@ -16,10 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import codecs
 import re
-import json
-from resolveurl.lib.jscrypto import jscrypto
+from six.moves import urllib_parse
 from resolveurl.lib import helpers
 from resolveurl import common
 from resolveurl.resolver import ResolveUrl, ResolverError
@@ -27,29 +25,69 @@ from resolveurl.resolver import ResolveUrl, ResolverError
 
 class MoflixStreamResolver(ResolveUrl):
     name = 'MoflixStream'
-    domains = ['moflix-stream.fans']
-    pattern = r'(?://|\.)(moflix-stream\.fans)/(?:d|v)/([0-9a-zA-Z]+)'
+    domains = [
+        'moflix-stream.fans', 'boosteradx.online', 'mov18plus.cloud',
+        'moviesapi.club', 'boosterx.stream', 'vidstreamnew.xyz',
+        'boltx.stream', 'chillx.top', 'watchx.top', 'bestx.stream',
+        'playerx.stream', 'vidstreaming.xyz'
+    ]
+    pattern = r'(?://|\.)((?:moflix-stream|boostera?d?x|mov18plus|w1\.moviesapi|vidstream(?:new|ing)|(?:chill|watch|best|bolt|player)x)\.' \
+              r'(?:fans|online|cloud|club|stream|xyz|top))/' \
+              r'(?:d|v)/([0-9a-zA-Z$:/.-_]+)'
 
-    def get_media_url(self, host, media_id):
-        web_url = self.get_url(host, media_id)
+    def get_media_url(self, host, media_id, subs=False):
         headers = {'User-Agent': common.RAND_UA}
+        if '$$' in media_id:
+            media_id, referer = media_id.split('$$')
+            referer = urllib_parse.urljoin(referer, '/')
+            headers.update({'Referer': referer})
+        elif 'moviesapi' in host:
+            headers.update({'Referer': 'https://moviesapi.club/'})
+        web_url = self.get_url(host, media_id)
         html = self.net.http_GET(web_url, headers=headers).content
-        r = re.search(r'''Encrypted\s*=\s*'([^']+)''', html)
+        r = re.search(r'''(?:const|var|let|window\.)\s*\w*\s*=\s*'([^']+)''', html)
         if r:
-            data = json.loads(r.group(1))
-            ct = data.get('ct')
-            salt = codecs.decode(data.get('s'), 'hex')
-            dt = jscrypto.decode(ct, '=JV[t}{trEV=Ilh5', salt)
-            r = re.search(r'file:\s*\\"([^"]+)', dt)
+            html2 = self.mf_decrypt(r.group(1))
+            r = re.search(r'file"?\s*:\s*"([^"]+)', html2)
             if r:
-                murl = r.group(1).replace('\\', '')
+                murl = r.group(1)
                 headers.update({
                     'Referer': 'https://{0}/'.format(host),
                     'Origin': 'https://{0}'.format(host)
                 })
-                return murl + helpers.append_headers(headers)
+                stream_url = murl + helpers.append_headers(headers)
+                if subs:
+                    subtitles = helpers.scrape_subtitles(
+                        html2,
+                        web_url,
+                        patterns=[r'''["']?\s*(?:file|src)\s*["']?\s*[:=,]?\s*["'](?P<url>[^"']+)(?:[^}>\]]+)["']?\s*label\s*["']?\s*[:=]\s*["']?(?P<label>[^"',]+)["'],"kind":"captions"'''],
+                        generic_patterns=False
+                    )
+                    if not subtitles:
+                        s = re.search(r'subtitle"?:\s*"([^"]+)', html2)
+                        if s:
+                            subs = s.group(1).split(',')
+                            subtitles = {x.split(']')[0][1:]: x.split(']')[1] for x in subs}
+                    return stream_url, subtitles
+                return stream_url
 
         raise ResolverError('File not found')
 
     def get_url(self, host, media_id):
-        return self._default_get_url(host, media_id, template='https://{host}/v/{media_id}/')
+        return self._default_get_url(host, media_id, template='https://{host}/v/{media_id}')
+
+    @staticmethod
+    def mf_decrypt(data):
+        """
+        (c) 2025 yogesh-hacker
+        """
+        # Func ID: YP32NeJ
+        import hashlib
+        from resolveurl.lib import pyaes
+        data = helpers.b64decode(data, binary=True)
+        password = helpers.b64decode("ZlpEaWRvcURMZkNBVihHJkM4", binary=True)
+        key = hashlib.sha256(password).digest()
+        decryptor = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key, data[32:48]))
+        ddata = decryptor.feed(data[48:])
+        ddata += decryptor.feed()
+        return ddata.decode('utf-8')

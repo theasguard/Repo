@@ -21,6 +21,7 @@ import io, re, json, gzip, datetime, time, os, html
 import html.entities, urllib.parse, urllib.request, urllib.error, six
 import xbmcgui
 import hashlib
+import xbmcvfs
 import _strptime  # @UnusedImport
 import xml.etree.ElementTree as ET
 import log_utils
@@ -107,22 +108,51 @@ def _released_key(item):
 
 def sort_list(sort_key, sort_direction, list_data):
     logger.log('Sorting List: %s - %s' % (sort_key, sort_direction), log_utils.LOGDEBUG)
+    
+    # Defensive programming: ensure list_data is actually a list
+    if not isinstance(list_data, list):
+        logger.log('sort_list: Expected list, got %s. Returning original data.' % type(list_data), log_utils.LOGWARNING)
+        return list_data
+    
+    # Check if list is empty or contains non-dict items
+    if not list_data or not isinstance(list_data[0], dict):
+        logger.log('sort_list: List is empty or contains non-dict items. Returning original data.', log_utils.LOGDEBUG)
+        return list_data
+    
     reverse = sort_direction != TRAKT_SORT_DIR.ASCENDING
 
+    def get_item_data(item):
+        """Get the show/movie data from the item, handling different data structures."""
+        if 'type' in item:
+            # Standard list format: item contains type and nested show/movie data
+            return item[item['type']]
+        elif 'show' in item:
+            # Watch history format: item contains show data directly
+            return item['show']
+        elif 'movie' in item:
+            # Watch history format: item contains movie data directly
+            return item['movie']
+        else:
+            # Fallback: return the item itself
+            return item
+
     def get_title(item):
-        return title_key(item[item['type']].get('title', ''))
+        return title_key(get_item_data(item).get('title', ''))
 
     def get_released(item):
-        return _released_key(item[item['type']])
+        return _released_key(get_item_data(item))
 
     def get_runtime(item):
-        return item[item['type']].get('runtime', 0)
+        return get_item_data(item).get('runtime', 0)
 
     def get_votes(item):
-        return item[item['type']].get('votes', 0)
+        return get_item_data(item).get('votes', 0)
 
     def get_rating(item):
-        return item[item['type']].get('rating', 0)
+        return get_item_data(item).get('rating', 0)
+
+    def get_plays(item):
+        return item.get('plays', 0)
 
     sort_functions = {
         TRAKT_LIST_SORT.RANK: lambda x: x['rank'],
@@ -132,11 +162,14 @@ def sort_list(sort_key, sort_direction, list_data):
         TRAKT_LIST_SORT.RUNTIME: get_runtime,
         TRAKT_LIST_SORT.POPULARITY: get_votes,
         TRAKT_LIST_SORT.PERCENTAGE: get_rating,
-        TRAKT_LIST_SORT.VOTES: get_votes
+        TRAKT_LIST_SORT.VOTES: get_votes,
+        TRAKT_LIST_SORT.PLAYS: get_plays
     }
 
     if sort_key in sort_functions:
-        return sorted(list_data, key=sort_functions[sort_key], reverse=reverse)
+        sorted_list = sorted(list_data, key=sort_functions[sort_key], reverse=reverse)
+        logger.log('Sorted list: %s' % (sorted_list), log_utils.LOGDEBUG)
+        return sorted_list
     else:
         logger.log('Unrecognized list sort key: %s - %s' % (sort_key, sort_direction), log_utils.LOGWARNING)
         return list_data
@@ -184,6 +217,25 @@ def make_episodes_watched(episodes, progress):
     except (TypeError, ValueError) as e:
         return episodes
 
+def make_episodes_watched_dict(progress):
+    """Create a dictionary of watched episodes similar to make_episodes_watched"""
+    watched = {}
+    try:
+        if not progress or 'seasons' not in progress:
+            return watched
+            
+        for season in progress['seasons']:
+            season_num = str(season['number'])
+            watched.setdefault(season_num, {})
+            for ep_status in season['episodes']:
+                ep_num = str(ep_status['number'])
+                watched[season_num][ep_num] = ep_status['completed']
+                
+        return watched
+    except Exception as e:
+        logger.log(f'Error creating watched dict: {e}', log_utils.LOGERROR)
+        return watched
+
 def make_trailer(trailer_url):
     match = re.search(r'\?v=(.*)', trailer_url)
     if match:
@@ -215,10 +267,12 @@ def make_people(item):
     people = {}
     if 'crew' in item and 'directing' in item['crew']:
         directors = [director['person']['name'] for director in item['crew']['directing'] if director['job'].lower() == 'director']
-        people['director'] = ', '.join(directors)
+        if directors:
+            people['director'] = directors  # Keep as list for proper infotagger handling
     if 'crew' in item and 'writing' in item['crew']:
         writers = [writer['person']['name'] for writer in item['crew']['writing'] if writer['job'].lower() in ['writer', 'screenplay', 'author']]
-        people['writer'] = ', '.join(writers)
+        if writers:
+            people['writer'] = writers  # Keep as list for proper infotagger handling
 
     return people
 
@@ -355,11 +409,11 @@ def sort_sources_list(sources):
         try:
             sources.sort(key=lambda x: int(re.sub(r"\D", "", x[0])), reverse=True)
         except:
-            logger.log_debug(r'Scrape sources sort failed |int(re.sub("\D", "", x[0])|')
+            logger.log('Sort failed: %s' % sources, log_utils.LOGDEBUG)
             try:
                 sources.sort(key=lambda x: re.sub("[^a-zA-Z]", "", x[0].lower()))
             except:
-                logger.log_debug('Scrape sources sort failed |re.sub("[^a-zA-Z]", "", x[0].lower())|')
+                logger.log('Sort failed: %s' % sources, log_utils.LOGDEBUG)
     return sources
 
 def make_source_sort_string(sort_key):
@@ -407,23 +461,9 @@ def test_stream(hoster):
     return int(http_code) < 400
 
 def scraper_enabled(name):
-    """
-    Check if a scraper is enabled.
-    
-    :param name: The name of the scraper
-    :return: True if the scraper is enabled or the setting doesn't exist, False otherwise
-    """
-    # Get the scraper enable setting
-    setting_id = f'{name}-enable'
-    setting_value = kodi.get_setting(setting_id)
-    
-    # If the setting doesn't exist, create it and set it to 'true'
-    if not setting_value:
-        kodi.set_setting(setting_id, 'true')
-        return True
-    
-    # Return True if the setting is 'true', False otherwise
-    return setting_value == 'true'
+    # return true if setting exists and set to true, or setting doesn't exist (i.e. '')
+    return kodi.get_setting('%s-enable' % (name)) in ('true', '')
+
 
 def make_day(date, use_words=True):
     date = to_datetime(date, '%Y-%m-%d').date()
@@ -484,7 +524,6 @@ def format_sub_label(sub):
     return label
 
 def format_source_label(item):
-    logger.log('format_source_label: %s' % item, log_utils.LOGDEBUG)
     color = kodi.get_setting('debrid_color') or 'green'
     # BLAMO
     orion = 'orion' in item and kodi.get_setting('show_orion') == 'true'
@@ -499,6 +538,7 @@ def format_source_label(item):
     # BLAMO
     if 'debrid' in item and item['debrid']:
         label += ' (%s)' % (', '.join(item['debrid']))
+
     item['label'] = label
     return label
     

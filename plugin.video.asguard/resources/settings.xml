@@ -139,13 +139,6 @@
 					</constraints>
 					<control type="spinner" format="string"/>
 				</setting>
-				<setting id="next_up_time" type="number" label="40485" help="">
-					<level>0</level>
-					<default>3</default>
-					<control type="slider" format="number">
-						<popup>true</popup>
-					</control>
-				</setting>
 				<setting id="show_season0" type="boolean" label="30507" help="">
 					<level>0</level>
 					<default>true</default>
@@ -253,7 +246,7 @@
 							<condition on="property" name="InfoBool">false</condition>
 						</dependency>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="edit" format="string">
@@ -278,7 +271,7 @@
 					</constraints>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="edit" format="string">
@@ -293,7 +286,7 @@
 					</constraints>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="edit" format="string">
@@ -308,7 +301,7 @@
 					</constraints>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="edit" format="string">
@@ -320,7 +313,7 @@
 					<default>0</default>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="edit" format="integer">
@@ -377,7 +370,7 @@
 					</constraints>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="edit" format="string">
@@ -389,96 +382,111 @@
 					<default>false</default>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
 			</group>
 		</category>
-		<category id="accounts" label="30310" help="">
-			<group id="1">
-				<setting id="alldebrid_auth" type="action" label="40343" help="">
-					<level>0</level>
-					<data>RunPlugin(plugin://plugin.video.asguard/?mode=authAllDebrid)</data>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<control type="button" format="action"/>
+		<category id="consumet" label="40620" help="">
+			<group id="2">
+			<setting id="mod_domains" type="boolean" label="40626" help="">
+				<level>0</level>
+				<default>true</default>
+				<control type="toggle" />
+			</setting>
+			<setting id="consumet.hosting.bool" type="boolean" label="40620" help="">
+				<level>0</level>
+				<default>false</default>
+				<control type="toggle" />
+			</setting>
+			<setting id="consumet.hosting.menu" type="string" label="40620" help="">
+				<level>0</level>
+				<default></default>
+				<constraints>
+					<allowempty>true</allowempty>
+				</constraints>
+				<dependencies>
+					<dependency type="visible">
+						<condition on="property" name="InfoBool">true</condition>
+					</dependency>
+				</dependencies>
+				<control type="edit" format="string">
+					<heading/>
+					</control>
 				</setting>
+			</group>
+		</category>
+		<category id="accounts" label="30310" help="">
+			<group id="3">
 				<setting id="general_manual_select" type="boolean" label="40481" help="">
 					<level>0</level>
 					<default>true</default>
 					<control type="toggle"/>
 				</setting>
-				<setting id="alldebrid_api_key" type="string" label="30311" help="">
+				<setting id="simkl_user" type="string" label="40649" help="">
 					<level>0</level>
 					<default></default>
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
 					<control type="edit" format="string">
-						<heading/>
+						<heading>Simkl User</heading>
 					</control>
 				</setting>
-				<setting id="realdebrid.apikey" type="string" label="40618" help="">
-					<level>0</level>
-					<default></default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading/>
-					</control>
-				</setting>
-				<setting id="premiumize.apikey" type="string" label="40619" help="">
-					<level>0</level>
-					<default></default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading/>
-					</control>
-				</setting>
-				<setting id="alldebrid.user" type="string" label="40342" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
 
-					<control type="edit" format="string">
-						<heading>     Username</heading>
-					</control>
-				</setting>
-				<setting id="alldebrid.pass" type="string" label="30178" help="">
+				<setting id="simkl_oauth_token" type="string" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
 					<control type="edit" format="string">
-						<heading>     Password</heading>
-						<hidden>true</hidden>
+						<heading>Simkl OAuth Token</heading>
 					</control>
 				</setting>
-				<setting id="auto_pick" type="boolean" label="40481" help="">
+				<setting id="tvdb_api_key" type="string" label="40640" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
+				<setting id="tvdbtokenov" type="string" label="40641" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
+				<setting id="trakt.expires" type="string" label="40911" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>Trakt Expires</heading>
+					</control>
+				</setting>
+				<setting id="trakt_use_optimized" type="boolean" label="40912" help="">
 					<level>0</level>
 					<default>false</default>
 					<dependencies>
@@ -491,7 +499,7 @@
 			</group>
 		</category>
 		<category id="my next episodes" label="30022" help="">
-			<group id="1">
+			<group id="4">
 				<setting id="mne_time" type="integer" label="30684" help="">
 					<level>0</level>
 					<default>0</default>
@@ -527,12 +535,12 @@
 				</setting>
 				<setting id="use_cached_exclusion" type="boolean" label="30659" help="">
 					<level>0</level>
-					<default>true</default>
+					<default>false</default>
 					<control type="toggle"/>
 				</setting>
 				<setting id="show_unaired_next" type="boolean" label="30506" help="">
 					<level>0</level>
-					<default>false</default>
+					<default>true</default>
 					<control type="toggle"/>
 				</setting>
 				<setting id="show_next_up" type="boolean" label="30686" help="">
@@ -542,7 +550,7 @@
 				</setting>
 				<setting id="next_unwatched" type="boolean" label="30688" help="">
 					<level>0</level>
-					<default>false</default>
+					<default>true</default>
 					<dependencies>
 						<dependency type="enable">
 							<condition operator="is" setting="show_next_up">true</condition>
@@ -555,7 +563,7 @@
 					<default>5</default>
 					<constraints>
 						<minimum>0</minimum>
-						<maximum>20</maximum>
+						<maximum>50</maximum>
 					</constraints>
 					<dependencies>
 						<dependency type="enable">
@@ -568,10 +576,26 @@
 				</setting>
 				<setting id="next_up_duration" type="integer" label="30691" help="">
 					<level>0</level>
-					<default>2</default>
+					<default>5</default>
 					<constraints>
 						<minimum>1</minimum>
 						<maximum>30</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="show_next_up">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="slider" format="integer">
+						<popup>false</popup>
+					</control>
+				</setting>
+				<setting id="next_up_prompt" type="integer" label="40646" help="">
+					<level>0</level>
+					<default>40</default>
+					<constraints>
+						<minimum>1</minimum>
+						<maximum>100</maximum>
 					</constraints>
 					<dependencies>
 						<dependency type="enable">
@@ -602,7 +626,7 @@
 			</group>
 		</category>
 		<category id="user interface" label="30546" help="">
-			<group id="1">
+			<group id="5">
 				<setting id="show_trending" type="boolean" label="30524" help="">
 					<level>0</level>
 					<default>true</default>
@@ -724,7 +748,7 @@
 					<control type="toggle"/>
 				</setting>
 			</group>
-			<group id="2" label="30540">
+			<group id="6" label="30540">
 				<setting id="movies_view" type="integer" label="30541" help="">
 					<level>0</level>
 					<default>0</default>
@@ -788,7 +812,7 @@
 			</group>
 		</category>
 		<category id="trakt tv" label="30417" help="">
-			<group id="1">
+			<group id="7">
 				<setting id="trakt_offline" type="boolean" label="30674" help="">
 					<level>0</level>
 					<default>false</default>
@@ -805,16 +829,16 @@
 							<condition operator="is" setting="trakt_offline">false</condition>
 						</dependency>
 						<dependency type="visible">
-							<condition operator="is" setting="trakt_user"/>
+							<condition operator="is" setting="trakt_user"></condition>
 						</dependency>
 					</dependencies>
 					<control type="button" format="action">
 						<close>true</close>
 					</control>
 				</setting>
-				<setting id="trakt_user" type="action" label="30501" help="">
+				<setting id="trakt_user" type="string" label="30501" help="">
 					<level>0</level>
-					<data>RunPlugin(plugin://plugin.video.asguard/?mode=auth_trakt)</data>
+					<default></default>
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
@@ -822,8 +846,25 @@
 						<dependency type="enable">
 							<condition operator="is" setting="trakt_offline">false</condition>
 						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30501</heading>
+						<enable>false</enable>
+					</control>
+				</setting>
+				<setting id="trakt_reauth" type="action" label="40524" help="">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.asguard/?mode=auth_trakt)</data>
+					<constraints>
+						<writable>true</writable>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="trakt_offline">false</condition>
+						</dependency>
 						<dependency type="visible">
-							<condition operator="!is" setting="trakt_user"/>
+							<condition operator="!is" setting="trakt_user"></condition>
 						</dependency>
 					</dependencies>
 					<control type="button" format="action">
@@ -943,11 +984,11 @@
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
-					<dependencies>
+					<!-- <dependencies>
 						<dependency type="visible">
 							<condition on="property" name="InfoBool">false</condition>
 						</dependency>
-					</dependencies>
+					</dependencies> -->
 					<control type="edit" format="string">
 						<heading/>
 					</control>
@@ -973,13 +1014,13 @@
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
-					<dependencies>
+					<!-- <dependencies>
 						<dependency type="visible">
 							<condition on="property" name="InfoBool">false</condition>
 						</dependency>
-					</dependencies>
+					</dependencies> -->
 					<control type="edit" format="string">
-						<heading/>
+						<heading>Trakt OAuth Token</heading>
 					</control>
 				</setting>
 				<setting id="trakt_refresh_token" type="string" help="">
@@ -988,11 +1029,11 @@
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
-					<dependencies>
+					<!-- <dependencies>
 						<dependency type="visible">
 							<condition on="property" name="InfoBool">false</condition>
 						</dependency>
-					</dependencies>
+					</dependencies> -->
 					<control type="edit" format="string">
 						<heading/>
 					</control>
@@ -1012,7 +1053,7 @@
 			</group>
 		</category>
 		<category id="artwork scraping" label="30723" help="">
-			<group id="1" label="30730">
+			<group id="8" label="30730">
 				<setting id="proxy_port" type="integer" label="30732" help="">
 					<level>0</level>
 					<default>9090</default>
@@ -1029,7 +1070,7 @@
 					<control type="button" format="action"/>
 				</setting>
 			</group>
-			<group id="2" label="30725">
+			<group id="9" label="30725">
 				<setting id="bg_enable" type="boolean" label="30719" help="">
 					<level>0</level>
 					<default>true</default>
@@ -1061,7 +1102,7 @@
 					<control type="toggle"/>
 				</setting>
 			</group>
-			<group id="3" label="30710">
+			<group id="10" label="30710">
 				<setting id="fanart_enable" type="boolean" label="30717" help="">
 					<level>0</level>
 					<default>true</default>
@@ -1097,6 +1138,11 @@
 					<default>true</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="merge_tvdb_seasons" type="boolean" label="40637" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
 				<setting id="fanart_key" type="string" label="30711" help="">
 					<level>0</level>
 					<default>d2c98a4e6096e0b24b8560107c48dae2</default>
@@ -1111,9 +1157,16 @@
 				</setting>
 				<setting id="tmdb_key" type="string" label="30712" help="">
 					<level>0</level>
-					<default>b9dac73f34df572d5e551a8a66cfeb87</default>
+					<default>016d2dad0c3c32603034dbefd536ea07</default>
 					<control type="edit" format="string">
 						<heading>30712</heading>
+					</control>
+				</setting>
+				<setting id="tvdb_token" type="string" label="40636" help="">
+					<level>0</level>
+					<default>83914568d0554943a7894175d6466b05</default>
+					<control type="edit" format="string">
+						<heading>40636</heading>
 					</control>
 				</setting>
 				<setting id="tvdb_key" type="string" label="30713" help="">
@@ -1126,10 +1179,17 @@
 						<heading>30713</heading>
 					</control>
 				</setting>
+				<setting id="tmdb_bearer_token" type="string" label="40910" help="">
+					<level>0</level>
+					<default>eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwMTZkMmRhZDBjM2MzMjYwMzAzNGRiZWZkNTM2ZWEwNyIsIm5iZiI6MTUyMTE2NDgyNi43NDU5OTk4LCJzdWIiOiI1YWFiMjIxYTBlMGEyNjFlNDYwMDg1Y2QiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.DIEXQ20txApZ3D79xdVca4qZIxMasv4RmNLPcCH8LZI</default>
+					<control type="edit" format="string">
+						<heading>40910</heading>
+					</control>
+				</setting>
 			</group>
 		</category>
 		<category id="library integration" label="30557" help="">
-			<group id="1">
+			<group id="11">
 				<setting id="tvshow-folder" type="path" label="30558" help="">
 					<level>0</level>
 					<default>special://userdata/addon_data/plugin.video.asguard/TVShows</default>
@@ -1307,7 +1367,7 @@
 			</group>
 		</category>
 		<category id="source management" label="30571" help="">
-			<group id="1">
+			<group id="12">
 				<setting id="auto-play" type="boolean" label="30572" help="">
 					<level>0</level>
 					<default>false</default>
@@ -1623,7 +1683,7 @@
 			</group>
 		</category>
 		<category id="source sorting" label="30591" help="">
-			<group id="1">
+			<group id="13">
 				<setting id="enable_sort" type="boolean" label="30592" help="">
 					<level>0</level>
 					<default>false</default>
@@ -1725,6 +1785,7 @@
 							<option label="30608">4</option>
 							<option label="30609">5</option>
 							<option label="30655">6</option>
+							<option label="40623">7</option>
 						</options>
 					</constraints>
 					<dependencies>
@@ -1978,2266 +2039,8 @@
 				</setting>
 			</group>
 		</category>
-		<category id="scrapers 1" label="30318" help="">
-			<group id="1">
-				<setting id="Anidex-enable" type="boolean" label="30421" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Anidex-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://anidex.info</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Anidex-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Anidex-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Anidex-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Anidex-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Animetosho-enable" type="boolean" label="30400" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Animetosho-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://animetosho.org</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Animetosho-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Animetosho-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Animetosho-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Animetosho-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Aniwave-enable" type="boolean" label="30414" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Aniwave-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://aniwave.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Aniwave-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Aniwave-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Aniwave-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Binged-enable" type="boolean" label="30415" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Binged-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://binged.live</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Binged-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Binged-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Binged-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Bitsearch-enable" type="boolean" label="30420" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Bitsearch-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://bitsearch.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Bitsearch-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Bitsearch-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Bitsearch-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Bitsearch-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="BitCQ-enable" type="boolean" label="40616" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="BitCQ-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://bitcq.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="BitCQ-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="BitCQ-min_seeders" type="integer" label="40486" help="">
-					<level>0</level>
-					<default>3</default>
-					<constraints>
-						<minimum>2</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="CouchTunerV1-enable" type="boolean" label="30399" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="CouchTunerV1-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.couchtuner.show</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="CouchTunerV1-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="CouchTunerV1-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="CouchTunerV1-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Dailymotion-enable" type="boolean" label="40612" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Dailymotion-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.dailymotion.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Dailymotion-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="DDLValley-enable" type="boolean" label="30401" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="DDLValley-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.ddlvalley.me</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="DDLValley-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="DDLValley-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="DDLValley-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="DDLValley-filter" type="integer" label="30179" help="">
-					<level>0</level>
-					<default>60</default>
-					<constraints>
-						<minimum>0</minimum>
-						<maximum>180</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Animetosho-result_limit">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="DebridCloudFiles-enable" type="boolean" label="30398" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="DebridCloudFiles-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="DebridCloudFiles-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="DebridCloudFiles-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="DebridCloudFiles-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Gogoanime-enable" type="boolean" label="40605" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Gogoanime-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://gogoanime3.co/</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Gogoanime-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="gogoalt-enabled" type="boolean" label="40606" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="gogoalt-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://anitaku.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="gogoalt-enabled">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Gogoanime-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Gogoanime-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Kickass2-enable" type="boolean" label="40611" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Kickass2-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://kickass.cm</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Kickass2-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Kickass2-min_seeders" type="integer" label="40486" help="">
-					<level>0</level>
-					<default>3</default>
-					<constraints>
-						<minimum>2</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Local-enable" type="boolean" label="30404" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Local-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Local-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Local-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Local-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Local-def-quality" type="integer" label="30312" help="">
-					<level>0</level>
-					<default>0</default>
-					<constraints>
-						<options>
-							<option label="None">0</option>
-							<option label="Low">1</option>
-							<option label="Medium">2</option>
-							<option label="High">3</option>
-							<option label="HD720">4</option>
-							<option label="HD1080">5</option>
-							<option label="HD4K">6</option>
-						</options>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Local-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="spinner" format="string"/>
-				</setting>
-				<setting id="Limetorrents-enable" type="boolean" label="40608" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Limetorrents-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.limetorrents.pro</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Limetorrents-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Limetorrents-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Limetorrents-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Limetorrents-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Nyaa-enable" type="boolean" label="30418" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Nyaa-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://nyaa.si</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Nyaa-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Nyaa-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Nyaa-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Nyaa-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="RMZ-enable" type="boolean" label="30408" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="RMZ-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://rmz.cr</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="RMZ-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="RMZ-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="RMZ-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="RMZ-filter" type="integer" label="30179" help="">
-					<level>0</level>
-					<default>60</default>
-					<constraints>
-						<minimum>0</minimum>
-						<maximum>180</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="RMZ-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="RMZ-select" type="integer" label="30180" help="">
-					<level>0</level>
-					<default>0</default>
-					<constraints>
-						<options>
-							<option label="30636">0</option>
-							<option label="30637">1</option>
-						</options>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="RMZ-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="spinner" format="string"/>
-				</setting>
-				<setting id="scene-rls-enable" type="boolean" label="30409" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="scene-rls-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>http://scene-rls.net</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="scene-rls-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="scene-rls-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="scene-rls-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="scene-rls-filter" type="integer" label="30179" help="">
-					<level>0</level>
-					<default>30</default>
-					<constraints>
-						<minimum>0</minimum>
-						<maximum>180</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="scene-rls-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="scene-rls-select" type="integer" label="30180" help="">
-					<level>0</level>
-					<default>0</default>
-					<constraints>
-						<options>
-							<option label="30636">0</option>
-							<option label="30637">1</option>
-						</options>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="scene-rls-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="spinner" format="string"/>
-				</setting>
-			</group>
-		</category>
-		<category id="scrapers 2" label="30319" help="">
-			<group id="1">
-				<setting id="LosMovies-enable" type="boolean" label="30411" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="LosMovies-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://yifytv.lol</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="LosMovies-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="LosMovies-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="LosMovies-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Torrentz2-enable" type="boolean" label="30430" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Torrentz2-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://torrentz2.nz</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Torrentz2-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Torrentz2-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="TorrentDownload-enable" type="boolean" label="30433" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="TorrentDownload-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.torrentdownload.info</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="TorrentDownload-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="TorrentDownload-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Snow-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="TorrentDownload-min_seeders" type="integer" label="40486" help="">
-					<level>0</level>
-					<default>5</default>
-					<constraints>
-						<minimum>2</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="TorrentFunk-enable" type="boolean" label="40617" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="TorrentFunk-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.torrentfunk.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="TorrentFunk-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="TorrentFunk-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Snow-enable" type="boolean" label="30431" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Snow-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://snowfl.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Snow-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Snow-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Snow-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Snow-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="H!anime-enable" type="boolean" label="30425" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="H!anime-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://hianime.sx</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="H!anime-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Hianimealt-enable" type="boolean" label="30426" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Hianimealt-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://hianime.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Hianimealt-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="H!anime-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="H!anime-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="IsoHunt2-enable" type="boolean" label="40616" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="IsoHunt2-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://isohunt.nz</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="IsoHunt2-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="IsoHunt2-min_seeders" type="integer" label="40486" help="">
-					<level>0</level>
-					<default>3</default>
-					<constraints>
-						<minimum>2</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Braflix-enable" type="boolean" label="40613" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Braflix-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.braflix.ru</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Braflix-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Braflix-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Braflix-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Braflix-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Elfhosted-enable" type="boolean" label="30422" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Elfhosted-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://knightcrawler.elfhosted.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Elfhosted-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Elfhosted-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Elfhosted-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Elfhosted-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Elfhosted-bypass_filter" type="boolean" label="40484" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Elfhosted-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="EZTV-enable" type="boolean" label="30423" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="EZTV-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://eztvx.to/</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EZTV-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="EZTV-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Elfhosted-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="EZTV-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Movie4k-enable" type="boolean" label="30432" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Movie4k-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://movie4kto.lat</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Movie4k-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Movie4k-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Movie4k-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="NunFlix-enable" type="boolean" label="40607" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="NunFlix-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://nunflix.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="NunFlix-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="NunFlix-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="NunFlix-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="NunFlix-filter" type="integer" label="30179" help="">
-					<level>0</level>
-					<default>60</default>
-					<constraints>
-						<minimum>0</minimum>
-						<maximum>180</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="NunFlix-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="NunFlix-select" type="integer" label="30180" help="">
-					<level>0</level>
-					<default>0</default>
-					<constraints>
-						<options>
-							<option label="30636">0</option>
-							<option label="30637">1</option>
-						</options>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="NunFlix-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="spinner" format="string"/>
-				</setting>
-				<setting id="TorrentGalaxy-enable" type="boolean" label="30410" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="TorrentGalaxy-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://torrentgalaxy.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="TorrentGalaxy-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="TorrentGalaxy-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="TorrentGalaxy-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="TorrentGalaxy-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Torrentio-enable" type="boolean" label="30412" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Torrentio-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://torrentio.strem.fun</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Torrentio-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Torrentio-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Torrentio-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Torrentio-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Torrentio-bypass_filter" type="boolean" label="40483" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Torrentio-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="SolarMovie-enable" type="boolean" label="40609" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="SolarMovie-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://ww6.solarmovie.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="SolarMovie-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="SolarMovie-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Watch5s-enable" type="boolean" label="30418" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Watch5s-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://5movies.cloud</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Watch5s-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Watch5s-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Watch5s-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="WatchSeries-enable" type="boolean" label="30421" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="WatchSeries-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://swatchseries.is</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="WatchSeries-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="WatchSeries-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="WatchSeries-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-			</group>
-		</category>
-		<category id="scrapers 3" label="30320" help="">
-			<group id="1">
-				<setting id="EasyNews-enable" type="boolean" label="30402" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="EasyNews-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://members.easynews.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EasyNews-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="EasyNews-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EasyNews-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="EasyNews-username" type="string" label="30626" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EasyNews-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Username</heading>
-					</control>
-				</setting>
-				<setting id="EasyNews-password" type="string" label="30627" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EasyNews-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Password</heading>
-						<hidden>true</hidden>
-					</control>
-				</setting>
-				<setting id="EasyNews-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EasyNews-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="EasyNews-size_limit" type="integer" label="30279" help="">
-					<level>0</level>
-					<default>0</default>
-					<constraints>
-						<minimum>0</minimum>
-						<maximum>50</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="EasyNews-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Furk.net-enable" type="boolean" label="30403" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Furk.net-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.furk.net</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Furk.net-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Furk.net-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Furk.net-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Furk.net-username" type="string" label="30626" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Furk.net-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Username</heading>
-					</control>
-				</setting>
-				<setting id="Furk.net-password" type="string" label="30627" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Furk.net-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Password</heading>
-						<hidden>true</hidden>
-					</control>
-				</setting>
-				<setting id="Furk.net-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Furk.net-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Furk.net-size_limit" type="integer" label="30279" help="">
-					<level>0</level>
-					<default>0</default>
-					<constraints>
-						<minimum>0</minimum>
-						<maximum>50</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Furk.net-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-				<setting id="Orion-enable" type="boolean" label="30405" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Orion-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://orionoid.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Orion-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Orion-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Orion-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Premiumize.me-enable" type="boolean" label="30406" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Premiumize.me-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>premiumize.me</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Premiumize.me-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Premiumize.me-use_https" type="boolean" label="30548" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Premiumize.me-username" type="string" label="30626" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Username</heading>
-					</control>
-				</setting>
-				<setting id="Premiumize.me-password" type="string" label="30627" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Password</heading>
-						<hidden>true</hidden>
-					</control>
-				</setting>
-				<setting id="Premiumize.me-base_url2" type="string" label="     Movies Base Url" help="">
-					<level>0</level>
-					<default>https://yts.am</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     Movies Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Premiumize.me-base_url3" type="string" label="     TV Shows Base Url" help="">
-					<level>0</level>
-					<default>https://eztv.ag</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>     TV Shows Base Url</heading>
-					</control>
-				</setting>
-				<setting id="Premiumize.me-include_trans" type="boolean" label="     Include Transodes" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.me-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Premiumize.V2-enable" type="boolean" label="30407" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="Premiumize.V2-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="Premiumize.V2-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="1337X-enable" type="boolean" label="30419" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="1337X-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://1337x.to</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="1337X-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="1337X-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="1337X-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="1337X-result_limit" type="integer" label="30229" help="">
-					<level>0</level>
-					<default>10</default>
-					<constraints>
-						<minimum>10</minimum>
-						<maximum>100</maximum>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="slider" format="integer">
-						<popup>false</popup>
-					</control>
-				</setting>
-			</group>
-		</category>
-		<category id="scrapers 4" label="30321" help="">
-			<group id="1">
-				<setting id="SeriesOnline-enable" type="boolean" label="30416" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="SeriesOnline-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www4.series9.ac</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="SeriesOnline-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="SeriesOnline-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="SeriesOnline-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="StreamLikers-enable" type="boolean" label="30417" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="StreamLikers-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>http://www.streamlikers.com</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="StreamLikers-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="StreamLikers-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="StreamLikers-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="SolarMovie-enable" type="boolean" label="30425" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="SolarMovie-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://www.solarmovie.fm</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="SolarMovie-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="SolarMovie-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="SolarMovie-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-
-				<setting id="viooz.ac-enable" type="boolean" label="viooz.ac Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="viooz.ac-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://vioozgo.org</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="viooz.ac-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="viooz.ac-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="viooz.ac-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="WatchFree.to-enable" type="boolean" label="WatchFree.to Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="WatchFree.to-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://watchfree.su</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="WatchFree.to-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="WatchFree.to-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="WatchFree.to-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="WatchSeries-enable" type="boolean" label="WatchSeries Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="WatchSeries-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://swatchseries.is</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="WatchSeries-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="WatchSeries-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="WatchSeries-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="wso.ch-enable" type="boolean" label="wso.ch Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="wso.ch-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://watchseries-online.be</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="wso.ch-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="wso.ch-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="wso.ch-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="xmovies8-enable" type="boolean" label="xmovies8 Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="xmovies8-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://xmovies8.yt</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="xmovies8-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="xmovies8-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="xmovies8-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="xmovies8-default_url" type="string" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading/>
-					</control>
-				</setting>
-				<setting id="xmovies8.v2-enable" type="boolean" label="xmovies8.v2 Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="xmovies8.v2-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://xmovies8.si</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="xmovies8.v2-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="xmovies8.v2-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="xmovies8.v2-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="xmoviesv3-enable" type="boolean" label="xmoviesv3 Enabled" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-				<setting id="xmoviesv3-base_url" type="string" label="30175" help="">
-					<level>0</level>
-					<default>https://xmovies8.cool</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="xmoviesv3-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading>    Base Url</heading>
-					</control>
-				</setting>
-				<setting id="xmoviesv3-sub_check" type="boolean" label="30176" help="">
-					<level>0</level>
-					<default>true</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition operator="is" setting="xmoviesv3-enable">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
-			</group>
-		</category>
 		<category id="subtitles" label="30634" help="">
-			<group id="1" label="30614">
+			<group id="14" label="30614">
 				<setting id="enable-subtitles" type="boolean" label="30615" help="">
 					<level>0</level>
 					<default>false</default>
@@ -4342,7 +2145,7 @@
 			</group>
 		</category>
 		<category id="database" label="30635" help="">
-			<group id="1">
+			<group id="15">
 				<setting id="use_remote_db" type="boolean" label="30623" help="">
 					<level>0</level>
 					<default>false</default>
@@ -4621,168 +2424,1749 @@
 				</setting>
 			</group>
 		</category>
+		<category id="scrapers_1" label="30318" help="">
+			<group id="101">
+					<setting id="1337x-enable" type="boolean" label="30419" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="1337x-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://1337x.to</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="1337x-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="1337x-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="1337x-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="1337x-result_limit" type="integer" label="30229" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="1337x-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="AioStreams-enable" type="boolean" label="40643" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AioStreams-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://aiostreams.elfhosted.com/</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AioStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="AioStreams-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AioStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Anidex-enable" type="boolean" label="30421" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Anidex-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://anidex.info</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Anidex-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Anidex-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Anidex-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Anikai-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Anikai-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://animekai.bz</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Anikai-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Anikai-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Anikai-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AnimePahe-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AnimePahe-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://animepahe.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AnimePahe-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="AnimePahe-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AnimePahe-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Animetosho-enable" type="boolean" label="30400" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Animetosho-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://animetosho.org</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Animetosho-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Animetosho-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Animetosho-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AniRena-enable" type="boolean" label="40639" help="">
+						<level>0</level>
+						<default>false</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AniRena-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.anirena.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AniRena-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="AniRena-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AniRena-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_2" label="30319" help="">
+			<group id="102">
+					<setting id="BitCQ-enable" type="boolean" label="40616" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="BitCQ-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://bitcq.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="BitCQ-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="BitCQ-min_seeders" type="integer" label="40486" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="BitCQ-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="Bitsearch-enable" type="boolean" label="30420" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Bitsearch-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://bitsearch.to</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Bitsearch-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Bitsearch-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Bitsearch-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="BstSrs-enable" type="boolean" label="40815" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="BstSrs-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://bstsrs.in</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="BstSrs-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="BstSrs-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="BstSrs-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="CloudTorrents-enable" type="boolean" label="40635" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="CloudTorrents-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://cloudtorrents.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="CloudTorrents-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="CloudTorrents-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="CloudTorrents-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Comet-enable" type="boolean" label="40632" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Comet-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://comet.elfhosted.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Comet-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Comet-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Comet-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Dailymotion-enable" type="boolean" label="40612" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Dailymotion-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.dailymotion.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Dailymotion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Dailymotion-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Dailymotion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="EasyNews-enable" type="boolean" label="30402" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="EasyNews-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://members.easynews.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EasyNews-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="EasyNews-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EasyNews-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="EasyNews-username" type="string" label="30177" help="">
+						<level>0</level>
+						<default></default>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EasyNews-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Username</heading>
+						</control>
+					</setting>
+					<setting id="EasyNews-password" type="string" label="30178" help="">
+						<level>0</level>
+						<default></default>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EasyNews-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Password</heading>
+							<hidden>true</hidden>
+						</control>
+					</setting>
+					<setting id="EasyNews-result_limit" type="integer" label="30229" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EasyNews-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="EasyNews-size_limit" type="integer" label="30279" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>50</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EasyNews-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_3" label="30320" help="">
+			<group id="103">
+					<setting id="EZTV-enable" type="boolean" label="30423" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="EZTV-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://eztvx.to</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EZTV-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="EZTV-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="EZTV-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Furk.net-enable" type="boolean" label="30403" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Furk.net-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.furk.net</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Furk.net-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Furk.net-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Furk.net-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Furk.net-username" type="string" label="30177" help="">
+						<level>0</level>
+						<default></default>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Furk.net-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Username</heading>
+						</control>
+					</setting>
+					<setting id="Furk.net-password" type="string" label="30178" help="">
+						<level>0</level>
+						<default></default>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Furk.net-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Password</heading>
+							<hidden>true</hidden>
+						</control>
+					</setting>
+					<setting id="Furk.net-result_limit" type="integer" label="30229" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Furk.net-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="Furk.net-size_limit" type="integer" label="30279" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>50</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Furk.net-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="iDope-enable" type="boolean" label="40812" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="iDope-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://idope.hair</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="iDope-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="iDope-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="iDope-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="iDope-min_seeders" type="integer" label="40486" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="iDope-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="IsoHunt2-enable" type="boolean" label="40614" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="IsoHunt2-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://isohunts.to</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="IsoHunt2-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="IsoHunt2-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="IsoHunt2-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Jackettio-enable" type="boolean" label="40631" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Jackettio-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://jackettio.elfhosted.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Jackettio-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Jackettio-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Jackettio-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Local-enable" type="boolean" label="30404" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Local-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default> </default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Local-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Local-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Local-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Local-def-quality" type="integer" label="30312" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<options>
+								<option label="30604">0</option>
+								<option label="30664">1</option>
+								<option label="30663">2</option>
+								<option label="30662">3</option>
+								<option label="30661">4</option>
+								<option label="30660">5</option>
+							</options>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Local-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="spinner" format="string"/>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_4" label="30321" help="">
+			<group id="104">
+					<setting id="M4UHD-enable" type="boolean" label="40818" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="M4UHD-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://m4uhd.cx</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="M4UHD-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="M4UHD-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="M4UHD-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Mediafusion-enable" type="boolean" label="40629" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Mediafusion-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://mediafusion.elfhosted.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Mediafusion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Mediafusion-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Mediafusion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Noxx-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Noxx-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://noxx.to</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Noxx-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Noxx-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Noxx-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Nyaa-enable" type="boolean" label="30418" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Nyaa-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://nyaa.si</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Nyaa-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Nyaa-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Nyaa-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Orion-enable" type="boolean" label="30405" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Orion-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://orionoid.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Orion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Orion-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Orion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Premiumize.me-enable" type="boolean" label="30406" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Premiumize.me-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>premiumize.me</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Premiumize.me-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Premiumize.me-use_https" type="boolean" label="30548" help="">
+						<level>0</level>
+						<default>false</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Premiumize.me-username" type="string" label="30626" help="">
+						<level>0</level>
+						<default></default>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Username</heading>
+						</control>
+					</setting>
+					<setting id="Premiumize.me-password" type="string" label="30627" help="">
+						<level>0</level>
+						<default></default>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Password</heading>
+							<hidden>true</hidden>
+						</control>
+					</setting>
+					<setting id="Premiumize.me-base_url2" type="string" label="40913" help="">
+						<level>0</level>
+						<default>https://yts.am</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>movies_base_url</heading>
+						</control>
+					</setting>
+					<setting id="Premiumize.me-base_url3" type="string" label="40914" help="">
+						<level>0</level>
+						<default>https://eztv.ag</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>tv_shows_base_url</heading>
+						</control>
+					</setting>
+					<setting id="Premiumize.me-include_trans" type="boolean" label="30281" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.me-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_5" label="30322" help="">
+			<group id="105">
+					<setting id="Premiumize.V2-enable" type="boolean" label="30407" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Premiumize.V2-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>false</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Premiumize.V2-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Qbit-enable" type="boolean" label="40655" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Qbit-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://peerflix.mov/manifest.json</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Qbit-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Qbit-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Qbit-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="SFlixWatch-enable" type="boolean" label="40817" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="SFlixWatch-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://sflixz.watch</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="SFlixWatch-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="SFlixWatch-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="SFlixWatch-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="StreamThru-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="StreamThru-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://stremthru.elfhosted.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="StreamThru-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="StreamThru-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="StreamThru-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Thepiratebay-enable" type="boolean" label="40628" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Thepiratebay-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://thepiratebay-plus.strem.fun</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Thepiratebay-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Thepiratebay-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Thepiratebay-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torlock-enable" type="boolean" label="40656" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torlock-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.torlock2.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torlock-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Torlock-min_seeders" type="integer" label="40486" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torlock-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="TorrentDownload-enable" type="boolean" label="30433" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TorrentDownload-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.torrentdownload.info</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentDownload-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TorrentDownload-min_seeders" type="integer" label="40486" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>100</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentDownload-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+					<setting id="TorrentFunk-enable" type="boolean" label="40622" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TorrentFunk-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://en.torrentfunk-official.live</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentFunk-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TorrentFunk-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentFunk-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_6" label="30323" help="">
+			<group id="106">
+					<setting id="TorrentGalaxy-enable" type="boolean" label="30410" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TorrentGalaxy-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://torrentgalaxy.hair</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentGalaxy-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TorrentGalaxy-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentGalaxy-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torrentio-enable" type="boolean" label="30412" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torrentio-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://torrentio.strem.fun</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torrentio-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Torrentio-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torrentio-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TorrentsDB-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TorrentsDB-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://torrentsdb.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentsDB-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TorrentsDB-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentsDB-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torrentz2-enable" type="boolean" label="30430" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torrentz2-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://torrentz2.nz</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torrentz2-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TVMovieFlix-enable" type="boolean" label="40816" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TVMovieFlix-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://tvmovieflix.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TVMovieFlix-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TVMovieFlix-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TVMovieFlix-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="WebStreamr-enable" type="boolean" label="40915" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="WebStreamr-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://webstreamr.hayd.uk</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="WebStreamr-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="WebStreamr-multi" type="boolean" label="41003" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="WebStreamr-en" type="boolean" label="41004" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="WebStreamr-includeExternalUrls" type="boolean" label="41000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="WebStreamr-mediaFlowProxyUrl" type="string" label="41001" help="">
+						<level>0</level>
+						<default></default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>MediaFlow Proxy URL</heading>
+						</control>
+					</setting>
+					<setting id="WebStreamr-mediaFlowProxyPassword" type="string" label="41002" help="">
+						<level>0</level>
+						<default></default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="WebStreamr-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>MediaFlow Proxy Password</heading>
+						</control>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_7" label="40710" help="">
+			<group id="107">
+					<setting id="YourBittorrent-enable" type="boolean" label="40615" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="YourBittorrent-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://yourbittorrent.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="YourBittorrent-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+			</group>
+		</category>
 	</section>
-<category label="Scrapers 1">
-         <setting id="1337x-enable" type="bool" label="1337x Enabled" default="true" visible="true"/>
-         <setting id="1337x-base_url" type="text" label="    Base Url" default="https://1337x.to" visible="eq(-1,true)"/>
-         <setting id="1337x-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="1337x-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Anidex-enable" type="bool" label="Anidex Enabled" default="true" visible="true"/>
-         <setting id="Anidex-base_url" type="text" label="    Base Url" default="https://anidex.info" visible="eq(-1,true)"/>
-         <setting id="Anidex-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Anidex-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Animetosho-enable" type="bool" label="Animetosho Enabled" default="true" visible="true"/>
-         <setting id="Animetosho-base_url" type="text" label="    Base Url" default="https://animetosho.org" visible="eq(-1,true)"/>
-         <setting id="Animetosho-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Animetosho-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Aniwave-enable" type="bool" label="Aniwave Enabled" default="true" visible="true"/>
-         <setting id="Aniwave-base_url" type="text" label="    Base Url" default="https://aniwave.to" visible="eq(-1,true)"/>
-         <setting id="Aniwave-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Aniwave-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Binged-enable" type="bool" label="Binged Enabled" default="true" visible="true"/>
-         <setting id="Binged-base_url" type="text" label="    Base Url" default="https://binged.live" visible="eq(-1,true)"/>
-         <setting id="Binged-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="BitCQ-enable" type="bool" label="BitCQ Enabled" default="true" visible="true"/>
-         <setting id="BitCQ-base_url" type="text" label="    Base Url" default="https://bitcq.com" visible="eq(-1,true)"/>
-         <setting id="BitCQ-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="BitCQ-base_url" type="text" label="     Base Url" default="https://bitcq.com" visible="eq(-3,true)"/>
-         <setting id="BitCQ-min_seeders" type="slider" label="     Minimum Seeders" default="0" range="0,100" option="int" visible="eq(-4,true)"/>
-         <setting id="Bitlord-enable" type="bool" label="Bitlord Enabled" default="true" visible="true"/>
-         <setting id="Bitlord-base_url" type="text" label="    Base Url" default="http://www.bitlordsearch.com" visible="eq(-1,true)"/>
-         <setting id="Bitlord-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Bitsearch-enable" type="bool" label="Bitsearch Enabled" default="true" visible="true"/>
-         <setting id="Bitsearch-base_url" type="text" label="    Base Url" default="https://bitsearch.to" visible="eq(-1,true)"/>
-         <setting id="Bitsearch-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Bitsearch-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Braflix-enable" type="bool" label="Braflix Enabled" default="true" visible="true"/>
-         <setting id="Braflix-base_url" type="text" label="    Base Url" default="https://www.braflix.ru" visible="eq(-1,true)"/>
-         <setting id="Braflix-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Braflix-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="CouchTunerV1-enable" type="bool" label="CouchTunerV1 Enabled" default="true" visible="true"/>
-         <setting id="CouchTunerV1-base_url" type="text" label="    Base Url" default="https://www.couchtuner.show" visible="eq(-1,true)"/>
-         <setting id="CouchTunerV1-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="CouchTunerV1-base_url" type="text" label="     Base Url" default="https://www.couchtuner.show" visible="true"/>
-         <setting id="Dailymotion-enable" type="bool" label="Dailymotion Enabled" default="true" visible="true"/>
-         <setting id="Dailymotion-base_url" type="text" label="    Base Url" default="https://www.dailymotion.com" visible="eq(-1,true)"/>
-         <setting id="Dailymotion-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="Dailymotion-base_url" type="text" label="    Base Url" default="https://www.dailymotion.com" visible="eq(-1,true)"/>
-         <setting id="DebridCloudFiles-enable" type="bool" label="DebridCloudFiles Enabled" default="true" visible="true"/>
-         <setting id="DebridCloudFiles-base_url" type="text" label="    Base Url" default="" visible="eq(-1,true)"/>
-         <setting id="DebridCloudFiles-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="EasyNews-enable" type="bool" label="EasyNews Enabled" default="true" visible="true"/>
-         <setting id="EasyNews-base_url" type="text" label="    Base Url" default="https://members.easynews.com" visible="eq(-1,true)"/>
-         <setting id="EasyNews-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="EasyNews-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
-         <setting id="EasyNews-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
-         <setting id="EasyNews-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>
-         <setting id="EasyNews-size_limit" label="     Maximum Allowed Size (GB) (0 = No Limit)" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>
-         <setting id="Elfhosted-enable" type="bool" label="Elfhosted Enabled" default="true" visible="true"/>
-         <setting id="Elfhosted-base_url" type="text" label="    Base Url" default="https://knightcrawler.elfhosted.com" visible="eq(-1,true)"/>
-         <setting id="Elfhosted-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Elfhosted-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="EZTV-enable" type="bool" label="EZTV Enabled" default="true" visible="true"/>
-         <setting id="EZTV-base_url" type="text" label="    Base Url" default="https://eztvx.to/" visible="eq(-1,true)"/>
-         <setting id="EZTV-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="EZTV-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Furk.net-enable" type="bool" label="Furk.net Enabled" default="true" visible="true"/>
-         <setting id="Furk.net-base_url" type="text" label="    Base Url" default="https://www.furk.net" visible="eq(-1,true)"/>
-         <setting id="Furk.net-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="Furk.net-username" type="text" label="     Username" default="" visible="eq(-3,true)"/>
-         <setting id="Furk.net-password" type="text" label="     Password" option="hidden" default="" visible="eq(-4,true)"/>
-         <setting id="Furk.net-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>
-         <setting id="Furk.net-size_limit" label="     Maximum Allowed Size (GB) (0 = No Limit)" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>
-         <setting id="Gogoanime-enable" type="bool" label="Gogoanime Enabled" default="true" visible="true"/>
-         <setting id="Gogoanime-base_url" type="text" label="    Base Url" default="https://gogoanime3.co" visible="eq(-1,true)"/>
-         <setting id="Gogoanime-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Gogoanime-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="H!anime-enable" type="bool" label="H!anime Enabled" default="true" visible="true"/>
-         <setting id="H!anime-base_url" type="text" label="    Base Url" default="https://hianime.to" visible="eq(-1,true)"/>
-         <setting id="H!anime-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="H!anime-result_limit" label="     Result Limit" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="IsoHunt2-enable" type="bool" label="IsoHunt2 Enabled" default="true" visible="true"/>
-         <setting id="IsoHunt2-base_url" type="text" label="    Base Url" default="https://isohunt.nz" visible="eq(-1,true)"/>
-         <setting id="IsoHunt2-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="IsoHunt2-base_url" type="text" label="     Base Url" default="https://isohunt.nz" visible="eq(-3,true)"/>
-         <setting id="IsoHunt2-min_seeders" type="slider" label="     Minimum Seeders" default="0" range="0,100" option="int" visible="eq(-4,true)"/>
-         <setting id="Kickass2-enable" type="bool" label="Kickass2 Enabled" default="true" visible="true"/>
-         <setting id="Kickass2-base_url" type="text" label="    Base Url" default="https://kickass.cm" visible="eq(-1,true)"/>
-         <setting id="Kickass2-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="Kickass2-min_seeders" type="slider" range="0,100" option="int" label="     Minimum Seeders" default="0" visible="eq(-3,true)"/>
-         <setting id="Limetorrents-enable" type="bool" label="Limetorrents Enabled" default="true" visible="true"/>
-         <setting id="Limetorrents-base_url" type="text" label="    Base Url" default="https://www.limetorrents.pro" visible="eq(-1,true)"/>
-         <setting id="Limetorrents-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Limetorrents-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Local-enable" type="bool" label="Local Enabled" default="true" visible="true"/>
-         <setting id="Local-base_url" type="text" label="    Base Url" default="" visible="eq(-1,true)"/>
-         <setting id="Local-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Local-def-quality" type="enum" label="30312" values="30604|30664|30663|30662|30661|30660" default="0" visible="eq(-3,true)"/>
-    </category>
-<category label="Scrapers 2">
-         <setting id="LosMovies-enable" type="bool" label="LosMovies Enabled" default="true" visible="true"/>
-         <setting id="LosMovies-base_url" type="text" label="    Base Url" default="https://yifytv.lol" visible="eq(-1,true)"/>
-         <setting id="LosMovies-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Movie4K-enable" type="bool" label="Movie4K Enabled" default="true" visible="true"/>
-         <setting id="Movie4K-base_url" type="text" label="    Base Url" default="https://movie4kto.lat" visible="eq(-1,true)"/>
-         <setting id="Movie4K-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="NunFlix-enable" type="bool" label="NunFlix Enabled" default="true" visible="true"/>
-         <setting id="NunFlix-base_url" type="text" label="    Base Url" default="https://nunflix.com" visible="eq(-1,true)"/>
-         <setting id="NunFlix-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="NunFlix-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-3,true)"/>
-         <setting id="NunFlix-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
-         <setting id="Nyaa-enable" type="bool" label="Nyaa Enabled" default="true" visible="true"/>
-         <setting id="Nyaa-base_url" type="text" label="    Base Url" default="https://nyaa.si" visible="eq(-1,true)"/>
-         <setting id="Nyaa-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Nyaa-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Orion-enable" type="bool" label="Orion Enabled" default="true" visible="true"/>
-         <setting id="Orion-base_url" type="text" label="    Base Url" default="https://orionoid.com" visible="eq(-1,true)"/>
-         <setting id="Orion-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Premiumize.me-enable" type="bool" label="Premiumize.me Enabled" default="true" visible="true"/>
-         <setting id="Premiumize.me-base_url" type="text" label="    Base Url" default="premiumize.me" visible="eq(-1,true)"/>
-         <setting id="Premiumize.me-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="Premiumize.me-use_https" type="bool" label="     Use HTTPS" default="false" visible="eq(-3,true)"/>
-         <setting id="Premiumize.me-username" type="text" label="     Username" default="" visible="eq(-4,true)"/>
-         <setting id="Premiumize.me-password" type="text" label="     Password" option="hidden" default="" visible="eq(-5,true)"/>
-         <setting id="Premiumize.me-base_url2" type="text" label="     Movies Base Url" default="https://yts.am" visible="eq(-6,true)"/>
-         <setting id="Premiumize.me-base_url3" type="text" label="     TV Shows Base Url" default="https://eztv.ag" visible="eq(-7,true)"/>
-         <setting id="Premiumize.me-include_trans" type="bool" label="     Include Transodes" default="true" visible="eq(-8,true)"/>
-         <setting id="Premiumize.V2-enable" type="bool" label="Premiumize.V2 Enabled" default="true" visible="true"/>
-         <setting id="Premiumize.V2-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-1,true)"/>
-         <setting id="RMZ-enable" type="bool" label="RMZ Enabled" default="true" visible="true"/>
-         <setting id="RMZ-base_url" type="text" label="    Base Url" default="https://rmz.cr" visible="eq(-1,true)"/>
-         <setting id="RMZ-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="RMZ-filter" type="slider" range="0,180" option="int" label="     Filter results older than (0=No Filter) (days)" default="60" visible="eq(-3,true)"/>
-         <setting id="RMZ-select" type="enum" label="     Automatically Select" lvalues="30636|30637" default="0" visible="eq(-4,true)"/>
-         <setting id="Snow-enable" type="bool" label="Snow Enabled" default="true" visible="true"/>
-         <setting id="Snow-base_url" type="text" label="    Base Url" default="https://snowfl.com" visible="eq(-1,true)"/>
-         <setting id="Snow-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Snow-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="SolarMovie-enable" type="bool" label="SolarMovie Enabled" default="true" visible="true"/>
-         <setting id="SolarMovie-base_url" type="text" label="    Base Url" default="https://ww6.solarmovie.to" visible="eq(-1,true)"/>
-         <setting id="SolarMovie-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="SolarMovie-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="TorrentDownload-enable" type="bool" label="TorrentDownload Enabled" default="true" visible="true"/>
-         <setting id="TorrentDownload-base_url" type="text" label="    Base Url" default="https://www.torrentdownload.info" visible="eq(-1,true)"/>
-         <setting id="TorrentDownload-sub_check" type="bool" label="    Include in Page Existence checks?" default="false" visible="eq(-2,true)"/>
-         <setting id="TorrentDownload-base_url" type="text" label="     Base Url" default="https://www.torrentdownload.info" visible="eq(-3,true)"/>
-         <setting id="TorrentDownload-min_seeders" type="slider" label="     Minimum Seeders" default="0" range="0,100" option="int" visible="eq(-4,true)"/>
-         <setting id="TorrentFunk-enable" type="bool" label="TorrentFunk Enabled" default="true" visible="true"/>
-         <setting id="TorrentFunk-base_url" type="text" label="    Base Url" default="https://www.torrentfunk.com" visible="eq(-1,true)"/>
-         <setting id="TorrentFunk-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="TorrentFunk-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="TorrentGalaxy-enable" type="bool" label="TorrentGalaxy Enabled" default="true" visible="true"/>
-         <setting id="TorrentGalaxy-base_url" type="text" label="    Base Url" default="https://tgx.rs" visible="eq(-1,true)"/>
-         <setting id="TorrentGalaxy-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="TorrentGalaxy-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Torrentio-enable" type="bool" label="Torrentio Enabled" default="true" visible="true"/>
-         <setting id="Torrentio-base_url" type="text" label="    Base Url" default="https://torrentio.strem.fun" visible="eq(-1,true)"/>
-         <setting id="Torrentio-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Torrentio-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="Torrentz2-enable" type="bool" label="Torrentz2 Enabled" default="true" visible="true"/>
-         <setting id="Torrentz2-base_url" type="text" label="    Base Url" default="https://torrentz2.nz" visible="eq(-1,true)"/>
-         <setting id="Torrentz2-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-         <setting id="Torrentz2-result_limit" label="     Maximum Source Results" type="slider" default="10" range="10,100" option="int" visible="true"/>
-         <setting id="WatchSeries-enable" type="bool" label="WatchSeries Enabled" default="true" visible="true"/>
-         <setting id="WatchSeries-base_url" type="text" label="    Base Url" default="https://swatchseries.is" visible="eq(-1,true)"/>
-         <setting id="WatchSeries-sub_check" type="bool" label="    Include in Page Existence checks?" default="true" visible="eq(-2,true)"/>
-    </category>
 </settings>

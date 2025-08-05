@@ -27,8 +27,8 @@ from resolveurl.resolver import ResolveUrl, ResolverError
 
 class VeevResolver(ResolveUrl):
     name = 'Veev'
-    domains = ['veev.to', 'kinoger.pw', 'poophq.com']
-    pattern = r'(?://|\.)((?:veev|kinoger|poophq)\.(?:to|pw|com))/(?:e|d)/([0-9a-zA-Z]+)'
+    domains = ['veev.to', 'kinoger.pw', 'poophq.com', 'doods.to']
+    pattern = r'(?://|\.)((?:veev|kinoger|poophq|doods)\.(?:to|pw|com))/(?:e|d)/([0-9a-zA-Z]+)'
 
     def get_media_url(self, host, media_id):
         web_url = self.get_url(host, media_id)
@@ -37,7 +37,7 @@ class VeevResolver(ResolveUrl):
         if r.get_url() != web_url:
             media_id = r.get_url().split('/')[-1]
         # Still dancing
-        items = re.findall(r'''[\.\s]fc\s*[:=]\s*['"]([^'"]+)''', r.content)
+        items = re.findall(r'''[\.\s']fc(?:'])?\s*[:=]\s*['"]([^'"]+)''', r.content)
         if items:
             for f in items[::-1]:
                 ch = veev_decode(f)
@@ -55,6 +55,8 @@ class VeevResolver(ResolveUrl):
                     if jresp and jresp.get('file_status') == 'OK':
                         str_url = decode_url(veev_decode(jresp.get('dv')[0].get('s')), build_array(ch)[0])
                         return str_url + helpers.append_headers(headers)
+                    raise ResolverError('Video removed')
+
             raise ResolverError('Unable to locate video')
 
         raise ResolverError('Video removed')

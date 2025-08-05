@@ -141,10 +141,75 @@ class Scraper(scraper.Scraper):
         settings = super(cls, cls).get_settings()
         settings = scraper_utils.disable_sub_check(settings)
         name = cls.get_name()
-        settings.append(f'         <setting id="{name}-username" type="text" label="     {i18n("username")}" default="" visible="eq(-3,true)"/>')
-        settings.append(f'         <setting id="{name}-password" type="text" label="     {i18n("password")}" option="hidden" default="" visible="eq(-4,true)"/>')
-        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="eq(-5,true)"/>')
-        settings.append(f'         <setting id="{name}-size_limit" label="     {i18n("size_limit")}" type="slider" default="0" range="0,50" option="int" visible="eq(-6,true)"/>')
+        parent_id = f"{name}-enable"
+        
+        # Add Furk-specific settings
+        settings.extend([
+            f'''\t\t<setting id="{name}-username" type="string" label="30177" help="">
+\t\t\t<level>0</level>
+\t\t\t<default></default>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('username')}</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-password" type="string" label="30178" help="">
+\t\t\t<level>0</level>
+\t\t\t<default></default>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('password')}</heading>
+\t\t\t\t<hidden>true</hidden>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-result_limit" type="integer" label="30229" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>0</default>
+\t\t\t<constraints>
+\t\t\t\t<minimum>0</minimum>
+\t\t\t\t<maximum>100</maximum>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="slider" format="integer">
+\t\t\t\t<popup>false</popup>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-size_limit" type="integer" label="30279" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>0</default>
+\t\t\t<constraints>
+\t\t\t\t<minimum>0</minimum>
+\t\t\t\t<maximum>50</maximum>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="slider" format="integer">
+\t\t\t\t<popup>false</popup>
+\t\t\t</control>
+\t\t</setting>'''
+        ])
+        
         return settings
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8):

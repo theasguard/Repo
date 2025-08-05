@@ -65,9 +65,9 @@ def make_list_item(label, meta, art=None, cast=None):
     # Add empty stream info for video
     listitem.addStreamInfo('video', {})
 
-    # Set cast if available
-    if cast:
-        listitem.setCast(cast)
+    listitem.setUniqueIDs(
+        {i.split("_")[0]: meta[i] for i in meta if i.endswith("id")},
+    )
 
     # Set IMDb and TVDB ids as properties if available in meta
     if 'ids' in meta:
@@ -77,6 +77,40 @@ def make_list_item(label, meta, art=None, cast=None):
             listitem.setProperty('tvdb_id', str(meta['ids']['tvdb']))
 
     return listitem
+
+def set_video_info_tag(listitem, info):
+    info_tag = listitem.getVideoInfoTag()
+    info_tag.setTitle(info.get('title', ''))
+    info_tag.setOriginalTitle(info.get('originaltitle', ''))
+    info_tag.setPlot(info.get('plot', ''))
+    info_tag.setPlotOutline(info.get('plotoutline', ''))
+    info_tag.setTagLine(info.get('tagline', ''))
+    info_tag.setStudios(info.get('studio', '').split(', '))
+    info_tag.setGenres(info.get('genre', '').split(', '))
+    info_tag.setCountries(info.get('country', '').split(', '))
+    info_tag.setWriters(info.get('writer', '').split(', '))
+    info_tag.setDirectors(info.get('director', '').split(', '))
+    info_tag.setPremiered(info.get('premiered', ''))
+    info_tag.setMpaa(info.get('mpaa', ''))
+    info_tag.setTrailer(info.get('trailer', ''))
+    info_tag.setSet(info.get('set', ''))
+    info_tag.setSetOverview(info.get('setoverview', ''))
+    info_tag.setDuration(info.get('duration', 0))
+    info_tag.setTop250(info.get('top250', 0))
+    info_tag.setPlaycount(info.get('playcount', 0))
+    info_tag.setRating(info.get('rating', 0.0))
+    info_tag.setVotes(info.get('votes', 0))
+    info_tag.setFirstAired(info.get('aired', ''))
+    info_tag.setResumePoint(info.get('resume', 0), info.get('total', 0))
+
+    # Set unique IDs
+    unique_ids = {i.split("_")[0]: info[i] for i in info if i.endswith("id")}
+    info_tag.setUniqueIDs(unique_ids)
+
+    # Set cast
+    if 'cast' in info:
+        cast = [xbmc.Actor(name=actor['name'], role=actor['role']) for actor in info['cast']]
+        info_tag.setCast(cast)
 
 def iso_2_utc_tmdb(iso_ts):
     if not iso_ts or iso_ts is None:
@@ -331,32 +365,3 @@ def format_time(seconds):
     else:
         return "%02d:%02d" % (minutes, seconds)
     
-
-# def auth_alldebrid(Alldebrid_API, translations):
-    # i18n = translations.i18n
-    # start = time.time()
-    # alldebrid_timeout = int(kodi.get_setting('alldebrid_timeout'))
-    # alldebrid_api = Alldebrid_API()
-    # result = alldebrid_api.authenticate()
-    # code, expires, interval = result['device_code'], result['expires_in'], result['interval']
-    # time_left = expires - int(time.time() - start)
-    # line1 = i18n('verification_url') % (result['verification_url'])
-    # line2 = i18n('prompt_code') % (result['user_code'])
-    # with kodi.CountdownDialog(i18n('alldebrid_auth'), line1=line1, line2=line2, countdown=time_left, interval=interval) as cd:
-        # result = cd.start(__auth_alldebrid, [alldebrid_api, code, i18n])
-
-    # try:
-        # kodi.set_setting('alldebrid_api_key', result['access_token'])
-        # alldebrid_api = Alldebrid_API(result['access_token'], timeout=alldebrid_timeout)
-        # profile = alldebrid_api.get_user_info(cached=False)
-        # kodi.set_setting('alldebrid_user', '%s (%s)' % (profile['username'], profile['name']))
-        # kodi.notify(msg=i18n('alldebrid_auth_complete'), duration=3000)
-    # except Exception as e:
-        # logger.log('AllDebrid Authorization Failed: %s' % (e), log_utils.LOGDEBUG)
-
-# def __auth_alldebrid(alldebrid_api, code, i18n):
-    # try:
-        # return alldebrid_api.__poll_auth(code)
-    # except Exception as e:
-        # logger.log('AllDebrid Polling Failed: %s' % (e), log_utils.LOGDEBUG)
-        # return None

@@ -1,3 +1,4 @@
+import itertools
 import re
 import logging
 import urllib.parse
@@ -5,8 +6,9 @@ from bs4 import BeautifulSoup, SoupStrainer
 from functools import partial
 import resolveurl
 import log_utils
-from asguard_lib import scraper_utils
+from asguard_lib import scraper_utils, db_utils
 from asguard_lib.utils2 import i18n
+from asguard_lib.tvdb_api.tvdbdata import TVDBAPI
 from asguard_lib.constants import VIDEO_TYPES, QUALITIES
 import kodi
 from asguard_lib import utils2
@@ -26,7 +28,6 @@ class Scraper(scraper.Scraper):
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
         self.timeout = timeout
         self.base_url = kodi.get_setting(f'{self.get_name()}-base_url')
-        self.result_limit = kodi.get_setting(f'{self.get_name()}-result_limit')
 
     @classmethod
     def provides(cls):
@@ -37,33 +38,30 @@ class Scraper(scraper.Scraper):
         return 'Nyaa'
 
     def resolve_link(self, link):
-        logging.debug("Resolving link: %s", link)
         return link
 
     def get_sources(self, video):
         hosters = []
+        listnames = []  # List to store names
         query = self._build_query(video)
-        if video.video_type == VIDEO_TYPES.TVSHOW:
-            query = self._build_season_pack_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL % urllib.parse.quote_plus(query))
+        logger.log(f'Search URL: {search_url}', log_utils.LOGDEBUG)
         html = self._http_get(search_url, require_debrid=True)
         soup = BeautifulSoup(html, "html.parser", parse_only=SoupStrainer('div', {'class': 'table-responsive'}))
 
         for entry in soup.select("tr.danger,tr.default,tr.success"):
             try:
                 name = entry.find_all('a', {'class': None})[1].get('title')
+                listnames.append(name)
+                logger.log(f'Retrieved listnames: {listnames}', log_utils.LOGDEBUG)
                 magnet = entry.find('a', {'href': re.compile(r'(magnet:)+[^"]*')}).get('href')
                 size = entry.find_all('td', {'class': 'text-center'})[1].text.replace('i', '')
                 downloads = int(entry.find_all('td', {'class': 'text-center'})[-1].text)
 
-                quality_match = re.search(r'\b(1080p|720p|480p|360p)\b', name)
-                if quality_match:
-                    quality = QUALITY_MAP.get(quality_match.group(0), QUALITIES.HD1080)
-                else:
-                    quality = QUALITIES.HD1080
+                quality = scraper_utils.get_tor_quality(name)
 
                 host = scraper_utils.get_direct_hostname(self, magnet)
-                label = f"{name} | {quality} | {size}"
+                label = f"{name} | {size} | {downloads}"
                 hosters.append({
                     'name': name,
                     'label': label,
@@ -77,52 +75,157 @@ class Scraper(scraper.Scraper):
                     'direct': False,
                     'debridonly': True
                 })
-                logging.debug("Retrieved sources: %s", hosters[-1])
+                logger.log(f'Retrieved sources: {hosters[-1]}', log_utils.LOGDEBUG)
             except AttributeError as e:
-                logging.error("Failed to append source: %s", str(e))
+                logger.log(f'Failed to append source: {str(e)}', log_utils.LOGERROR)
                 continue
 
         return self._filter_sources(hosters, video)
+    
+    def _filter_sources(self, hosters, video):
+        """
+        Filters torrent sources based on anime-specific naming patterns and season/episode matching.
 
+        Args:
+            hosters (list): List of torrent sources containing 'name' and metadata
+            video (Video): Video object containing trakt_id, season, and episode information
+
+        Returns:
+            list: Filtered list of sources that match either:
+                - Exact season+episode patterns
+                - Valid season packs containing the episode
+                - Anime-specific numbering variations
+
+        Notes:
+            Handles special anime cases:
+            - Automatically checks season 2 when Trakt shows season 1
+            - Accepts multiple season patterns (s01, season1, season01)
+            - Matches episode formats (e01, episode1, 001, .01., -01)
+            - Allows batch/complete collections with valid season markers
+            - Uses flexible numbering to account for TVDB vs production numbering differences
+
+            Matching priorities:
+            1. Season packs with complete/batch keywords
+            2. Exact season+episode matches
+            3. Episode ranges within valid season contexts
+        """
+        # Return immediately for movies since they don't have season/episode data
+        if video.video_type == VIDEO_TYPES.MOVIE:
+            return hosters
+        
+        filtered_sources = []
+        episode_number = int(video.episode)
+        season_number = int(video.season)
+        # Anime-specific season number adjustments
+        possible_season_numbers = [season_number]
+        if season_number == 1:
+            # If Trakt shows season 1, also check for season 2 in release names
+            possible_season_numbers.append(2)
+            logger.log('Checking for both season 1 and 2 due to possible anime numbering', log_utils.LOGDEBUG)
+
+        for source in hosters:
+            name = source['name'].lower()
+
+            # Check if the source matches any of the possible seasons
+            matches_season = False
+            for season_num in possible_season_numbers:
+                if any([
+                    f"s{season_num:02d}" in name,      # s01
+                    f"s{season_num}" in name,          # s1
+                    f"season {season_num:02d}" in name, # season 01
+                    f"season {season_num}" in name,     # season 1
+                    f"seasons {season_num}" in name,    # seasons 1
+                    f"seasons {season_num:02d}" in name,# seasons 01
+                    f"season{season_num:02d}" in name,  # season01
+                    f"season{season_num}" in name       # season1
+                ]):
+                    matches_season = True
+                    break
+
+            # Check if the source matches the current episode
+            matches_episode = False
+            if any([
+                f"e{episode_number:02d}" in name,         # e01
+                f"episode {episode_number}" in name,      # episode 1
+                f"episode{episode_number:02d}" in name,   # episode01
+                f" {episode_number:03d} " in name,        # 001
+                f" {episode_number:04d} " in name,        # 0001
+                f" {episode_number:02d} " in name,        # " 01 "
+                f"_{episode_number:02d}" in name,         # _01
+                f"_{episode_number:02d}_" in name,        # _01_
+                f" - {episode_number:02d}" in name,       # - 01
+                f" - {episode_number}" in name,           # - 1
+                f"-{episode_number:02d}" in name,         # -01
+                f" - {episode_number:03d}" in name,       # - 001
+                f" - {episode_number:04d}" in name,        # - 0001
+                f"-{episode_number}" in name,             # -1
+                f" {episode_number} " in name,            # " 1 "
+                f".{episode_number:02d}." in name,        # .01.
+                f"~{episode_number:02d}" in name,         # ~01
+                f"~{episode_number:03d}" in name,        # ~001
+                f"~ {episode_number}" in name,           # ~ 1
+                f"~{episode_number:02d}" in name,        # ~ 01
+                f".{episode_number}." in name             # .1.
+            ]):
+                matches_episode = True
+            
+            # Check if it's a valid season pack
+            is_season_pack = False
+            season_pack_keywords = ['complete', 'batch', 'all.seasons', 'collection']
+            if any(keyword in name for keyword in season_pack_keywords):
+                # Accept if: matches season, has full series range, or has no season indicator
+                if (matches_season or 
+                    self.episode_in_range(name, episode_number) or 
+                    not self.has_any_season_indicator(name)):
+                    is_season_pack = True
+                    logger.log(f'Valid season pack found: {name}', log_utils.LOGDEBUG)
+                else:
+                    logger.log(f'Batch/complete label found but wrong season: {name}', log_utils.LOGDEBUG)
+
+            # Allow season packs or exact season and episode matches
+            if is_season_pack or (matches_season and matches_episode):
+                filtered_sources.append(source)
+                logger.log(f'Filtered source: {source}', log_utils.LOGDEBUG)
+
+        return filtered_sources
+
+    def has_any_season_indicator(self, name):
+        """Check if name contains any season pattern (s01, season 1, etc.)"""
+        patterns = [
+            r's\d{1,2}',          # s1, s01
+            r'season\s*\d{1,2}',  # season 1, season01
+            r'seasons\s*\d{1,2}'  # seasons 1
+        ]
+        return any(re.search(p, name) for p in patterns)
+
+    def episode_in_range(self, name, target_ep):
+        """Check for episode ranges like 01-24, 001~112, or 01 to 24"""
+        # More flexible range detection
+        match = re.search(r'(\d{2,4})[-~](\d{2,4})', name) or \
+                re.search(r'(\d{2,4})\s*to\s*(\d{2,4})', name)
+        if match:
+            start, end = int(match.group(1)), int(match.group(2))
+            return start <= target_ep <= end
+        return False
+    
     def _build_query(self, video):
+        tvdbseason = db_utils.get_tvdb_season(video.trakt_id)
+        logger.log(f'TVDB season: {tvdbseason}', log_utils.LOGDEBUG)
+        tvdbpart = db_utils.get_tvdb_part(video.trakt_id)
+        logger.log(f'TVDB part: {tvdbpart}', log_utils.LOGDEBUG)
+        tvdb_id = db_utils.get_thetvdb_id(video.trakt_id)
+        logger.log(f'TVDB ID: {tvdb_id}', log_utils.LOGDEBUG)
         query = video.title
         if video.video_type == VIDEO_TYPES.EPISODE:
-            query += f' S{int(video.season):02d}E{int(video.episode):02d}'
+            query += f'|"Complete"|"Batch"|"E{int(video.episode):02d}"'
+            logger.log(f'Episode query: {query}', log_utils.LOGDEBUG)
+        elif video.video_type == VIDEO_TYPES.SEASON:
+            query = f'"{video.title} Season {int(video.season):02d}"|"Complete"|"Batch"|"S{int(video.season):02d}"'
         elif video.video_type == VIDEO_TYPES.MOVIE:
             query += f' {video.year}'
         query = query.replace(' ', '+').replace('+-', '-')
+        logger.log(f'Final query: {query}', log_utils.LOGDEBUG)
         return query
-
-    def _build_season_pack_query(self, video):
-        query = f'{video.title} "Batch"|"Complete Series"'
-        logging.debug("Initial season pack query: %s", query)
-        if video.video_type == VIDEO_TYPES.TVSHOW:
-            query += f' S{int(video.season):02d}'
-            logging.debug("Season pack query with season: %s", query)
-        query = query.replace(' ', '+').replace('+-', '-')
-        logging.debug("Final season pack query: %s", query)
-        return query
-
-    def _filter_sources(self, hosters, video):
-        logging.debug("Filtering sources: %s", hosters)
-        filtered_sources = []
-        for source in hosters:
-            if video.video_type == VIDEO_TYPES.EPISODE:
-                if not self._match_episode(source['name'], video.season, video.episode):
-                    continue
-            filtered_sources.append(source)
-            logging.debug("Filtered source: %s", source)
-        return filtered_sources
-
-    def _match_episode(self, title, season, episode):
-        regex_ep = re.compile(r'\bS(\d+)E(\d+)\b')
-        match = regex_ep.search(title)
-        if match:
-            season_num = int(match.group(1))
-            episode_num = int(match.group(2))
-            if season_num == int(season) and episode_num == int(episode):
-                return True
-        return False
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
         if require_debrid:
@@ -143,9 +246,3 @@ class Scraper(scraper.Scraper):
             logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
         return ''
     
-    @classmethod
-    def get_settings(cls):
-        settings = super(cls, cls).get_settings()
-        name = cls.get_name()
-        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="true"/>')
-        return settings

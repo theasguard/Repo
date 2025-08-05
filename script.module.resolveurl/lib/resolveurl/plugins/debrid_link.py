@@ -122,8 +122,7 @@ class DebridLinkResolver(ResolveUrl):
         if js_result:
             torrent_id = js_result.get('id')
             if js_result.get('downloadPercent') < 100 and (self.get_setting('cached_only') == 'true' or cached_only):
-                url = '{0}/seedbox/{1}/remove'.format(api_url, torrent_id)
-                _ = self.net.http_DELETE(url, headers=self.headers)
+                self.__delete_transfer(torrent_id)
                 raise ResolverError('Debrid-Link: {0}'.format(i18n('cached_torrents_only')))
             logger.log_debug('Transfer successfully started to the Debrid-Link cloud')
             return torrent_id
@@ -169,7 +168,8 @@ class DebridLinkResolver(ResolveUrl):
                             )
                             if not keep_transfer:
                                 self.__delete_transfer(transfer_id)
-                            raise ResolverError('Transfer ID {0} :: {1}'.format(transfer_id, i18n('user_cancelled')))
+                            logger.log_debug('ResolveURL Debrid-Link Transfer ID {0} :: {1}'.format(transfer_id, i18n('user_cancelled')))
+                            return
             return
 
         except Exception as e:

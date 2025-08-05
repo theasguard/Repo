@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 tknorris, MrBlamo
+    Copyright (C) 2025 tknorris
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ import time
 import gzip
 from io import StringIO
 from typing import Any, Union
+import requests
 from six.moves import urllib_parse, urllib_request, urllib_error
 import urllib.error
 import urllib.parse
@@ -44,6 +45,14 @@ def __enum(**enums):
 TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
 SECTIONS = __enum(TV='TV', MOVIES='Movies')
 TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
+session = requests.Session()
+logger.log(f"Trakt API Session: {session}", log_utils.LOGDEBUG)
+retry = requests.adapters.Retry(total=None, status=1, status_forcelist=(429, 502, 503, 504))
+if kodi.get_setting('use_https') == 'true':
+    session.mount('https://api.trakt.tv', requests.adapters.HTTPAdapter(pool_maxsize=100, max_retries=retry))
+else:
+    session.mount('http://api.trakt.tv', requests.adapters.HTTPAdapter(pool_maxsize=100, max_retries=retry))
+
 
 class TraktError(Exception):
     pass
@@ -73,6 +82,15 @@ class Trakt_API():
         self.offline = offline
         self.__db_connection = DB_Connection()
         self.__worker_id = None
+                    # Create a custom opener without authentication handlers
+        self.opener = urllib_request.build_opener(
+            urllib_request.HTTPHandler(),
+            urllib_request.HTTPSHandler(context=ssl.create_default_context())
+        )
+        # Enable optimized methods (set to True to use new efficient methods)
+        self.use_optimized_methods = kodi.get_setting('trakt_use_optimized') == 'true'
+        if self.use_optimized_methods:
+            logger.log('Trakt API: Using optimized methods like POV', log_utils.LOGDEBUG)
 
     def get_code(self):
         url = '/oauth/device/code'
@@ -161,12 +179,9 @@ class Trakt_API():
         return self.__manage_watchlist('remove', section, items)
 
     def get_trending(self, section, page=None, filters=None):
-        logging.error('get_trending')
         if filters is None: filters = {}
         url = '/{}/trending'.format(TRAKT_SECTIONS[section])
-        logging.error(url)
         params = {'extended': 'full', 'limit': self.list_size}
-        logging.error(params)
         params.update(filters)
         if page: params['page'] = page
         response = self.__call_trakt(url, params=params)
@@ -292,6 +307,11 @@ class Trakt_API():
         else:
             return self.cache_show_aliases(show_id)
 
+    def get_next_episode(self, show_id):
+        url = '/shows/%s/next_episode' % (show_id)
+        params = {'extended': 'full'}
+        return self.__call_trakt(url, params=params, cache_limit=24 * 7)
+
     def get_seasons(self, show_id):
         url = '/shows/%s/seasons' % (show_id)
         params = {'extended': 'full'}
@@ -299,6 +319,7 @@ class Trakt_API():
 
     def get_episodes(self, show_id, season):
         url = '/shows/%s/seasons/%s' % (show_id, season)
+        logger.log('Trakt API Seasons URL: %s' % url, log_utils.LOGDEBUG)
         params = {'extended': 'full'}
         return self.__call_trakt(url, params=params, cache_limit=24 * 7)
 
@@ -309,13 +330,14 @@ class Trakt_API():
 
     def get_episode_details(self, show_id, season, episode):
         url = '/shows/%s/seasons/%s/episodes/%s' % (show_id, season, episode)
+        logger.log('Trakt API Episode Details URL: %s' % url, log_utils.LOGDEBUG)
         params = {'extended': 'full'}
-        return self.__call_trakt(url, params=params, cache_limit=8)
+        return self.__call_trakt(url, params=params, cache_limit=48)
 
     def get_movie_details(self, show_id):
         url = '/movies/%s' % (show_id)
         params = {'extended': 'full'}
-        return self.__call_trakt(url, params=params, cache_limit=8)
+        return self.__call_trakt(url, params=params, cache_limit=48)
 
     def get_people(self, section, show_id, full=False):
         url = '/%s/%s/people' % (TRAKT_SECTIONS[section], show_id)
@@ -402,25 +424,6 @@ class Trakt_API():
         url = '/users/%s' % (utils.to_slug(username))
         return self.__call_trakt(url, cached=cached)
 
-    def get_next_episode(self, trakt_id, season, episode):
-        url = f"{self.protocol}{BASE_URL}/shows/{trakt_id}/seasons/{season}/episodes/{episode + 1}"
-        headers = {'Content-Type': 'application/json', 'trakt-api-key': V2_API_KEY, 'trakt-api-version': 2}
-        if self.token:
-            headers['Authorization'] = f"Bearer {self.token}"
-
-        request = urllib_request.Request(url, headers=headers)
-        try:
-            response = urllib_request.urlopen(request)
-            result = response.read().decode('utf-8')
-            return json.loads(result)
-        except urllib_error.HTTPError as e:
-            if e.code == 404:
-                return None
-            else:
-                raise TraktError(f"Trakt API Error: {e.reason}")
-        except Exception as e:
-            raise TraktError(f"Unexpected Error: {str(e)}")
-
     def get_bookmarks(self, section=None, full=False):
         url = '/sync/playback'
         if section == SECTIONS.MOVIES:
@@ -437,7 +440,7 @@ class Trakt_API():
                 if bookmark['type'] == 'movie' and int(show_id) == bookmark['movie']['ids']['trakt']:
                     return bookmark['progress']
             else:
-                # logger.log('Resume: %s, %s, %s, %s' % (bookmark, show_id, season, episode), log_utils.LOGDEBUG)
+                logger.log('Resume: %s, %s, %s, %s' % (bookmark, show_id, season, episode), log_utils.LOGDEBUG)
                 if bookmark['type'] == 'episode' and int(show_id) == bookmark['show']['ids']['trakt'] and bookmark['episode']['season'] == int(season) and bookmark['episode']['number'] == int(episode):
                     return bookmark['progress']
 
@@ -482,11 +485,9 @@ class Trakt_API():
         return cache_limit
 
     def __manage_list(self, action, section, slug, items):
-        url = f'/users/me/lists/{slug}/items'
-        if action == 'remove':
-            url += '/remove'
-        if not isinstance(items, (list, tuple)):
-            items = [items]
+        url = '/users/me/lists/%s/items' % (slug)
+        if action == 'remove': url = url + '/remove'
+        if not isinstance(items, (list, tuple)): items = [items]
         data = self.__make_media_list_from_list(section, items)
         return self.__call_trakt(url, data=data, cache_limit=0)
 
@@ -504,7 +505,53 @@ class Trakt_API():
         if action == 'remove':
             url += '/remove'
         data = self.__make_media_list(section, item)
-        return self.__call_trakt(url, data=data, cache_limit=0)
+        
+        # Call the working Trakt API method with error handling
+        try:
+            result = self.__call_trakt_optimized(url, data=data, cache_limit=0)
+        except Exception as e:
+            error_msg = str(e)
+            logger.log(f'Collection API call failed: {error_msg}', log_utils.LOGERROR)
+            
+            # Handle specific Trakt API errors with helpful messages
+            if 'HTTP Error 420' in error_msg:
+                kodi.notify(msg='⏳ Trakt rate limited. Wait and try again.', duration=4000)
+            elif 'HTTP Error 401' in error_msg:
+                kodi.notify(msg='🔐 Trakt auth failed. Re-authorize required.', duration=4000)
+            elif 'HTTP Error 422' in error_msg:
+                kodi.notify(msg='⚠️ Invalid data sent to Trakt.', duration=3000)
+            elif 'HTTP Error 404' in error_msg:
+                kodi.notify(msg='⚠️ Item not found on Trakt.', duration=3000)
+            else:
+                kodi.notify(msg='❌ Failed to update Trakt collection', duration=3000)
+            return None
+        
+        # Add POV-style user feedback and cache efficiency
+        if result:
+            try:
+                if action == 'add' and 'added' in result:
+                    added_count = result['added'].get('movies', 0) + result['added'].get('episodes', 0)
+                    if added_count > 0:
+                        kodi.notify(msg=f'✅ Added {added_count} item(s) to Trakt collection', duration=3000)
+                        # Trigger efficient cache refresh
+                        self.__sync_activities_after_change('collection', section)
+                    else:
+                        kodi.notify(msg='⚠️ Nothing was added to collection', duration=3000)
+                        
+                elif action == 'remove' and 'deleted' in result:
+                    deleted_count = result['deleted'].get('movies', 0) + result['deleted'].get('episodes', 0)
+                    if deleted_count > 0:
+                        kodi.notify(msg=f'✅ Removed {deleted_count} item(s) from Trakt collection', duration=3000)
+                        # Trigger efficient cache refresh and UI update
+                        self.__sync_activities_after_change('collection', section)
+                        
+                    else:
+                        kodi.notify(msg='⚠️ Nothing was removed from collection', duration=3000)
+                        
+            except Exception as e:
+                logger.log(f'Collection notification error: {str(e)}', log_utils.LOGDEBUG)
+                
+        return result
 
     def __make_media_list(self, section, item, season='', episode=''):
         ids = {'ids': item}
@@ -553,6 +600,7 @@ class Trakt_API():
 
         db_connection = self.__get_db_connection()
         created, cached_headers, cached_result = db_connection.get_cached_url(url, json_data, db_cache_limit)
+        logger.log('DEBUG: cached_result type=%s, value=%s' % (type(cached_result), str(cached_result)[:100] if cached_result else 'NONE'), log_utils.LOGDEBUG)
         if cached_result and (self.offline or (time.time() - created) < (60 * 60 * cache_limit)):
             result = cached_result
             res_headers = dict(cached_headers)
@@ -561,14 +609,15 @@ class Trakt_API():
             auth_retry = False
             while True:
                 try:
-                    if auth and self.token: 
+                    if auth: 
                         headers.update({'Authorization': 'Bearer %s' % (self.token)})
                     logger.log('***Trakt Call: %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
                     request = urllib_request.Request(url, data=json_data, headers=headers)
                     if method is not None: 
                         request.get_method = lambda: method.upper()
 
-                    response = urllib_request.urlopen(request, timeout=self.timeout)
+
+                    response = self.opener.open(request, timeout=self.timeout)
                     result = ''
                     while True:
                         data = response.read()
@@ -631,7 +680,9 @@ class Trakt_API():
                     raise
 
         try:
+            logger.log('DEBUG: result type=%s, value=%s' % (type(result), str(result)[:100] if result else 'NONE'), log_utils.LOGDEBUG)
             js_data = utils.json_loads_as_str(result)
+            logger.log('js_data before sort: %s' % (js_data), log_utils.LOGDEBUG)
             if 'x-sort-by' in res_headers and 'x-sort-how' in res_headers:
                 js_data = utils2.sort_list(res_headers['x-sort-by'], res_headers['x-sort-how'], js_data)
         except ValueError:
@@ -640,3 +691,155 @@ class Trakt_API():
                 logger.log('Invalid JSON Trakt API Response: %s - |%s|' % (url, js_data), log_utils.LOGERROR)
 
         return js_data
+
+    def __call_trakt_simple(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True) -> Union[str, list, dict, Any]:
+        """Simplified HTTP handler similar to POV's approach"""
+        try:
+            import requests
+            
+            # Use requests session for better performance
+            if not hasattr(self, '_session'):
+                self._session = requests.Session()
+                # Set up retry strategy
+                retry_strategy = requests.adapters.Retry(
+                    total=3,
+                    status_forcelist=[429, 500, 502, 503, 504],
+                    allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"]
+                )
+                adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
+                self._session.mount("http://", adapter)
+                self._session.mount("https://", adapter)
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'trakt-api-key': V2_API_KEY,
+                'trakt-api-version': '2'
+            }
+            
+            if auth and self.token:
+                headers['Authorization'] = f'Bearer {self.token}'
+            
+            full_url = f'{self.protocol}{BASE_URL}{url}'
+            method = method or ('POST' if data else 'GET')
+            
+            logger.log(f'Trakt Simple Call: {method} {full_url}', log_utils.LOGDEBUG)
+            
+            response = self._session.request(
+                method=method,
+                url=full_url,
+                params=params,
+                json=data,
+                headers=headers,
+                timeout=self.timeout or 30
+            )
+            
+            if response.status_code == 401:
+                # Try to refresh token once
+                if hasattr(self, '_token_refresh_attempted'):
+                    raise TraktAuthError('Authentication failed after token refresh')
+                
+                self._token_refresh_attempted = True
+                refresh_result = self.refresh_token(kodi.get_setting('trakt_refresh_token'))
+                if refresh_result and 'access_token' in refresh_result:
+                    self.token = refresh_result['access_token']
+                    kodi.set_setting('trakt_oauth_token', refresh_result['access_token'])
+                    kodi.set_setting('trakt_refresh_token', refresh_result['refresh_token'])
+                    
+                    # Retry the request with new token
+                    headers['Authorization'] = f'Bearer {self.token}'
+                    response = self._session.request(
+                        method=method,
+                        url=full_url,
+                        params=params,
+                        json=data,
+                        headers=headers,
+                        timeout=self.timeout or 30
+                    )
+                else:
+                    raise TraktAuthError('Token refresh failed')
+            
+            # Reset token refresh flag on success
+            if hasattr(self, '_token_refresh_attempted'):
+                delattr(self, '_token_refresh_attempted')
+            
+            response.raise_for_status()
+            
+            try:
+                return response.json()
+            except ValueError:
+                return response.text
+                
+        except requests.exceptions.RequestException as e:
+            logger.log(f'Trakt request error: {str(e)}', log_utils.LOGERROR)
+            raise TraktError(f'Trakt request failed: {str(e)}')
+
+    def get_show_play_counts(self, trakt_id):
+        url = f'/shows/{trakt_id}/progress/watched'
+        return self.__call_trakt(url, params={'extended':'plays'})
+
+    def __sync_activities_after_change(self, changed_type, section):
+        """Efficiently sync only what changed, similar to POV's approach"""
+        try:
+            # Get latest activity timestamp
+            activity = self.get_last_activity()
+            if not activity:
+                return
+                
+            # Use the new efficient cache clearing methods
+            db_connection = self.__get_db_connection()
+            
+            if changed_type == 'collection':
+                media_type = 'movies' if section == SECTIONS.MOVIES else 'episodes'
+                # Use new efficient cache clearing
+                if hasattr(db_connection, 'clear_collection_cache'):
+                    db_connection.clear_collection_cache(media_type)
+                else:
+                    # Fallback to URL pattern clearing
+                    self.__clear_cache_pattern(f'/users/me/collection/{media_type}')
+                    self.__clear_cache_pattern(f'/sync/collection')
+                    
+            elif changed_type == 'watchlist':
+                media_type = 'movies' if section == SECTIONS.MOVIES else 'shows'
+                # Use new efficient cache clearing
+                if hasattr(db_connection, 'clear_watchlist_cache'):
+                    db_connection.clear_watchlist_cache(media_type)
+                else:
+                    # Fallback to URL pattern clearing
+                    self.__clear_cache_pattern(f'/users/me/watchlist/{media_type}')
+                    self.__clear_cache_pattern(f'/sync/watchlist')
+                    
+        except Exception as e:
+            logger.log(f'Cache sync error: {str(e)}', log_utils.LOGDEBUG)
+
+    def __clear_cache_pattern(self, pattern):
+        """Clear cache entries matching a URL pattern"""
+        try:
+            db_connection = self.__get_db_connection()
+            # Clear cache entries that contain the pattern
+            sql = 'DELETE FROM url_cache WHERE url LIKE ?'
+            db_connection.__execute(sql, (f'%{pattern}%',))
+            logger.log(f'Cleared cache entries matching: {pattern}', log_utils.LOGDEBUG)
+        except Exception as e:
+            logger.log(f'Error clearing cache pattern {pattern}: {str(e)}', log_utils.LOGDEBUG)
+
+    def __call_trakt_optimized(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True, cache_limit: float = .25, cached: bool = True) -> Union[str, list, dict, Any]:
+        """Use optimized HTTP handler when enabled"""
+        if self.use_optimized_methods:
+            try:
+                # Use the new simple HTTP handler for better performance
+                return self.__call_trakt_simple(url, method, data, params, auth)
+            except Exception as e:
+                logger.log(f'Optimized call failed, falling back to original: {str(e)}', log_utils.LOGDEBUG)
+                
+        # Fall back to original method
+        return self.__call_trakt(url, method, data, params, auth, cache_limit, cached)
+
+def trakt_expires(func):
+    def wrapper(*args, **kwargs):
+        if kodi.get_setting('trakt_refresh_token'):
+            expires = float(kodi.get_setting('trakt_expires', '0'))
+            if (expires - time.time()) < 28800:  # 8 hours
+                self = args[0]  # instance method
+                self.refresh_token(kodi.get_setting('trakt_refresh_token'))
+        return func(*args, **kwargs)
+    return wrapper

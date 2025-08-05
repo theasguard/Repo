@@ -28,10 +28,12 @@ class FileMoonResolver(ResolveUrl):
     name = 'FileMoon'
     domains = ['filemoon.sx', 'filemoon.to', 'filemoon.in', 'filemoon.link', 'filemoon.nl',
                'filemoon.wf', 'cinegrab.com', 'filemoon.eu', 'filemoon.art', 'moonmov.pro',
-               'kerapoxy.cc', 'furher.in', '1azayf9w.xyz', '81u6xl9d.xyz', 'smdfs40r.skin']
+               'kerapoxy.cc', 'furher.in', '1azayf9w.xyz', '81u6xl9d.xyz', 'smdfs40r.skin',
+               'bf0skv.org', 'z1ekv717.fun', 'l1afav.net', '222i8x.lol', '8mhlloqo.fun', '96ar.com',
+               'xcoic.com']
     pattern = r'(?://|\.)((?:filemoon|cinegrab|moonmov|kerapoxy|furher|1azayf9w|81u6xl9d|' \
-              r'smdfs40r)' \
-              r'\.(?:sx|to|s?k?in|link|nl|wf|com|eu|art|pro|cc|xyz))' \
+              r'smdfs40r|bf0skv|z1ekv717|l1afav|222i8x|8mhlloqo|96ar|xcoic)' \
+              r'\.(?:sx|to|s?k?in|link|nl|wf|com|eu|art|pro|cc|xyz|org|fun|net|lol))' \
               r'/(?:e|d|download)/([0-9a-zA-Z$:/._-]+)'
 
     def get_media_url(self, host, media_id):
@@ -45,14 +47,16 @@ class FileMoonResolver(ResolveUrl):
             media_id = media_id.split('/')[0]
 
         web_url = self.get_url(host, media_id)
-        headers = {'User-Agent': common.RAND_UA}
+        headers = {'User-Agent': common.RAND_UA,
+                   'Cookie': '__ddg1_=PZYJSmASXDCQGP6auJU9; __ddg2_=hxAe1bBqtlYhVSik'}
         if referer:
             headers.update({'Referer': referer})
 
         html = self.net.http_GET(web_url, headers=headers).content
         r = re.search(r'<iframe\s*src="([^"]+)', html, re.DOTALL)
         if r:
-            headers.update({'accept-language': 'en-US,en;q=0.9'})
+            headers.update({'accept-language': 'en-US,en;q=0.9',
+                            'sec-fetch-dest': 'iframe'})
             web_url = r.group(1)
             html = self.net.http_GET(web_url, headers=headers).content
         if '<h1>Page not found</h1>' in html:
@@ -78,6 +82,7 @@ class FileMoonResolver(ResolveUrl):
             surl = helpers.tear_decode(edata.get('file'), edata.get('seed'))
             if surl:
                 headers.pop('X-Requested-With')
+                headers.pop('Cookie')
                 headers["verifypeer"] = "false"
                 return surl + helpers.append_headers(headers)
         else:

@@ -31,9 +31,9 @@ from . import scraper
 logger = log_utils.Logger.get_logger()
 
 BASE_URL = 'premiumize.me'
-CHECKHASH_URL = '/api/torrent/checkhashes?'
+CHECKHASH_URL = '/api/cache/check?'
 ADD_URL = '/api/transfer/create?type=torrent'
-BROWSE_URL = '/api/torrent/browse?hash=%s'
+BROWSE_URL = '/api/folder/list?hash=%s'
 LIST_URL = '/api/transfer/list'
 
 BASE_UR2 = 'https://yts.am'
@@ -192,7 +192,7 @@ class Scraper(scraper.Scraper):
     def __get_hash_data(self, hashes):
         new_data = {}
         if hashes:
-            check_url = CHECKHASH_URL + urllib.parse.urlencode([('hashes[]', hashes)], doseq=True)
+            check_url = CHECKHASH_URL + urllib.parse.urlencode([('items[]', hashes)], doseq=True)
             check_url = scraper_utils.urljoin(self.base_url, check_url)
             new_data = hash_data = self._json_get(check_url, cache_limit=.1)
             new_data['hashes'] = {file_id.lower(): hash_data['hashes'][file_id] for file_id in hash_data.get('hashes', {})}
@@ -267,12 +267,86 @@ class Scraper(scraper.Scraper):
         settings = super(cls, cls).get_settings()
         settings = scraper_utils.disable_sub_check(settings)
         name = cls.get_name()
-        settings.append('         <setting id="%s-use_https" type="bool" label="     %s" default="false" visible="eq(-3,true)"/>' % (name, i18n('use_https')))
-        settings.append('         <setting id="%s-username" type="text" label="     %s" default="" visible="eq(-4,true)"/>' % (name, i18n('username')))
-        settings.append('         <setting id="%s-password" type="text" label="     %s" option="hidden" default="" visible="eq(-5,true)"/>' % (name, i18n('password')))
-        settings.append('         <setting id="%s-base_url2" type="text" label="     %s %s" default="%s" visible="eq(-6,true)"/>' % (name, i18n('movies'), i18n('base_url'), cls.movie_base_url))
-        settings.append('         <setting id="%s-base_url3" type="text" label="     %s %s" default="%s" visible="eq(-7,true)"/>' % (name, i18n('tv_shows'), i18n('base_url'), cls.tv_base_url))
-        settings.append('         <setting id="%s-include_trans" type="bool" label="     %s" default="true" visible="eq(-8,true)"/>' % (name, i18n('include_transcodes')))
+        parent_id = f"{name}-enable"
+        
+        settings.extend([
+            f'''\t\t<setting id="{name}-use_https" type="boolean" label="30548" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>false</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-username" type="string" label="30626" help="">
+\t\t\t<level>0</level>
+\t\t\t<default></default>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('username')}</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-password" type="string" label="30627" help="">
+\t\t\t<level>0</level>
+\t\t\t<default></default>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('password')}</heading>
+\t\t\t\t<hidden>true</hidden>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-base_url2" type="string" label="40913" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>{cls.movie_base_url}</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('movies_base_url')}</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-base_url3" type="string" label="40914" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>{cls.tv_base_url}</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('tv_shows_base_url')}</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-include_trans" type="boolean" label="30281" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>'''
+        ])
+        
         return settings
 
     def _json_get(self, url, params=None, data=None, allow_redirect=True, cache_limit=8):

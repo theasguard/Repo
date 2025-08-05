@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.example" name="Example Repository" version="1.0.0" provider-name="YourName">
+	<extension point="xbmc.addon.repository" name="Example Repository">
+		<dir minversion="20.90.0" maxversion="22.9.9">
+            <info compressed="false">https://your-repo-url.com/zips/addons.xml</info>
+            <checksum>https://your-repo-url.com/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://your-repo-url.com/zips/</datadir>
+		</dir>
+		<dir>
+        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
+        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
+        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
+        </dir>		
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary>Example Kodi repository</summary>
+		<description>This is an example Kodi repository containing various addons</description>
+		<platform>all</platform>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<genre>movies,usa</genre>
+	</extension>
+</addon>

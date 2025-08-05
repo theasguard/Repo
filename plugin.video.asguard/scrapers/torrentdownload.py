@@ -23,11 +23,12 @@ import re
 from urllib.parse import quote_plus, unquote_plus
 import xbmcgui
 import kodi
-import log_utils
-from asguard_lib import scraper_utils, control
+import log_utils, workers
+from asguard_lib import scraper_utils, control, client
 from asguard_lib.constants import FORCE_NO_MATCH, VIDEO_TYPES, QUALITIES, DELIM
 from asguard_lib.utils2 import i18n
 from . import scraper
+from . import proxy
 
 try:
     import resolveurl
@@ -47,11 +48,15 @@ class Scraper(scraper.Scraper):
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
         self.timeout = timeout
         self.base_url = kodi.get_setting(f'{self.get_name()}-base_url')
-        self.min_seeders = int(kodi.get_setting(f'{self.get_name()}-min_seeders'))
+        min_seeders_setting = kodi.get_setting(f'{self.get_name()}-min_seeders')
+        try:
+            self.min_seeders = int(min_seeders_setting) if min_seeders_setting else 0
+        except (ValueError, TypeError):
+            self.min_seeders = 0
 
     @classmethod
     def provides(cls):
-        return frozenset([VIDEO_TYPES.MOVIE, VIDEO_TYPES.EPISODE])
+        return frozenset([VIDEO_TYPES.MOVIE, VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE])
 
     @classmethod
     def get_name(cls):
@@ -63,7 +68,7 @@ class Scraper(scraper.Scraper):
         if not source_url or source_url == FORCE_NO_MATCH:
             return sources
 
-        html = self._http_get(source_url, require_debrid=True)
+        html = self._http_get(source_url, require_debrid=True, cache_limit=1)
         for row in re.findall(r'<tr>(.*?)</tr>', html, re.DOTALL):
             if any(value in row for value in ('<th', 'nofollow')):
                 continue
@@ -86,13 +91,11 @@ class Scraper(scraper.Scraper):
             quality = scraper_utils.get_tor_quality(name)
             logger.log(f'Found quality: {quality}', log_utils.LOGDEBUG)
             info = []
-            try:
-                dsize, isize = scraper_utils.get_size(columns[2])
-                info.insert(0, isize)
-            except:
-                dsize = 0
+            dsize = columns[2].strip()
+
             info = ' | '.join(info)
-            hoster = {'multi-part': False, 'label': name, 'hash': hash, 'class': self, 'language': 'en', 'source': 'torrent', 'url': url, 'info': info, 'host': 'magnet', 'quality': quality, 'direct': False, 'debridonly': True, 'size': dsize}
+            label = f"{name} | {dsize}"
+            hoster = {'class': self, 'multi-part': False, 'label': label, 'hash': hash, 'language': 'en', 'source': 'torrent', 'url': url, 'info': info, 'host': 'magnet', 'quality': quality, 'direct': False, 'debridonly': True, 'size': dsize}
             sources.append(hoster)
             # sources.append({
             #     'class': self,
@@ -114,7 +117,7 @@ class Scraper(scraper.Scraper):
         if video.video_type == VIDEO_TYPES.MOVIE:
             query = f'{video.title} {video.year}'
         else:
-            query = f'{video.title} S{int(video.season):02d}E{int(video.episode):02d}'
+            query = f'{video.title}'
         return f'{self.base_url}{SEARCH_URL % quote_plus(query)}'
 
     @classmethod
@@ -122,9 +125,48 @@ class Scraper(scraper.Scraper):
         settings = super(cls, cls).get_settings()
         settings = scraper_utils.disable_sub_check(settings)
         name = cls.get_name()
-        settings.append(f'         <setting id="{name}-base_url" type="text" label="     {i18n("base_url")}" default="{BASE_URL}" visible="eq(-3,true)"/>')
-        settings.append(f'         <setting id="{name}-min_seeders" type="slider" label="     {i18n("min_seeders")}" default="0" range="0,100" option="int" visible="eq(-4,true)"/>')
-        return settings
+        parent_id = f"{name}-enable"
+        label_id = kodi.Translations.get_scraper_label_id(name)
+        return [
+            f'''\t\t<setting id="{parent_id}" type="boolean" label="{label_id}" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition on="property" name="InfoBool">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-base_url" type="string" label="30175" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>{cls.base_url}</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('base_url')}</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-min_seeders" type="integer" label="40486" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>0</default>
+\t\t\t<constraints>
+\t\t\t\t<minimum>0</minimum>
+\t\t\t\t<maximum>100</maximum>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="slider" format="integer">
+\t\t\t\t<popup>false</popup>
+\t\t\t</control>
+\t\t</setting>'''
+        ]
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
         if require_debrid:

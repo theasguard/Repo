@@ -2254,3 +2254,161 @@ msgstr ""
 msgctxt "#40482"
 msgid "Enable Manual File Selection for Batch Torrents"
 msgstr ""
+
+msgctxt "#40632"
+msgid "Jackettio"
+msgstr ""
+
+msgctxt "#40633"
+msgid "Enable Jackettio"
+msgstr ""
+
+msgctxt "#40634"
+msgid "Enable GloDLS"
+msgstr ""
+
+msgctxt "#40635"
+msgid "Enable CloudTorrents"
+msgstr ""
+
+msgctxt "#40636"
+msgid "V4 TVDB API Key"
+msgstr ""
+
+msgctxt "#40637"
+msgid "Merge TVDB Seasons"
+msgstr ""
+
+msgctxt "#40638"
+msgid "PkMovies Enabled"
+msgstr ""
+
+msgctxt "#30414"
+msgid "Aniwatch Enabled"
+msgstr ""
+
+msgctxt "#40639"
+msgid "AniRena Enabled"
+msgstr ""
+
+msgctxt "#40640"
+msgid "TVDB API Key"
+msgstr ""
+
+msgctxt "#40641"
+msgid "TVDB Token"
+msgstr ""
+
+msgctxt "#40642"
+msgid "TVDB Password"
+msgstr ""  
+
+msgctxt "#40643"
+msgid "AioStreams Enabled"
+msgstr ""
+
+msgctxt "#40644"
+msgid "AioStreams Bypass Filter"
+msgstr ""
+
+msgctxt "#40645"
+msgid "AioStreams API"
+msgstr ""
+
+msgctxt "#40646"
+msgid "Nextup Prompt"
+msgstr ""
+
+msgctxt "#40647"
+msgid "Simkl Enabled"
+msgstr ""
+
+msgctxt "#40648"
+msgid "Simkl Base Url"
+msgstr ""
+
+msgctxt "#40649"
+msgid "Simkl User"
+msgstr ""
+
+msgctxt "#40812"
+msgid "iDope Enabled"
+msgstr ""
+
+msgctxt "#40910"
+msgid "TMDB Bearer Token"
+msgstr ""
+
+msgctxt "#40911"
+msgid "TRAKT Expires"
+msgstr ""
+
+msgctxt "#40912"
+msgid "Optimized TRAKT"
+msgstr ""
+
+msgctxt "#40811"
+msgid "Animepahe Enabled"
+msgstr ""
+
+msgctxt "#40813"
+msgid "WatchSeries Enabled"
+msgstr ""
+
+msgctxt "#40814"
+msgid "DoMovies Enabled"
+msgstr ""
+
+msgctxt "#40815"
+msgid "BstSrs Enabled"
+msgstr ""
+
+msgctxt "#40816"
+msgid "TVMovieFlix Enabled"
+msgstr ""
+
+msgctxt "#40817"
+msgid "SFlixWatch Enabled"
+msgstr ""
+
+msgctxt "#40818"
+msgid "M4UHD Enabled"
+msgstr ""
+
+
+msgctxt "#40913"
+msgid "Base URL2"
+msgstr ""
+
+msgctxt "#40914"
+msgid "Base URL3"
+msgstr ""
+
+msgctxt "#40915"
+msgid "WebStreamr Enabled"
+msgstr ""
+
+msgctxt "#41000"
+msgid "includeExternalUrls"
+msgstr ""
+
+msgctxt "#41001"
+msgid "mediaFlowProxyUrl"
+msgstr ""
+
+msgctxt "#41002"
+msgid "mediaFlowProxyPassword"
+msgstr ""
+
+msgctxt "#41003"
+msgid "Multi Language"
+msgstr ""
+
+msgctxt "#41004"
+msgid "English Content"
+msgstr ""
+
+msgctxt "#40524"
+msgid "Re-authenticate Trakt"
+msgstr ""
+

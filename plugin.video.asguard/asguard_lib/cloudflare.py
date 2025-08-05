@@ -26,8 +26,10 @@ import re
 from . import util
 import xbmc
 from .constants import USER_AGENT
-import six
-from six.moves import urllib_request, urllib_parse, urllib_error
+import urllib.request as urllib_request
+import urllib.parse as urllib_parse
+import urllib.error as urllib_error
+
 
 MAX_TRIES = 3
 COMPONENT = __name__

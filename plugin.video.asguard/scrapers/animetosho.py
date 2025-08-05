@@ -1,6 +1,6 @@
 """
     Asguard Kodi Addon
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2025 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -50,7 +50,6 @@ class Scraper(scraper.Scraper):
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
         self.timeout = timeout
         self.base_url = kodi.get_setting(f'{self.get_name()}-base_url')
-        self.result_limit = kodi.get_setting(f'{self.get_name()}-result_limit')
 
     @classmethod
     def provides(cls):
@@ -69,6 +68,39 @@ class Scraper(scraper.Scraper):
         logging.debug("Resolving link: %s", link)
         return link
 
+    def parse_season_from_name(self, name):
+        """
+        Attempt to parse the season number from the source name.
+        :param name: The source name (title of the torrent)
+        :return: The season number as an integer, or None if not found.
+        """
+        # First, try to find explicit season markers (case insensitive)
+        patterns = [
+            r'Season\s*(\d+)',  # Season 1, Season1, Season 01
+            r'S(\d+)',           # S1, S01
+            r'S\s*(\d+)',        # S 1, S 01
+            r'(\d+)(?:st|nd|rd|th)\s*Season',  # 1st Season, 2nd Season, etc.
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, name, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+        
+        # Then, try to match Roman numerals (only the common ones, up to 12 maybe)
+        roman_numerals = {
+            ' I ': 1, ' II ': 2, ' III ': 3, ' IV ': 4, ' V ': 5, ' VI ': 6, 
+            ' VII ': 7, ' VIII ': 8, ' IX ': 9, ' X ': 10, ' XI ': 11, ' XII ': 12,
+            # Also as whole words (with word boundaries)
+            r'\bI\b': 1, r'\bII\b': 2, r'\bIII\b': 3, r'\bIV\b': 4, r'\bV\b': 5, r'\bVI\b': 6,
+            r'\bVII\b': 7, r'\bVIII\b': 8, r'\bIX\b': 9, r'\bX\b': 10, r'\bXI\b': 11, r'\bXII\b': 12
+        }
+        for roman, number in roman_numerals.items():
+            if re.search(roman, name, re.IGNORECASE):
+                return number
+        
+        # If we haven't found a season, return None
+        return None
+
     def get_sources(self, video):
         """
         Fetches sources for a given video.
@@ -79,9 +111,12 @@ class Scraper(scraper.Scraper):
         hosters = []
         query = self._build_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL)
+        # logging.debug("Retrieved show from database: %s", search_url)
         html = self._http_get(search_url, data=urllib.parse.urlencode(query).encode('utf-8'), require_debrid=True)
+        # logging.debug("Retrieved html: %s", html)
         soup = BeautifulSoup(html, "html.parser")
         soup_all = soup.find('div', id='content').find_all('div', class_='home_list_entry')
+        # logging.debug("Retrieved soup_all: %s", soup_all)
 
 
         for entry in soup_all:
@@ -91,14 +126,11 @@ class Scraper(scraper.Scraper):
                 size = entry.find('div', class_='size').text
                 torrent = entry.find('a', class_='dllink').get('href')
                 # Extract quality from the name
-                quality_match = re.search(r'\b(1080p|720p|480p|360p)\b', name)
-                if quality_match:
-                    quality = QUALITY_MAP.get(quality_match.group(0), QUALITIES.HD1080)
-                else:
-                    quality = QUALITIES.HD1080
+                quality = scraper_utils.get_tor_quality(name)
+                logging.debug("Retrieved quality: %s", quality)
 
                 host = scraper_utils.get_direct_hostname(self, name)
-                label = f"{name} | {quality} | {size}"
+                label = f"{name} | {size}"
                 hosters.append({
                     'class': self,
                     'name': name,
@@ -112,71 +144,63 @@ class Scraper(scraper.Scraper):
                     'direct': False,
                     'debridonly': True
                 })
-                logging.debug("Retrieved sources: %s", hosters[-1])
             except AttributeError as e:
                 logging.error("Failed to append source: %s", str(e)) 
                 continue
+        return hosters
 
-        return self._filter_sources(hosters, video)
+    def _is_correct_season(self, name, video):
+        """Check if source matches the requested season"""
+        season_num = int(video.season)
+        patterns = [
+            # Match season numbers in various formats
+            rf"S{season_num:02d}\b", 
+            rf"\b{season_num}\b",
+            rf"Season {season_num}\b",
+            rf"Season {season_num:02d}\b",
+            # Match Roman numerals for seasons I-XII
+            rf"\b{self._to_roman(season_num)}\b"
+        ]
+        return any(re.search(pattern, name, re.IGNORECASE) for pattern in patterns)
+
+    def _to_roman(self, n):
+        """Convert integer to Roman numeral (I-XII)"""
+        roman_map = {1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI',
+                    7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X', 11: 'XI', 12: 'XII'}
+        return roman_map.get(n, '')
 
     def _build_query(self, video):
         """
         Builds the search query for the given video.
-
         :param video: The video object.
         :return: The search query as a dictionary.
         """
-        query = {'q': video.title}
+        # Normalize the video title to handle special characters and case sensitivity
+        normalized_title = scraper_utils.cleanTitle(video.title)
+        query = {'q': f'*{normalized_title}*'}
+        logging.debug("Initial query animetosh: %s", query)
+
+        # Construct the query based on the video type
         if video.video_type == VIDEO_TYPES.EPISODE:
-            query['q'] += f' S{int(video.season):02d}E{int(video.episode):02d}'
+            # Include both specific episode formats and season packs
+            season_str = f'S{int(video.season):02d}'
+            episode_str = f'E{int(video.episode):02d}'
+            
+            # Add formats: SXXEXX, SXX, and alternative episode formats
+            query['q'] += f' {season_str}{episode_str}|{season_str}|"Complete"|"Batch"|"E{int(video.episode):02d}"'
         elif video.video_type == VIDEO_TYPES.MOVIE:
             query['q'] += f' {video.year}'
+        elif video.video_type == VIDEO_TYPES.SEASON:
+            # Include season range and complete season markers
+            season_str = f'S{int(video.season):02d}'
+            query['q'] += f' {season_str}|"Complete"|"Batch"'
+
+        # Replace spaces with '+' and handle any special characters
         query['q'] = query['q'].replace(' ', '+').replace('+-', '-')
         query['qx'] = 1
+        logging.debug("Final query: %s", query)
+
         return query
-
-    def _filter_sources(self, hosters, video):
-        """
-        Filters the sources based on the video type and episode matching.
-
-        :param hosters: List of hosters.
-        :param video: The video object.
-        :return: Filtered list of sources.
-        """
-        logging.debug("Retrieved sources: %s", hosters)
-        filtered_sources = []
-        for source in hosters:
-            if video.video_type == VIDEO_TYPES.EPISODE:
-                if not self._match_episode(source['name'], video.season, video.episode):
-                    continue
-            filtered_sources.append(source)
-            logging.debug("Retrieved filtered_sources: %s", filtered_sources)
-        return filtered_sources
-
-    def _match_episode(self, title, season, episode):
-        """
-        Matches the episode number in the title with the given season and episode.
-
-        :param title: The title of the source.
-        :param season: The season number.
-        :param episode: The episode number.
-        :return: True if the episode matches, False otherwise.
-        """
-        regex_ep = re.compile(r'\bS(\d+)E(\d+)\b')
-        match = regex_ep.search(title)
-        if match:
-            # Convert extracted values to integers
-            season_num = int(match.group(1))
-            episode_num = int(match.group(2))
-            
-            # Convert expected values to integers
-            season = int(season)
-            episode = int(episode)
-            
-            # Perform comparison
-            if season_num == season and episode_num == episode:
-                return True
-        return False
 
     def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
         """
@@ -199,6 +223,7 @@ class Scraper(scraper.Scraper):
         try:
             headers = {'User-Agent': scraper_utils.get_ua()}
             req = urllib.request.Request(url, data=data, headers=headers)
+            logging.debug("Retrieved req: %s", req)
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 return response.read().decode('utf-8')
         except urllib.error.HTTPError as e:
@@ -207,14 +232,3 @@ class Scraper(scraper.Scraper):
             logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
         return ''
 
-    @classmethod
-    def get_settings(cls):
-        """
-        Returns the settings for the scraper.
-
-        :return: List of settings.
-        """
-        settings = super(cls, cls).get_settings()
-        name = cls.get_name()
-        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="true"/>')
-        return settings

@@ -23,10 +23,12 @@ import kodi
 from . import scraper
 from . import proxy
 from asguard_lib import scraper_utils
-from asguard_lib.trakt_api import Trakt_API
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib.constants import QUALITIES
 from asguard_lib.constants import HOST_Q
+import log_utils
+
+logger = log_utils.Logger.get_logger()
 
 BASE_URL = 'https://orionoid.com'
 
@@ -56,17 +58,6 @@ class Scraper(scraper.Scraper):
 			hosts.extend(value)
 		hosts = [i.lower() for i in hosts]
 		return hosts
-
-	def _error(self):
-		type, value, traceback = sys.exc_info()
-		filename = traceback.tb_frame.f_code.co_filename
-		linenumber = traceback.tb_lineno
-		name = traceback.tb_frame.f_code.co_name
-		errortype = type.__name__
-		errormessage = str(errortype) + ' -> ' + str(value.message)
-		parameters = [filename, linenumber, name, errormessage]
-		parameters = ' | '.join([str(parameter) for parameter in parameters])
-		logging.log('DEATH STREAMS ORION [ERROR]: ' + parameters)
 
 	def _link(self, data, orion = False):
 		links = data['links']
@@ -157,9 +148,9 @@ class Scraper(scraper.Scraper):
 
 	def _premiumizeParameters(self, parameters = None):
 		from resolveurl.plugins.premiumize_me import PremiumizeMeResolver
-		if parameters: parameters = [urllib.urlencode(parameters, doseq = True)]
+		if parameters: parameters = [urllib.parse.urlencode(parameters, doseq = True)]
 		else: parameters = []
-		parameters.append(urllib.urlencode({'access_token' : PremiumizeMeResolver.get_setting('token')}, doseq = True))
+		parameters.append(urllib.parse.urlencode({'access_token' : PremiumizeMeResolver.get_setting('token')}, doseq = True))
 		return '&'.join(parameters)
 
 	def _premiumizeRequest(self, link, parameters = None):
@@ -191,7 +182,8 @@ class Scraper(scraper.Scraper):
 					if sources[i]['file']['hash'] in self.cachedHashes:
 						sources[i]['cached'] = True
 				except: pass
-		except: self._error()
+		except Exception as e:
+			logger.log('Orion: Error in caching check: %s' % str(e), log_utils.LOGWARNING)
 		return sources
 
 	def _cachedCheck(self, hashes):
@@ -202,7 +194,8 @@ class Scraper(scraper.Scraper):
 				if value['status'] == 'finished':
 					self.cachedHashes.append(key)
 			self.cachedLock.release()
-		except: self._error()
+		except Exception as e:
+			logger.log('Orion: Error checking cached hashes: %s' % str(e), log_utils.LOGWARNING)
 
 	def get_sources(self, video):
 		sources = []
@@ -210,48 +203,55 @@ class Scraper(scraper.Scraper):
 			# Decode the key properly
 			decoded_key = base64.b64decode(base64.b64decode(base64.b64decode(self.key.encode('utf-8')))).decode('utf-8').replace(' ', '')
 			orion = Orion(decoded_key)
-			if not orion.userEnabled() or not orion.userValid(): raise Exception()
+			if not orion.userEnabled() or not orion.userValid(): 
+				logger.log('Orion: User not enabled or invalid', log_utils.LOGWARNING)
+				return sources
 
+			# Use centralized IMDB ID retrieval from base class
+			imdb_id = self.get_imdb_id(video)
+			if not imdb_id:
+				logger.log('Orion: No IMDB ID found for trakt_id: %s' % video.trakt_id, log_utils.LOGWARNING)
+				return sources
+
+			# Get all IDs for comprehensive Orion search
+			all_ids = self.get_all_ids(video)
+			
 			type = Orion.TypeMovie if video.video_type == VIDEO_TYPES.MOVIE else Orion.TypeShow
 			idTrakt = video.trakt_id
-			idImdb = None
-			idTmdb = None
-			idTvdb = None
+			idImdb = imdb_id
+			idTmdb = all_ids.get('tmdb') if all_ids else None
+			idTvdb = all_ids.get('tvdb') if all_ids else None
 			numberSeason = None
 			numberEpisode = None
 			query = None
 
-			if type == Orion.TypeMovie:
-				details = Trakt_API().get_movie_details(idTrakt)
-			else:
-				details = Trakt_API().get_show_details(idTrakt)
+			if type == Orion.TypeShow:
 				numberSeason = video.season
 				numberEpisode = video.episode
-			try: idImdb = details['ids']['imdb']
-			except: pass
-			try: idTmdb = details['ids']['tmdb']
-			except: pass
-			try: idTvdb = details['ids']['tvdb']
-			except: pass
+				logger.log('Orion: Searching for episode: %s S%sE%s' % (imdb_id, video.season, video.episode), log_utils.LOGDEBUG)
+			else:
+				logger.log('Orion: Searching for movie: %s' % imdb_id, log_utils.LOGDEBUG)
 
+			# Fallback query if no IDs available
 			if type == Orion.TypeMovie and not idTrakt and not idImdb and not idTmdb:
 				query = '%s %s' % (str(video.title), str(video.year))
 			elif type == Orion.TypeShow and not idTrakt and not idImdb and not idTvdb:
 				query = '%s S%sE%s' % (str(video.title), str(video.season), str(video.episode))
 
+			logger.log('Orion: Requesting streams with IMDB: %s, TMDB: %s, TVDB: %s' % (idImdb, idTmdb, idTvdb), log_utils.LOGDEBUG)
+
 			results = orion.streams(
 				type = type,
-
 				idTrakt = idTrakt,
 				idImdb = idImdb,
 				idTmdb = idTmdb,
 				idTvdb = idTvdb,
-
 				numberSeason = numberSeason,
 				numberEpisode = numberEpisode,
-
 				query = query,
 			)
+
+			logger.log('Orion: Found %d streams from API' % len(results), log_utils.LOGDEBUG)
 
 			results = (results)
 			for data in results:
@@ -290,12 +290,23 @@ class Scraper(scraper.Scraper):
 							stream['subs'] = '-'.join(data['subtitle']['languages']).upper()
 
 						sources.append(stream)
-				except: self._error()
-		except: self._error()
+						logger.log('Orion: Added source: %s [%s]' % (data['file']['name'], self._source(data, True)), log_utils.LOGDEBUG)
+				except Exception as e:
+					logger.log('Orion: Error processing stream: %s' % str(e), log_utils.LOGWARNING)
+					continue
+		except Exception as e:
+			logger.log('Orion: Unexpected error in get_sources: %s' % str(e), log_utils.LOGERROR)
+
+		logger.log('Orion: Returning %d sources' % len(sources), log_utils.LOGDEBUG)
 		return sources
 
 	def resolve_link(self, link):
 		return link
 
 	def search(self, video_type, title, year, season = ''):
-		raise NotImplementedError
+		"""
+		Search method implementation for Orion scraper.
+		Orion works best with IDs but can fallback to text search.
+		"""
+		logging.log('Orion: Text search not optimal - works best with Trakt/IMDB IDs', logging.LOGDEBUG)
+		return []

@@ -1,6 +1,6 @@
 """
    Based on Parsedom for XBMC plugins
-   Copyright (C) 2010-2011 Tobias Ussing And Henrik Mosgaard Jensen
+   Copyright (C) 2025 Tobias Ussing And Henrik Mosgaard Jensen
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ def parseDOM(html, name='', attrs=None, ret=False):
 		else: results = [result.content for result in results]
 		return results
 	except:
-		from resources.lib.modules import log_utils
+		import log_utils
 		log_utils.error()
 
 def __get_dom_content(html, name, match):
@@ -59,7 +59,7 @@ def __get_dom_content(html, name, match):
 		else: result = ''
 		return result
 	except:
-		from resources.lib.modules import log_utils
+		import log_utils
 		log_utils.error()
 		return ''
 
@@ -97,7 +97,7 @@ def __get_dom_elements(item, name, attrs):
 			this_list = last_list
 		return this_list
 	except:
-		from resources.lib.modules import log_utils
+		import log_utils
 		log_utils.error()
 		return this_list
 
@@ -113,7 +113,7 @@ def __get_attribs(element):
 			attribs[match['key'].lower().strip()] = value
 		return attribs
 	except:
-		from resources.lib.modules import log_utils
+		import log_utils
 		log_utils.error()
 		return attribs
 
@@ -145,6 +145,6 @@ def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
 			all_results += results
 		return all_results
 	except:
-		from resources.lib.modules import log_utils
+		import log_utils
 		log_utils.error()
 		return ''

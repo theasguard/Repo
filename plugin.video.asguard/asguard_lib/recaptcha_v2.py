@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     Asguard Addon
-    Copyright (C) 2016 tknorris
+    Copyright (C) 2024 tknorris
     Derived from Shani's LPro Code (https://github.com/Shani-08/ShaniXBMCWork2/blob/master/plugin.video.live.streamspro/unCaptcha.py)
 
     This program is free software: you can redistribute it and/or modify
@@ -20,14 +20,17 @@
     reusable captcha methods
 """
 import re
+import requests
 import urllib.parse
 import urllib.request
+import urllib.error
 import os
 import xbmcgui
 from asguard_lib import scraper_utils
 import log_utils
 import kodi
 import dom_parser2
+
 
 logger = log_utils.Logger.get_logger(__name__)
 logger.disable()
@@ -45,13 +48,13 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.chkstate = [False] * 9
 
         imgX, imgY, imgw, imgh = 436, 210, 408, 300
-        ph, pw = imgh // 3, imgw // 3
+        ph, pw = imgh / 3, imgw / 3
         x_gap = 70
         y_gap = 70
         button_gap = 40
         button_h = 40
         button_y = imgY + imgh + button_gap
-        middle = imgX + (imgw // 2)
+        middle = imgX + (imgw / 2)
         win_x = imgX - x_gap
         win_y = imgY - y_gap
         win_h = imgh + 2 * y_gap + button_h + button_gap
@@ -75,7 +78,7 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.addControl(self.cancelbutton)
 
         for i in range(9):
-            row = i // 3
+            row = i // 3  # Fix: Use integer division for Python 3
             col = i % 3
             x_pos = imgX + (pw * col)
             y_pos = imgY + (ph * row)
@@ -86,7 +89,7 @@ class cInputWindow(xbmcgui.WindowDialog):
             self.addControl(self.chkbutton[i])
 
         for i in range(9):
-            row_start = (i // 3) * 3
+            row_start = (i // 3) * 3  # Fix: Use integer division for Python 3
             right = row_start + (i + 1) % 3
             left = row_start + (i - 1) % 3
             up = (i - 3) % 9
@@ -188,16 +191,24 @@ class UnCaptchaReCaptcha:
 def get_url(url, data=None, timeout=20, headers=None):
     if headers is None: headers = {}
     if data is None: data = {}
-    post_data = urllib.parse.urlencode(data, doseq=True).encode('utf-8')
+    post_data = urllib.parse.urlencode(data, doseq=True)
     if 'User-Agent' not in headers:
         headers['User-Agent'] = scraper_utils.get_ua()
     logger.log('URL: |%s| Data: |%s| Headers: |%s|' % (url, post_data, headers), log_utils.LOGDEBUG)
 
     try:
-        req = urllib.request.Request(url, data=post_data, headers=headers)
-        response = urllib.request.urlopen(req, timeout=timeout)
-        result = response.read().decode('utf-8')
+        req = urllib.request.Request(url)
+        for key in headers:
+            req.add_header(key, headers[key])
+    
+        response = urllib.request.urlopen(req, data=post_data, timeout=timeout)
+        result = response.read()
         response.close()
+        
+        # Decode bytes to string
+        if isinstance(result, bytes):
+            result = result.decode('utf-8', errors='ignore')
+            
     except urllib.error.HTTPError as e:
         logger.log('ReCaptcha.V2 HTTP Error: %s on url: %s' % (e.code, url), log_utils.LOGWARNING)
         result = ''

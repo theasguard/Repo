@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2017 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
-import urlparse
+import urllib.parse
 import kodi
 import log_utils  # @UnusedImport
 import dom_parser2
@@ -68,14 +68,14 @@ class Scraper(scraper.Scraper):
             else:
                 sources[player_url] = {'direct': False, 'quality': Q_MAP.get(label.upper(), QUALITIES.HIGH)}
                     
-        for source, value in sources.iteritems():
+        for source, value in sources.items():
             direct = value['direct']
             quality = value['quality']
             if direct:
                 host = scraper_utils.get_direct_hostname(self, source)
                 stream_url = source + scraper_utils.append_headers({'User-Agent': scraper_utils.get_ua()})
             else:
-                host = urlparse.urlparse(source).hostname
+                host = urllib.parse.urlparse(source).hostname
                 stream_url = source
 
             hoster = {'multi-part': False, 'host': host, 'class': self, 'quality': quality, 'views': None, 'rating': None, 'url': stream_url, 'direct': direct}

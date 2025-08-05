@@ -8,16 +8,25 @@ from asguard_lib import control
 addon = xbmcaddon.Addon('plugin.video.asguard')
 # Constants
 TMDB_API_KEY = kodi.get_setting('tmdb_key')
+BEARER_TOKEN = kodi.get_setting('tmdb_bearer_token')
 TMDB_API_URL = 'https://api.themoviedb.org/3'
 TMDB_SEARCH_URL = 'https://api.themoviedb.org/3/search/movie'
 TMDB_SEARCH_TV_URL = 'https://api.themoviedb.org/3/search/tv'
 TMDB_TV_DETAILS_URL = 'https://api.themoviedb.org/3/tv/{}'
 TMDB_SEASON_DETAILS_URL = 'https://api.themoviedb.org/3/tv/{}/season/{}'
+TMDB_EPISODE_GROUPS_URL = 'https://api.themoviedb.org/3/tv/{}/episode_groups'
+TMDB_EPISODE_GROUPS_DETAILS_URL = 'https://api.themoviedb.org/3/tv/episode_group/{}'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def authenticate_tmdb():
+    url = 'https://api.themoviedb.org/3/authentication'
+    params = {'api_key': TMDB_API_KEY}
+    response = requests.get(url, params=params)
+    return response.json()
 
 def search_tmdb(query, page=1, overview=True):
     """
@@ -68,11 +77,11 @@ def search_tmdb_tv(query, page=1):
         logger.error(f"Error parsing JSON: {e}")
         return {}
 
-def get_tv_details(tv_id, overview=True, trakt_id=None):
+def get_tv_details(tmdb_id, overview=True, trakt_id=None):
     """
     Get details of a specific TV show.
     
-    :param tv_id: The TMDB ID of the TV show.
+    :param tmdb_id: The TMDB ID of the TV show.
     :return: A dictionary with TV show details.
     """
     params = {
@@ -83,7 +92,7 @@ def get_tv_details(tv_id, overview=True, trakt_id=None):
     if trakt_id:
         params['trakt_id'] = trakt_id
     try:
-        response = requests.get(TMDB_TV_DETAILS_URL.format(tv_id), params=params)
+        response = requests.get(TMDB_TV_DETAILS_URL.format(tmdb_id), params=params)
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
     except requests.RequestException as e:
@@ -93,21 +102,21 @@ def get_tv_details(tv_id, overview=True, trakt_id=None):
         logger.error(f"Error parsing JSON: {e}")
         return {}
 
-def get_tv_seasons(tv_id):
+def get_tv_seasons(tmdb_id):
     """
     Get seasons of a specific TV show.
     
-    :param tv_id: The TMDB ID of the TV show.
+    :param tmdb_id: The TMDB ID of the TV show.
     :return: A list of seasons.
     """
-    tv_details = get_tv_details(tv_id)
+    tv_details = get_tv_details(tmdb_id)
     return tv_details.get('seasons', [])
 
-def get_season_episodes(tv_id, season_number, overview=True, trakt_id=None):
+def get_season_episodes(tmdb_id, season_number, overview=True, trakt_id=None):
     """
     Get episodes of a specific season from TMDB.
     
-    :param tv_id: The TMDB ID of the TV show.
+    :param tmdb_id: The TMDB ID of the TV show.
     :param season_number: The season number.
     :return: A list of episodes.
     """
@@ -118,7 +127,7 @@ def get_season_episodes(tv_id, season_number, overview=True, trakt_id=None):
     if trakt_id:
         params['trakt_id'] = trakt_id
     try:
-        response = requests.get(TMDB_SEASON_DETAILS_URL.format(tv_id, season_number), params=params)
+        response = requests.get(TMDB_SEASON_DETAILS_URL.format(tmdb_id, season_number), params=params)
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json().get('episodes', [])
     except requests.RequestException as e:
@@ -183,6 +192,30 @@ def fetch_tmdb_metadata(imdb_id, trakt_id=None):
     if response.status_code == 200:
         return response.json()
     return None
+
+def get_tv_episode_groups(tmdb_id):
+    """Get all episode groups for a TV show"""
+    url = TMDB_EPISODE_GROUPS_URL.format(tmdb_id)
+    params = {'api_key': TMDB_API_KEY}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json().get('results', [])
+    except Exception as e:
+        logger.error(f"Error getting episode groups: {e}")
+        return []
+
+def get_episode_group_details(group_id):
+    """Get detailed episodes for an episode group"""
+    url = TMDB_EPISODE_GROUPS_DETAILS_URL.format(group_id)
+    params = {'api_key': TMDB_API_KEY}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.error(f"Error getting group details: {e}")
+        return None
 
 if __name__ == "__main__":
     main()

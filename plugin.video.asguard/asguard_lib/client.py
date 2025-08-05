@@ -33,10 +33,11 @@ import dom_parser
 from asguard_lib import worker_pool, control
 import log_utils
 import workers
+import json
 
 logger = log_utils.Logger.get_logger(__name__)
 
-def request(url, close=True, redirect=True, error=False, proxy=None, post=None, headers=None, mobile=False, XHR=False, limit=None, referer=None, cookie=None, compression=True, output='', timeout='30'):
+def request(url, close=True, redirect=True, error=False, proxy=None, post=None, headers=None, mobile=False, XHR=False, limit=None, referer=None, cookie=None, compression=True, output='', timeout='30', jpost=False):
     try:
         handlers = []
 
@@ -94,7 +95,23 @@ def request(url, close=True, redirect=True, error=False, proxy=None, post=None, 
             pass
         elif compression and limit is None:
             headers['Accept-Encoding'] = 'gzip'
+        if 'Content-Type' in headers:
+            pass
+        elif jpost:
+            headers['Content-Type'] = 'application/json'
+        elif isinstance(post, dict):
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
+        if post is not None:
+            if jpost:
+                post = json.dumps(post)
+                if six.PY3:
+                    post = post.encode('utf-8')
+                headers['Content-Type'] = 'application/json'
+            elif isinstance(post, dict):
+                post = urllib_parse.urlencode(post)
+                if six.PY3:
+                    post = post.encode('utf-8')
 
         if redirect == False:
 

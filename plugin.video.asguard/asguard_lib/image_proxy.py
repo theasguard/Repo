@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
     Asguard Addon
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2025 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,11 +18,8 @@
 """
 import urllib.request
 import urllib.parse
-import random
+import random, os, json
 import threading
-import os
-import json
-import urllib
 import kodi
 import log_utils
 from asguard_lib import image_scraper
@@ -47,7 +44,7 @@ class ImageProxy(object):
     def running(self):
         try: 
             res = urllib.request.urlopen('http://%s:%s/ping' % (self.host, self.port)).read()
-            logging.debug(res)
+
         except: 
             res = ''
         return res == b'OK'
@@ -90,7 +87,7 @@ class ImageProxy(object):
 
 class MyHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
-        self._wp = worker_pool.WorkerPool(max_workers=90)
+        self._wp = worker_pool.WorkerPool(max_workers=50)
         HTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
         
     def process_request(self, request, client_address):
@@ -104,7 +101,6 @@ class MyHTTPServer(HTTPServer):
         try:
             HTTPServer.process_request(self, request, client_address)
         except IOError as e:
-            logging.debug(e)
             logger.log('Image Proxy Error: (%s) %s - %s' % (threading.current_thread().getName(), type(e), e), log_utils.LOGDEBUG)
     
     def server_close(self):
@@ -144,6 +140,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
     
     def _set_headers(self, code=200):
         self.send_response(code)
+        self.send_header('Server', 'AsguardImageProxy/1.0')  # Add custom server header
         self.end_headers()
         
     def __redirect(self, url):

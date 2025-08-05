@@ -21,18 +21,16 @@ import kodi
 import log_utils  # @UnusedImport
 from asguard_lib import scraper_utils, control
 from asguard_lib.constants import FORCE_NO_MATCH, SORT_KEYS, VIDEO_TYPES, QUALITIES
-from asguard_lib.constants import SORT_KEYS
-from asguard_lib.constants import VIDEO_TYPES
-from asguard_lib.constants import QUALITIES
 from . import scraper
 
 logger = log_utils.Logger.get_logger()
 BASE_URL = ''
 
 class Scraper(scraper.Scraper):
+    
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):  # @UnusedVariable
-        self.base_url = kodi.get_setting('%s-base_url' % (self.get_name()))
-        self.def_quality = int(kodi.get_setting('%s-def-quality' % (self.get_name())))
+        self.base_url = kodi.get_setting(f'{self.get_name()}-base_url') or BASE_URL
+        self.def_quality = int(control.getSetting('%s-def-quality' % (self.get_name())))
 
     @classmethod
     def provides(cls):
@@ -60,13 +58,32 @@ class Scraper(scraper.Scraper):
         logger.log('Source Meta: %s' % (meta), log_utils.LOGDEBUG)
         if result_key in meta.get('result', []):
             details = meta['result'][result_key]
+            logger.log('Details: %s' % (details), log_utils.LOGDEBUG)
             def_quality = [item[0] for item in sorted(SORT_KEYS['quality'].items(), key=lambda x:x[1])][self.def_quality]
-            host = {'multi-part': False, 'class': self, 'url': details['file'], 'host': 'XBMC Library', 'quality': def_quality, 'views': details['playcount'], 'rating': None, 'direct': True}
+            logger.log('Def Quality: %s' % (def_quality), log_utils.LOGDEBUG)
+            host = {'multi-part': False, 'class': self, 'url': details['file'], 'label': details['label'], 'host': 'XBMC Library', 'quality': def_quality, 'views': details['playcount'], 'rating': None, 'direct': True}
             stream_details = details['streamdetails']
+            logger.log('Stream Details: %s' % (stream_details), log_utils.LOGDEBUG)
             if len(stream_details['video']) > 0 and 'width' in stream_details['video'][0]:
                 host['quality'] = scraper_utils.width_get_quality(stream_details['video'][0]['width'])
+                logger.log('Host Quality: %s' % (host['quality']), log_utils.LOGDEBUG)
+
+                host['quality'] = self.get_quality_from_filename(details['file'])
+                logger.log('Fallback Quality: %s' % (host['quality']), log_utils.LOGDEBUG)  
             hosters.append(host)
         return hosters
+
+    def get_quality_from_filename(self, filename):
+        if '4k' in filename:
+            return 'HD4K'
+        elif '1080p' in filename:
+            return 'HD1080'
+        elif '720p' in filename:
+            return 'HD720'
+        elif '480p' in filename:
+            return '480p'
+        else:
+            return 'HIGH'
 
     def _get_episode_url(self, show_url, video):
         params = scraper_utils.parse_query(show_url)
@@ -103,7 +120,29 @@ class Scraper(scraper.Scraper):
     def get_settings(cls):
         settings = super(cls, cls).get_settings()
         name = cls.get_name()
-        settings.append('         <setting id="%s-def-quality" type="enum" label="     Default Quality" values="None|Low|Medium|High|HD720|HD1080" default="0" visible="eq(-3,true)"/>' % (name))
+        parent_id = f"{name}-enable"
+        
+        settings.append(f'''\t\t<setting id="{name}-def-quality" type="integer" label="30312" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>0</default>
+\t\t\t<constraints>
+\t\t\t\t<options>
+\t\t\t\t\t<option label="30604">0</option>
+\t\t\t\t\t<option label="30664">1</option>
+\t\t\t\t\t<option label="30663">2</option>
+\t\t\t\t\t<option label="30662">3</option>
+\t\t\t\t\t<option label="30661">4</option>
+\t\t\t\t\t<option label="30660">5</option>
+\t\t\t\t</options>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="spinner" format="string"/>
+\t\t</setting>''')
+        
         return settings
 
     def search(self, video_type, title, year, season=''):  # @UnusedVariable

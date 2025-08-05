@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import xbmcgui
+import six
 from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcvfs
 from six.moves import urllib_parse
 
@@ -28,8 +29,41 @@ pathExists = xbmcvfs.exists
 dataPath = TRANSLATEPATH(addonInfo('profile'))
 ADDON_PATH = __settings__.getAddonInfo('path')
 sleep = xbmc.sleep
+item = xbmcgui.ListItem
+mappingPath = TRANSLATEPATH(xbmcaddon.Addon('script.otaku.mappings').getAddonInfo('path'))
+mappingDB = os.path.join(mappingPath, 'resources', 'data', 'anime_mappings.db')
+mappingDB_lock = threading.Lock()
 progressDialog = xbmcgui.DialogProgress()
+dbFile = os.path.join(dataPath, 'debridcache.db')
+ALL_EMBEDS = ['doodstream', 'filelions', 'filemoon', 'iga', 'kwik', 'hd-2',
+              'mp4upload', 'mycloud', 'streamtape', 'streamwish', 'vidcdn',
+              'vidplay', 'hd-1', 'yourupload', 'zto']
 
+
+def create_multiline_message(line1=None, line2=None, line3=None, *lines):
+    """Creates a message from the supplied lines
+
+    :param line1:Line 1
+    :type line1:str
+    :param line2:Line 2
+    :type line2:str
+    :param line3: Line3
+    :type line3:str
+    :param lines:List of additional lines
+    :type lines:list[str]
+    :return:New message wit the combined lines
+    :rtype:str
+    """
+    result = []
+    if line1:
+        result.append(line1)
+    if line2:
+        result.append(line2)
+    if line3:
+        result.append(line3)
+    if lines:
+        result.extend(l for l in lines if l)
+    return "\n".join(result)
 
 def copy2clip(txt):
     import subprocess
@@ -52,6 +86,9 @@ def copy2clip(txt):
 def setGlobalProp(property, value):
     xbmcgui.Window(10000).setProperty(property, str(value))
 
+def enabled_embeds():
+    embeds = [embed for embed in ALL_EMBEDS]
+    return embeds
 
 def getGlobalProp(property):
     value = xbmcgui.Window(10000).getProperty(property)
@@ -108,3 +145,20 @@ def select_dialog(title, dialog_list):
 def ok_dialog(title, text):
     return xbmcgui.Dialog().ok(title, text)
 
+def try_release_lock(lock):
+    if lock.locked():
+        lock.release()
+
+def metadataClean(metadata):
+    if metadata == None:
+        return metadata
+    allowed = ['aired', 'album', 'artist', 'cast',
+        'castandrole', 'code', 'country', 'credits', 'dateadded', 'dbid', 'director',
+        'duration', 'episode', 'episodeguide', 'genre', 'imdbnumber', 'lastplayed',
+        'mediatype', 'mpaa', 'originaltitle', 'overlay', 'path', 'playcount', 'plot',
+        'plotoutline', 'premiered', 'rating', 'season', 'set', 'setid', 'setoverview',
+        'showlink', 'sortepisode', 'sortseason', 'sorttitle', 'status', 'studio', 'tag',
+        'tagline', 'title', 'top250', 'totalepisodes', 'totalteasons', 'tracknumber',
+        'trailer', 'tvshowtitle', 'userrating', 'votes', 'watched', 'writer', 'year'
+    ]
+    return {k: v for k, v in six.iteritems(metadata) if k in allowed}

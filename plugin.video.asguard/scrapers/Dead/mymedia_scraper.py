@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     Asguard XBMC Addon
-    Copyright (C) 2014 Thor
+    Copyright (C) 2024 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,12 +17,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import re
-import kodi
 import log_utils  # @UnusedImport
-from asguard_lib import scraper_utils
-from asguard_lib.constants import FORCE_NO_MATCH
-from asguard_lib.constants import VIDEO_TYPES
-import scraper
+import urllib.parse
+import urllib.request
+import urllib.error
+import kodi
+from bs4 import BeautifulSoup
+from asguard_lib.utils2 import i18n
+import xbmcgui
+import log_utils
+from asguard_lib import scraper_utils, control
+from asguard_lib.constants import QUALITIES, VIDEO_TYPES, FORCE_NO_MATCH
+from . import scraper
 
 BASE_URL = 'http://dl.sitemovie.ir/movie/'
 

@@ -50,7 +50,7 @@ msgid "Auto-Configure Asguard"
 msgstr ""
 
 msgctxt "#30009"
-msgid "Authorize Asguard to access my trakt.tv account"
+msgid "Authorize Asguard to trakt.tv account"
 msgstr ""
 
 msgctxt "#30010"
@@ -1389,7 +1389,7 @@ msgid "User Interface"
 msgstr ""
 
 msgctxt "#30547"
-msgid "How do I authorize Asguard to access my trakt.tv account?"
+msgid "authorize Asguard to trakt.tv account?"
 msgstr ""
 
 msgctxt "#30548"
@@ -2211,8 +2211,12 @@ msgctxt "#30321"
 msgid "Scrapers 4"
 msgstr ""
 
-msgctxt "#30323"
+msgctxt "#30322"
 msgid "Scrapers 5"
+msgstr ""
+
+msgctxt "#30323"
+msgid "Scrapers 6"
 msgstr ""
 
 msgctxt "#30324"
@@ -2284,7 +2288,7 @@ msgid "Bitlord Enabled"
 msgstr ""
 
 msgctxt "#30414"
-msgid "Aniwave Enabled"
+msgid "Aniwatch Enabled"
 msgstr ""
 
 msgctxt "#30415"
@@ -2544,7 +2548,7 @@ msgid "IsoHunt2 Enabled"
 msgstr ""
 
 msgctxt "#40615"
-msgid "Media API Key"
+msgid "YourBittorrent Enabled"
 msgstr ""
 
 msgctxt "#40616"
@@ -2561,4 +2565,224 @@ msgstr ""
 
 msgctxt "#40619"
 msgid "Premiumize API"
+msgstr ""
+
+msgctxt "#40620"
+msgid "Consumet Hosting"
+msgstr ""
+
+msgctxt "#40621"
+msgid "GogoHD Enabled"
+msgstr ""
+
+msgctxt "#40622"
+msgid "TorrentFunk Enabled"
+msgstr ""
+
+msgctxt "#40623"
+msgid "Dual-Audio"
+msgstr ""
+
+msgctxt "#40624"
+msgid "ReleaseBB Enabled"
+msgstr ""
+
+msgctxt "#40625"
+msgid "Vidsrc Enabled"
+msgstr ""
+
+msgctxt "#40626"
+msgid "Mod Domains"
+msgstr ""
+
+msgctxt "#40627"
+msgid "WatchSeriesHD Enabled"
+msgstr ""
+
+msgctxt "#40628"
+msgid "Thepiratebay Enabled"
+msgstr ""
+
+msgctxt "#40629"
+msgid "Mediafusion Enabled"
+msgstr ""
+
+msgctxt "#40630"
+msgid "PFTV Enabled"
+msgstr ""
+
+msgctxt "#40631"
+msgid "Jackett Enabled"
+msgstr ""
+
+msgctxt "#40632"
+msgid "comet Enabled"
+msgstr ""
+
+msgctxt "#40634"
+msgid "Enable GloDLS"
+msgstr ""
+
+msgctxt "#40635"
+msgid "Enable CloudTorrents"
+msgstr ""
+
+msgctxt "#40639"
+msgid "AniRena Enabled"
+msgstr ""
+
+msgctxt "#40640"
+msgid "TVDB API Key"
+msgstr ""
+
+msgctxt "#40641"
+msgid "TVDB Token"
+msgstr ""
+
+msgctxt "#40642"
+msgid "TVDB Password"
+msgstr ""
+
+msgctxt "#40643"
+msgid "AioStreams Enabled"
+msgstr ""
+
+msgctxt "#40644"
+msgid "AioStreams Bypass Filter"
+msgstr ""
+
+msgctxt "#40645"
+msgid "AioStreams API"
+msgstr ""
+
+msgctxt "#40646"
+msgid "Nextup Prompt"
+msgstr ""
+
+msgctxt "#40647"
+msgid "Simkl Enabled"
+msgstr ""
+
+msgctxt "#40648"
+msgid "Simkl Base Url"
+msgstr ""
+
+msgctxt "#40649"
+msgid "Simkl User"
+msgstr ""
+
+msgctxt "#40655"
+msgid "Qbit Enabled"
+msgstr ""
+
+msgctxt "#40656"
+msgid "Torlock Enabled"
+msgstr ""
+
+msgctxt "#40710"
+msgid "Scrapers 7"
+msgstr ""
+
+msgctxt "#40711"
+msgid "Scrapers 8"
+msgstr ""
+
+msgctxt "#40712"
+msgid "Scrapers 9"
+msgstr ""
+
+msgctxt "#40713"
+msgid "Scrapers 10"
+msgstr ""
+
+msgctxt "#40714"
+msgid "Scrapers 11"
+msgstr ""
+
+msgctxt "#40715"
+msgid "Scrapers 12"
+msgstr ""
+
+msgctxt "#40810"
+msgid "Rivestream Enabled"
+msgstr ""
+
+msgctxt "#40812"
+msgid "iDope Enabled"
+msgstr ""
+
+msgctxt "#40910"
+msgid "TMDB Bearer Token"
+msgstr ""
+
+msgctxt "#40911"
+msgid "TRAKT Expires"
+msgstr ""
+
+msgctxt "#40912"
+msgid "Optimized TRAKT"
+msgstr ""
+
+msgctxt "#40811"
+msgid "Animepahe Enabled"
+msgstr ""
+
+msgctxt "#40813"
+msgid "WatchSeries Enabled"
+msgstr ""
+
+msgctxt "#40814"
+msgid "DoMovies Enabled"
+msgstr ""
+
+msgctxt "#40815"
+msgid "BstSrs Enabled"
+msgstr ""
+
+msgctxt "#40816"
+msgid "TVMovieFlix Enabled"
+msgstr ""
+
+msgctxt "#40817"
+msgid "SFlixWatch Enabled"
+msgstr ""
+
+msgctxt "#40818"
+msgid "M4UHD Enabled"
+msgstr ""
+
+msgctxt "#40913"
+msgid "Base URL2"
+msgstr ""
+
+msgctxt "#40914"
+msgid "Base URL3"
+msgstr ""
+
+msgctxt "#40915"
+msgid "WebStreamr Enabled"
+msgstr ""
+
+msgctxt "#41000"
+msgid "includeExternalUrls"
+msgstr ""
+
+msgctxt "#41001"
+msgid "mediaFlowProxyUrl"
+msgstr ""
+
+msgctxt "#41002"
+msgid "mediaFlowProxyPassword"
+msgstr ""
+
+msgctxt "#41003"
+msgid "Multi Language"
+msgstr ""
+
+msgctxt "#41004"
+msgid "English Content"
+msgstr ""
+
+msgctxt "#40524"
+msgid "Re-authenticate Trakt"
 msgstr ""

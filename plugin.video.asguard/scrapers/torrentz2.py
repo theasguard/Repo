@@ -105,7 +105,7 @@ class Scraper(scraper.Scraper):
                 sources.append({
                     'class': self,
                     'host': 'magnet',
-                    'label': f"{name} | {quality} | {dsize}",
+                    'label': f"{name} | {dsize}",
                     'seeders': seeders,
                     'hash': hash,
                     'name': name,
@@ -180,5 +180,30 @@ class Scraper(scraper.Scraper):
     def get_settings(cls):
         settings = super(cls, cls).get_settings()
         name = cls.get_name()
-        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="true"/>')
-        return settings
+        parent_id = f"{name}-enable"
+        label_id = kodi.Translations.get_scraper_label_id(name)
+        
+        return [
+            f'''\t\t<setting id="{parent_id}" type="boolean" label="{label_id}" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition on="property" name="InfoBool">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-base_url" type="string" label="30175" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>{cls.base_url}</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('base_url')}</heading>
+\t\t\t</control>
+\t\t</setting>'''
+        ]

@@ -12,8 +12,6 @@ from asguard_lib import utils2
 from . import scraper
 import concurrent.futures
 
-
-
 logging.basicConfig(level=logging.DEBUG)
 
 logger = log_utils.Logger.get_logger()
@@ -30,7 +28,7 @@ class Scraper(scraper.Scraper):
         self.timeout = timeout
         self.base_url = kodi.get_setting(f'{self.get_name()}-base_url')
         self.result_limit = kodi.get_setting(f'{self.get_name()}-result_limit')
-        self.min_seeders = 1
+        self.min_seeders = 0
 
     @classmethod
     def provides(cls):
@@ -41,19 +39,17 @@ class Scraper(scraper.Scraper):
         return '1337x'
 
     def resolve_link(self, link):
-        logging.debug("Resolving link: %s", link)
         return link
 
     def get_sources(self, video):
         hosters = []
         query = self._build_query(video)
-        query = scraper_utils.cleanse_title(query)
         if video.video_type == VIDEO_TYPES.EPISODE:
             search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL_TV % urllib.parse.quote_plus(query))
         elif video.video_type == VIDEO_TYPES.MOVIE:
             search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL_MOVIE % urllib.parse.quote_plus(query))
 
-        html = self._http_get(search_url, require_debrid=True)
+        html = self._http_get(search_url, require_debrid=True, cache_limit=1)
         soup = BeautifulSoup(html, "html.parser", parse_only=SoupStrainer('tbody'))
 
 
@@ -75,7 +71,7 @@ class Scraper(scraper.Scraper):
         def fetch_source(item):
             try:
                 name, torrent_page_url = item
-                torrent_page_html = self._http_get(torrent_page_url)
+                torrent_page_html = self._http_get(torrent_page_url, cache_limit=1)
                 # logging.debug("Retrieved torrent page html: %s", torrent_page_html)
                 magnet = re.search(r'href\s*=\s*["\'](magnet:.+?)["\']', torrent_page_html, re.I).group(1)
                 # logging.debug("Retrieved magnet: %s", magnet)
@@ -91,7 +87,7 @@ class Scraper(scraper.Scraper):
                 quality = scraper_utils.get_tor_quality(name)
 
                 host = scraper_utils.get_direct_hostname(self, magnet)
-                label = f"{name} | {quality} | {size}"
+                label = f"{name} | {size} | {seeders} seeders"
                 hosters.append({
                     'name': name,
                     'label': label,
@@ -116,23 +112,21 @@ class Scraper(scraper.Scraper):
 
     def _build_query(self, video):
         query = video.title
-        query = scraper_utils.cleanse_title(query)
+
         if video.video_type == VIDEO_TYPES.MOVIE:
-            query += f' {video.title}'
+            query += f' {video.year}'
         else:
             query += f' S{int(video.season):02d}E{int(video.episode):02d}'
         query = query.replace(' ', '+').replace('+-', '-')
         return query
 
     def _filter_sources(self, hosters, video):
-        logging.debug("Filtering sources: %s", hosters)
         filtered_sources = []
         for source in hosters:
             if video.video_type == VIDEO_TYPES.TVSHOW:
                 if not self._match_episode(source['title'], video.trakt_id, video.season, video.episode):
                     continue
             filtered_sources.append(source)
-            logging.debug("Filtered source: %s", source)
         return filtered_sources
 
     def _match_episode(self, video, season, episode):
@@ -168,5 +162,25 @@ class Scraper(scraper.Scraper):
     def get_settings(cls):
         settings = super(cls, cls).get_settings()
         name = cls.get_name()
-        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="true"/>')
+        parent_id = f"{name}-enable"
+        
+        settings.extend([
+            f'''\t\t<setting id="{name}-result_limit" type="integer" label="30229" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>0</default>
+\t\t\t<constraints>
+\t\t\t\t<minimum>0</minimum>
+\t\t\t\t<maximum>100</maximum>
+\t\t\t</constraints>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="slider" format="integer">
+\t\t\t\t<popup>false</popup>
+\t\t\t</control>
+\t\t</setting>'''
+        ])
+        
         return settings

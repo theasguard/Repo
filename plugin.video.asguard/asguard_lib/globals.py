@@ -9,18 +9,16 @@ import unicodedata
 from functools import cached_property
 from urllib import parse
 from xml.etree import ElementTree
-from third_party import pytz
+from .third_party import pytz
 
 import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
 import xbmcvfs
-from unidecode import unidecode
-try:
-    HANDLE = int(sys.argv[1])
-except IndexError:
-    HANDLE = -1
+from asguard_lib.ui.settings_cache import PersistedSettingsCache
+from asguard_lib.ui.settings_cache import RuntimeSettingsCache
+# from unidecode import unidecode
 
 class GlobalVariables:
     CONTENT_MENU = ""
@@ -151,6 +149,125 @@ class GlobalVariables:
 
         return platform
 
+    def init_request(self, argv):
+        if argv is None:
+            return
+
+        self.URL = parse.urlparse(argv[0])
+        try:
+            self.PLUGIN_HANDLE = int(argv[1])
+            self.IS_SERVICE = False
+        except IndexError:
+            self.PLUGIN_HANDLE = 0
+            self.IS_SERVICE = True
+
+        self.BASE_URL = f"{self.URL[0]}://{self.URL[1]}" if self.URL[1] != "" else ""
+        self.PATH = parse.unquote(self.URL[2])
+        try:
+            self.PARAM_STRING = argv[2].lstrip('?/')
+        except IndexError:
+            self.PARAM_STRING = ""
+        self.REQUEST_PARAMS = self.legacy_params_converter(dict(parse.parse_qsl(self.PARAM_STRING)))
+        if "action_args" in self.REQUEST_PARAMS:
+            self.REQUEST_PARAMS["action_args"] = self.deconstruct_action_args(self.REQUEST_PARAMS["action_args"])
+            # if isinstance(self.REQUEST_PARAMS["action_args"], dict):
+            #     self.REQUEST_PARAMS["action_args"] = self.legacy_action_args_converter(
+            #         self.REQUEST_PARAMS["action_args"]
+            #     )
+        self.FROM_WIDGET = not self.is_addon_visible()
+        self.PAGE = int(self.REQUEST_PARAMS.get("page", 1))
+    
+    @staticmethod
+    def legacy_params_converter(params):
+        if "actionArgs" in params:
+            params["action_args"] = params.pop("actionArgs")
+        if "action" in params:
+            if params["action"] == "moviesTrending":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "trending"
+                params["mediatype"] = "movies"
+            if params["action"] == "moviesPopular":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "popular"
+                params["mediatype"] = "movies"
+            if params["action"] == "moviesWatched":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "watched"
+                params["mediatype"] = "movies"
+            if params["action"] == "moviesCollected":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "collected"
+                params["mediatype"] = "movies"
+            if params["action"] == "moviesAnticipated":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "anticipated"
+                params["mediatype"] = "movies"
+            if params["action"] == "moviesBoxOffice":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "boxoffice"
+                params["mediatype"] = "movies"
+            if params["action"] == "showsTrending":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "trending"
+                params["mediatype"] = "shows"
+            if params["action"] == "showsPopular":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "popular"
+                params["mediatype"] = "shows"
+            if params["action"] == "showsWatched":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "watched"
+                params["mediatype"] = "shows"
+            if params["action"] == "showsCollected":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "collected"
+                params["mediatype"] = "shows"
+            if params["action"] == "showsAnticipated":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "anticipated"
+                params["mediatype"] = "shows"
+            if params["action"] == "showsBoxOffice":
+                params["action"] = "genericEndpoint"
+                params["endpoint"] = "boxoffice"
+                params["mediatype"] = "shows"
+        return params
+
+    def deconstruct_action_args(self, action_args):
+        """
+        Attempts to create a dictionary from the calls action args
+        :param action_args: potential url quoted, stringed dict
+        :type action_args:  str
+        :return: unquoted and loaded dictionary or str if not json
+        :rtype: dict, str
+        """
+        action_args = parse.unquote(action_args)
+        try:
+            return json.loads(action_args)
+        except ValueError:
+            return action_args
+
+    def is_addon_visible(self):
+        return xbmc.getInfoLabel('Container.PluginName') == "plugin.video.asguard"
+    
+    def _init_settings_cache(self):
+        self.RUNTIME_SETTINGS_CACHE = RuntimeSettingsCache()
+        self.SETTINGS_CACHE = PersistedSettingsCache()
+
+    def get_bool_setting(self, setting_id, default_value=None):
+        """
+        Get a setting as a bool value
+
+        :param setting_id: The name of the setting
+        :type setting_id: str
+        :param default_value: An optional default value to provide if the setting is not stored
+        :type default_value: bool
+        :return: The value of the setting.
+                 If the setting is not stored, the optional default_value if provided or False
+        :rtype: bool
+        """
+        return self.SETTINGS_CACHE.get_bool_setting(setting_id, default_value)
+
+
     def get_language_string(self, localization_id, addon=True):
         """
         Gets a localized string from cache if feasible, if not from localization files
@@ -170,3 +287,6 @@ class GlobalVariables:
             self.LANGUAGE_CACHE.update({cache_id: text})
 
         return text
+
+
+g = GlobalVariables()

@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2025 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@ import urllib.error, urllib.parse, urllib.request, http.cookiejar
 from io import StringIO
 import requests
 from bs4 import BeautifulSoup
+from urllib3 import Retry
+from requests.adapters import HTTPAdapter
 
 from asguard_lib import cloudflare, cf_captcha
 from six.moves import zip, reduce
@@ -46,7 +48,7 @@ CAPTCHA_BASE_URL = 'https://www.google.com/recaptcha/api'
 FLARESOLVERR_URL = 'http://localhost:8191'
 COOKIEPATH = kodi.translate_path(kodi.get_profile())
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-MAX_RESPONSE = 1024 * 1024 * 5
+MAX_RESPONSE = 1024 * 1024 * 10
 CF_CAPCHA_ENABLED = kodi.get_setting('cf_captcha') == 'true'
 
 class ScrapeError(Exception):
@@ -73,6 +75,7 @@ class Scraper(object):
     __metaclass__ = abc.ABCMeta
     base_url = BASE_URL
     __db_connection = None
+    __trakt_api = None
     worker_id = None
     net = Net()
     debrid_resolvers = resolveurl
@@ -131,6 +134,130 @@ class Scraper(object):
         elif link.startswith('http'):
             return link
 
+    def get_imdb_id(self, video):
+        """
+        Centralized method to get IMDB ID for a video using Trakt API with caching.
+        
+        Args:
+            video (ScraperVideo): Video object containing trakt_id and video_type
+            
+        Returns:
+            str: IMDB ID if found, empty string otherwise
+        """
+        if not hasattr(video, 'trakt_id') or not video.trakt_id:
+            logger.log('get_imdb_id: No trakt_id provided', log_utils.LOGWARNING)
+            return ''
+            
+        # Create cache key based on video type and trakt_id
+        cache_key = f'imdb_id_{video.video_type}_{video.trakt_id}'
+        
+        # Try to get from database cache first
+        cached_imdb = self.db_connection().get_setting(cache_key)
+        if cached_imdb:
+            logger.log(f'get_imdb_id: Cache hit for {cache_key}: {cached_imdb}', log_utils.LOGDEBUG)
+            return cached_imdb
+            
+        # Not in cache, fetch from Trakt API
+        try:
+            trakt_api = self._get_trakt_api()
+            imdb_id = ''
+            
+            if video.video_type in [VIDEO_TYPES.MOVIE]:
+                logger.log(f'get_imdb_id: Fetching movie details for trakt_id: {video.trakt_id}', log_utils.LOGDEBUG)
+                details = trakt_api.get_movie_details(video.trakt_id)
+                if details and 'ids' in details:
+                    imdb_id = details['ids'].get('imdb', '')
+                    
+            elif video.video_type in [VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE, VIDEO_TYPES.SEASON]:
+                logger.log(f'get_imdb_id: Fetching show details for trakt_id: {video.trakt_id}', log_utils.LOGDEBUG)
+                details = trakt_api.get_show_details(video.trakt_id)
+                if details and 'ids' in details:
+                    imdb_id = details['ids'].get('imdb', '')
+            
+            # Cache the result (even if empty to avoid repeated API calls)
+            if imdb_id:
+                logger.log(f'get_imdb_id: Caching IMDB ID {imdb_id} for {cache_key}', log_utils.LOGDEBUG)
+            else:
+                logger.log(f'get_imdb_id: No IMDB ID found for {cache_key}, caching empty result', log_utils.LOGDEBUG)
+                
+            self.db_connection().set_setting(cache_key, imdb_id or '')
+            return imdb_id
+            
+        except Exception as e:
+            logger.log(f'get_imdb_id: Error fetching IMDB ID for {video.trakt_id}: {str(e)}', log_utils.LOGERROR)
+            # Cache empty result to avoid repeated failures
+            self.db_connection().set_setting(cache_key, '')
+            return ''
+
+    def get_all_ids(self, video):
+        """
+        Get all available IDs (IMDB, TMDB, TVDB, etc.) for a video using Trakt API with caching.
+        
+        Args:
+            video (ScraperVideo): Video object containing trakt_id and video_type
+            
+        Returns:
+            dict: Dictionary containing all available IDs
+        """
+        if not hasattr(video, 'trakt_id') or not video.trakt_id:
+            logger.log('get_all_ids: No trakt_id provided', log_utils.LOGWARNING)
+            return {}
+            
+        # Create cache key based on video type and trakt_id
+        cache_key = f'all_ids_{video.video_type}_{video.trakt_id}'
+        
+        # Try to get from database cache first using function cache
+        cached, cached_ids = self.db_connection().get_cached_function('get_all_ids', [video.trakt_id, video.video_type], cache_limit=24*60*60)  # 24 hour cache
+        if cached:
+            logger.log(f'get_all_ids: Cache hit for {cache_key}', log_utils.LOGDEBUG)
+            return cached_ids
+            
+        # Not in cache, fetch from Trakt API
+        try:
+            trakt_api = self._get_trakt_api()
+            ids = {}
+            
+            if video.video_type in [VIDEO_TYPES.MOVIE]:
+                logger.log(f'get_all_ids: Fetching movie details for trakt_id: {video.trakt_id}', log_utils.LOGDEBUG)
+                details = trakt_api.get_movie_details(video.trakt_id)
+                if details and 'ids' in details:
+                    ids = details['ids']
+                    
+            elif video.video_type in [VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE, VIDEO_TYPES.SEASON]:
+                logger.log(f'get_all_ids: Fetching show details for trakt_id: {video.trakt_id}', log_utils.LOGDEBUG)
+                details = trakt_api.get_show_details(video.trakt_id)
+                if details and 'ids' in details:
+                    ids = details['ids']
+            
+            # Cache the result using function cache
+            self.db_connection().cache_function('get_all_ids', [video.trakt_id, video.video_type], result=ids)
+            logger.log(f'get_all_ids: Cached IDs for {cache_key}: {ids}', log_utils.LOGDEBUG)
+            return ids
+            
+        except Exception as e:
+            logger.log(f'get_all_ids: Error fetching IDs for {video.trakt_id}: {str(e)}', log_utils.LOGERROR)
+            # Cache empty result to avoid repeated failures
+            self.db_connection().cache_function('get_all_ids', [video.trakt_id, video.video_type], result={})
+            return {}
+
+    def _get_trakt_api(self):
+        """
+        Get or create a Trakt API instance for internal use.
+        """
+        if self.__trakt_api is None:
+            from asguard_lib.trakt_api import Trakt_API
+            
+            # Get Trakt settings
+            token = kodi.get_setting('trakt_oauth_token')
+            use_https = kodi.get_setting('use_https') == 'true'
+            list_size = int(kodi.get_setting('list_size')) if kodi.get_setting('list_size') else 30
+            trakt_timeout = int(kodi.get_setting('trakt_timeout')) if kodi.get_setting('trakt_timeout') else 20
+            trakt_offline = kodi.get_setting('trakt_offline') == 'true'
+            
+            self.__trakt_api = Trakt_API(token, use_https, list_size, trakt_timeout, trakt_offline)
+            logger.log('_get_trakt_api: Created new Trakt API instance', log_utils.LOGDEBUG)
+            
+        return self.__trakt_api
 
     def format_source_label(self, item):
         """
@@ -242,15 +369,52 @@ class Scraper(object):
     @classmethod
     def get_settings(cls):
         """
-        Returns a list of settings to be used for this scraper. Settings are automatically checked for updates every time scrapers are imported.
-        The list returned by each scraper is aggregated into a big settings.xml string, and then if it differs from the current settings xml in the Scrapers category,
-        the existing settings.xml fragment is removed and replaced by the new string.
+        Generate settings in new Kodi XML format
         """
         name = cls.get_name()
+        base_id = f"{name}-enable"
+        label_id = kodi.Translations.get_scraper_label_id(name)
+        logger.log(f'Label ID: {label_id}', log_utils.LOGDEBUG)
+        
+        # Handle empty base_url (use single space to make it visible in Kodi)
+        default_base_url = cls.base_url if cls.base_url else " "
+        
         return [
-            f'         <setting id="{name}-enable" type="bool" label="{name} {i18n("enabled")}" default="true" visible="true"/>',
-            f'         <setting id="{name}-base_url" type="text" label="    {i18n("base_url")}" default="{cls.base_url}" visible="eq(-1,true)"/>',
-            f'         <setting id="{name}-sub_check" type="bool" label="    {i18n("page_existence")}" default="true" visible="eq(-2,true)"/>',
+            f'''\t\t<setting id="{base_id}" type="boolean" label="{label_id}" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition on="property" name="InfoBool">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-base_url" type="string" label="30175" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>{default_base_url}</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{base_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>{i18n('base_url')}</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-sub_check" type="boolean" label="30176" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{base_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>'''
         ]
 
     @classmethod
@@ -310,7 +474,7 @@ class Scraper(object):
         return url
 
     def _http_get(self, url, params=None, data=None, multipart_data=None, headers=None, cookies=None, allow_redirect=True, method=None, require_debrid=False, read_error=False, cache_limit=8):
-
+        
         html = self._cached_http_get(url, self.base_url, self.timeout, params=params, data=data, multipart_data=multipart_data,
                                      headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method, require_debrid=require_debrid,
                                      read_error=read_error, cache_limit=cache_limit)
@@ -328,6 +492,7 @@ class Scraper(object):
     
     def _cached_http_get(self, url, base_url, timeout, params=None, data=None, multipart_data=None, headers=None, cookies=None, allow_redirect=True,
                         method=None, require_debrid=False, read_error=False, cache_limit=8):
+        logger.log('_cached_http_get called with URL: %s' % url, log_utils.LOGDEBUG)
         if require_debrid:
             if Scraper.debrid_resolvers is None:
                 Scraper.debrid_resolvers = [resolver for resolver in resolveurl.resolve(url) if resolver.isUniversal()]
@@ -391,46 +556,94 @@ class Scraper(object):
                 urllib.request.install_opener(opener2)
 
             if method is not None: request.get_method = lambda: method.upper()
+            logger.log('About to open URL: %s' % url, log_utils.LOGDEBUG)
             response = urllib.request.urlopen(request, timeout=timeout)
+            logger.log('Response received, extracting cookies', log_utils.LOGDEBUG)
             self.cj.extract_cookies(response, request)
+            logger.log('Cookies extracted successfully', log_utils.LOGDEBUG)
 
             if kodi.get_setting('cookie_debug') == 'true':
                 logger.log('Response Cookies: %s - %s' % (url, scraper_utils.cookies_as_str(self.cj)), log_utils.LOGDEBUG)
+            logger.log('About to fix bad cookies', log_utils.LOGDEBUG)
             self.cj._cookies = scraper_utils.fix_bad_cookies(self.cj._cookies)
+            logger.log('Bad cookies fixed, about to save', log_utils.LOGDEBUG)
             self.cj.save(ignore_discard=True)
+            logger.log('Cookies saved successfully', log_utils.LOGDEBUG)
 
-            if not allow_redirect and (response.getcode() in [301, 302, 303, 307] or response.headers.get('Refresh')):
-                if response.headers.get('Refresh') is not None:
-                    refresh = response.headers.get('Refresh')
-                    return refresh.split(';')[-1].split('url=')[-1]
-                else:
-                    redir_url = response.headers.get('Location')
-                    if redir_url.startswith('='):
-                        redir_url = redir_url[1:]
-                    return redir_url
+            logger.log('Checking for redirects, allow_redirect: %s' % allow_redirect, log_utils.LOGDEBUG)
+            if not allow_redirect:
+                response_code = response.getcode()
+                logger.log('Response code: %s' % response_code, log_utils.LOGDEBUG)
+                refresh_header = response.headers.get('Refresh')
+                logger.log('Refresh header: %s' % refresh_header, log_utils.LOGDEBUG)
+                
+                if (response_code in [301, 302, 303, 307] or refresh_header):
+                    logger.log('Redirect detected', log_utils.LOGDEBUG)
+                    if refresh_header is not None:
+                        refresh = refresh_header
+                        return refresh.split(';')[-1].split('url=')[-1]
+                    else:
+                        redir_url = response.headers.get('Location')
+                        if redir_url and redir_url.startswith('='):
+                            redir_url = redir_url[1:]
+                        return redir_url
+            logger.log('No redirect handling needed', log_utils.LOGDEBUG)
             
-            content_length = response.headers.get('Content-Length', 0)
-            if content_length > MAX_RESPONSE:
+            logger.log('Processing Content-Length header', log_utils.LOGDEBUG)
+            content_length_header = response.headers.get('Content-Length')
+            try:
+                content_length = int(content_length_header) if content_length_header else 0
+            except (ValueError, TypeError):
+                logger.log('Content-Length header conversion error: %s' % content_length_header, log_utils.LOGWARNING)
+                content_length = 0
+            
+            logger.log('Checking content length: %s vs %s' % (content_length, MAX_RESPONSE), log_utils.LOGDEBUG)
+            if content_length and content_length > MAX_RESPONSE:
                 logger.log('Response exceeded allowed size. %s => %s / %s' % (url, content_length, MAX_RESPONSE), log_utils.LOGWARNING)
             
             if method == 'HEAD':
                 return ''
             else:
-                if response.headers.get('Content-Encoding') == 'gzip':
-                    html = ungz(response.read(MAX_RESPONSE))
-                else:
-                    html = response.read(MAX_RESPONSE)
+                logger.log('Reading response body, method: %s' % method, log_utils.LOGDEBUG)
+                try:
+                    if response.headers.get('Content-Encoding') == 'gzip':
+                        logger.log('Reading gzipped response', log_utils.LOGDEBUG)
+                        html = ungz(response.read(MAX_RESPONSE))
+                    else:
+                        logger.log('Reading plain response', log_utils.LOGDEBUG)
+                        content = response.read(MAX_RESPONSE)
+                        # Decode bytes to string
+                        if isinstance(content, bytes):
+                            html = content.decode('utf-8', errors='ignore')
+                        else:
+                            html = content
+                except Exception as read_error:
+                    logger.log('Error reading response: %s, MAX_RESPONSE: %s' % (str(read_error), MAX_RESPONSE), log_utils.LOGWARNING)
+                    return ''
         except urllib.error.HTTPError as e:
-            if e.info().get('Content-Encoding') == 'gzip':
-                html = ungz(e.read(MAX_RESPONSE))
-            else:
-                html = e.read(MAX_RESPONSE)
+            try:
+                if e.info().get('Content-Encoding') == 'gzip':
+                    html = ungz(e.read(MAX_RESPONSE))
+                else:
+                    html = e.read(MAX_RESPONSE)
+            except Exception as read_error:
+                logger.log('Error reading HTTPError response: %s, MAX_RESPONSE: %s' % (str(read_error), MAX_RESPONSE), log_utils.LOGWARNING)
+                html = ''
                 
-            if CF_CAPCHA_ENABLED and e.code == 403 and 'cf-captcha-bookmark' in html:
+            # Convert bytes to string for pattern matching
+            if isinstance(html, bytes):
+                try:
+                    html_str = html.decode('utf-8', errors='ignore')
+                except:
+                    html_str = ''
+            else:
+                html_str = html
+                
+            if CF_CAPCHA_ENABLED and e.code == 403 and 'cf-captcha-bookmark' in html_str:
                 html = cf_captcha.solve(url, self.cj, scraper_utils.get_ua(), self.get_name())
                 if not html:
                     return ''
-            elif e.code == 503 and 'cf-browser-verification' in html:
+            elif e.code == 503 and 'cf-browser-verification' in html_str:
                 html = cloudflare.solve(url, self.cj, scraper_utils.get_ua(), extra_headers=headers)
                 if not html:
                     return ''
@@ -438,11 +651,23 @@ class Scraper(object):
                 logger.log('Error (%s) during scraper http get: %s' % (str(e), url), log_utils.LOGWARNING)
                 if not read_error:
                     return ''
+        except TypeError as te:
+            if "'>' not supported between instances of 'NoneType' and 'int'" in str(te):
+                logger.log('NoneType comparison error in HTTP get: %s - URL: %s' % (str(te), url), log_utils.LOGERROR)
+                logger.log('This error occurred in _cached_http_get method', log_utils.LOGERROR)
+            else:
+                logger.log('TypeError (%s) during scraper http get: %s' % (str(te), url), log_utils.LOGWARNING)
+            return ''
         except Exception as e:
             logger.log('Error (%s) during scraper http get: %s' % (str(e), url), log_utils.LOGWARNING)
             return ''
 
         self.db_connection().cache_url(url, html, data)
+        
+        # Ensure return value is always a string
+        if isinstance(html, bytes):
+            html = html.decode('utf-8', errors='ignore')
+        
         return html
 
 

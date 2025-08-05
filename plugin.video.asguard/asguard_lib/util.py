@@ -302,7 +302,7 @@ def params(url=None):
             if (len(splitparams)) == 2:
                 param[splitparams[0]] = splitparams[1]
     for p in param.keys():
-        param[p] = param[p].decode('hex')
+        param[p] = bytes.fromhex(param[p]).decode('utf-8')
     return param
 
 

@@ -12,11 +12,11 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import logging
-import re
 import json
 import urllib.parse
-import requests
+import urllib.request
+import urllib.error
+import re
 from asguard_lib.utils2 import i18n
 import xbmcgui
 import kodi
@@ -26,19 +26,30 @@ from asguard_lib import scraper_utils, control, db_utils
 from asguard_lib.constants import VIDEO_TYPES, QUALITIES
 from . import scraper
 
-    
 logger = log_utils.Logger.get_logger()
 
 class Scraper(scraper.Scraper):
-    base_url = 'https://knightcrawler.elfhosted.com'
-    movie_search_url = '/stream/movie/%s.json'
-    tv_search_url = '/stream/series/%s:%s:%s.json'
-
+    base_url = 'https://webstreamr.hayd.uk'
+    
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
         self.timeout = timeout
-        self.min_seeders = 0
-        self.bypass_filter = control.getSetting('Elfhosted-bypass_filter') == 'true'
-        self._set_apikeys()
+        self.base_url = kodi.get_setting(f'{self.get_name()}-base_url') or self.base_url
+        
+        # Configuration options from WebStreamr
+        self.config = {
+            'multi': kodi.get_setting(f'{self.get_name()}-multi') == 'true',
+            'en': kodi.get_setting(f'{self.get_name()}-en') == 'true',
+            'includeExternalUrls': kodi.get_setting(f'{self.get_name()}-includeExternalUrls') == 'true',
+            'mediaFlowProxyUrl': kodi.get_setting(f'{self.get_name()}-mediaFlowProxyUrl') or '',
+            'mediaFlowProxyPassword': kodi.get_setting(f'{self.get_name()}-mediaFlowProxyPassword') or ''
+        }
+        
+        # DEBUG: Log all setting values
+        logger.log(f'🔧 WebStreamr Settings Debug:', log_utils.LOGDEBUG)
+        for key, value in self.config.items():
+            raw_value = kodi.get_setting(f'{self.get_name()}-{key}')
+            logger.log(f'  {key}: raw="{raw_value}" → parsed={value}', log_utils.LOGDEBUG)
+        logger.log(f'  base_url: "{self.base_url}"', log_utils.LOGDEBUG)
 
     @classmethod
     def provides(cls):
@@ -46,130 +57,269 @@ class Scraper(scraper.Scraper):
 
     @classmethod
     def get_name(cls):
-        return 'Elfhosted'
-
-    def resolve_link(self, link):
-        logging.debug("Resolving link: %s", link)
-        return link
-
-    def _set_apikeys(self):
-        self.pm_apikey = kodi.get_setting('premiumize.apikey')
-        self.rd_apikey = kodi.get_setting('realdebrid.apikey')
-        self.ad_apikey = kodi.get_setting('alldebrid_api_key')
-
-
-    def get_sources(self, video):
-        from asguard_lib.trakt_api import Trakt_API
-        sources = []
-        trakt_id = video.trakt_id
-
-        try:
-            if video.video_type == VIDEO_TYPES.MOVIE:
-                if not hasattr(video, 'imdb_id'):
-                    details = Trakt_API().get_movie_details(trakt_id)
-                    video.imdb_id = details['ids']['imdb']
-                search_url = self.movie_search_url % (video.imdb_id)
-                logger.log('Searching for movie: %s' % search_url, log_utils.LOGDEBUG)
-            else:
-                if not all(hasattr(video, attr) for attr in ['imdb_id', 'season', 'episode']):
-                    details = Trakt_API().get_show_details(trakt_id)
-                    video.imdb_id = details['ids']['imdb']
-                    video.season = video.season
-                    video.episode = video.episode
-                search_url = self.tv_search_url % (video.imdb_id, video.season, video.episode)
-                logger.log('Searching for episode: %s' % search_url, log_utils.LOGDEBUG)
-
-            url = urllib.parse.urljoin(self.base_url, search_url)
-            response = self._http_get(url, require_debrid=True)
-            if not response:
-                return sources
-
-            try:
-                files = json.loads(response).get('streams', [])
-                logger.log('Found %d files' % len(files), log_utils.LOGDEBUG)
-            except json.JSONDecodeError as e:
-                logger.log('Failed to parse JSON response from Elfhosted: %s' % str(e), log_utils.LOGERROR)
-                return sources
-
-            for file in files:
-                try:
-                    hash = file['infoHash']
-                    logger.log('Found file: %s' % hash, log_utils.LOGDEBUG)
-                    name = file['title']
-                    url = 'magnet:?xt=urn:btih:%s&dn=%s' % (hash, name)
-                    logger.log('Found file: %s' % url, log_utils.LOGDEBUG)
-                    seeders = int(file.get('seeds', 0))
-                    if self.min_seeders > seeders:
-                        continue
-
-                    quality = scraper_utils.get_tor_quality(name)
-                    info = []
-                    size_match = re.search(r'\s*([\d.]+)\s*(GB|MB)', name)
-                    size = 0
-                    if size_match:
-                        size_value = float(size_match.group(1))
-                        size_unit = size_match.group(2)
-                        if size_unit == 'GB':
-                            size = size_value * 1024  # Convert GB to MB
-                        else:
-                            size = size_value
-
-                    info = ' | '.join(info)
-                    label = f"{name} | {quality} | {size}MB | {seeders} seeders"
-                    sources.append({
-                        'host': 'magnet',
-                        'label': label,
-                        'multi-part': False,
-                        'class': self,
-                        'hash': hash,
-                        'name': name,
-                        'quality': quality,
-                        'size': size,
-                        'url': url,
-                        'info': info,
-                        'direct': False,
-                        'debridonly': True
-                    })
-                except Exception as e:
-                    logger.log('Error processing Elfhosted source: %s' % str(e), log_utils.LOGERROR)
-                    continue
-                logger.log('Found source: %s' % sources, log_utils.LOGDEBUG)
-
-        except AttributeError as e:
-            logger.log('AttributeError: %s' % str(e), log_utils.LOGERROR)
-        except Exception as e:
-            logger.log('Unexpected error: %s' % str(e), log_utils.LOGERROR)
-
-        return sources
-
-    def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
-        import resolveurl
-        if require_debrid:
-            if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
-            if not Scraper.debrid_resolvers:
-                logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
-                return ''
-        try:
-            headers = {'User-Agent': scraper_utils.get_ua()}
-            req = urllib.request.Request(url, data=data, headers=headers)
-            logging.debug("Retrieved req: %s", req)
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                return response.read().decode('utf-8')
-        except urllib.error.HTTPError as e:
-            logger.log(f'HTTP Error: {e.code} - {url}', log_utils.LOGWARNING)
-        except urllib.error.URLError as e:
-            logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
-        return ''
+        return 'WebStreamr'
 
     @classmethod
     def get_settings(cls):
-        """
-        Returns the settings for the scraper.
-
-        :return: List of settings.
-        """
         settings = super(cls, cls).get_settings()
         name = cls.get_name()
-        settings.append(f'         <setting id="{name}-result_limit" label="     {i18n("result_limit")}" type="slider" default="10" range="10,100" option="int" visible="true"/>')
+        parent_id = f"{name}-enable"
+        
+        # Language settings
+        settings.extend([
+            f'''\t\t<setting id="{name}-multi" type="boolean" label="41003" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-en" type="boolean" label="41004" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-includeExternalUrls" type="boolean" label="41000" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-mediaFlowProxyUrl" type="string" label="41001" help="">
+\t\t\t<level>0</level>
+\t\t\t<default></default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>MediaFlow Proxy URL</heading>
+\t\t\t</control>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-mediaFlowProxyPassword" type="string" label="41002" help="">
+\t\t\t<level>0</level>
+\t\t\t<default></default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<constraints>
+\t\t\t\t<allowempty>true</allowempty>
+\t\t\t</constraints>
+\t\t\t<control type="edit" format="string">
+\t\t\t\t<heading>MediaFlow Proxy Password</heading>
+\t\t\t</control>
+\t\t</setting>'''
+        ])
+        
         return settings
+
+    def resolve_link(self, link):
+        return link
+
+    def get_sources(self, video):
+        sources = []
+        
+        try:
+            # Use centralized IMDB ID retrieval from base class
+            imdb_id = self.get_imdb_id(video)
+            if not imdb_id:
+                logger.log('WebStreamr: No IMDB ID found for trakt_id: %s' % video.trakt_id, log_utils.LOGWARNING)
+                return sources
+
+            # Determine stream type and build stream ID
+            if video.video_type == VIDEO_TYPES.MOVIE:
+                stream_type = 'movie'
+                stream_id = imdb_id
+                logger.log('WebStreamr: Searching for movie: %s' % imdb_id, log_utils.LOGDEBUG)
+            else:
+                stream_type = 'series'
+                stream_id = f"{imdb_id}:{video.season}:{video.episode}"
+                logger.log('WebStreamr: Searching for episode: %s S%sE%s' % (imdb_id, video.season, video.episode), log_utils.LOGDEBUG)
+
+            # Build configuration URL
+            config_url = self._build_config_url()
+            
+            # Build stream URL
+            stream_url = f"{config_url}/stream/{stream_type}/{stream_id}.json"
+            
+            logger.log('WebStreamr: Requesting: %s' % stream_url, log_utils.LOGDEBUG)
+            
+            response = self._http_get(stream_url)
+            if not response:
+                logger.log('WebStreamr: No response from server', log_utils.LOGWARNING)
+                return sources
+
+            try:
+                data = json.loads(response)
+                streams = data.get('streams', [])
+                logger.log('WebStreamr: Found %d streams' % len(streams), log_utils.LOGDEBUG)
+            except json.JSONDecodeError as e:
+                logger.log('WebStreamr: Failed to parse JSON response: %s' % str(e), log_utils.LOGERROR)
+                return sources
+
+            for stream in streams:
+                try:
+                    stream_url = stream.get('url', '')
+                    if not stream_url:
+                        continue
+                        
+                    title = stream.get('title', 'Unknown')
+                    
+                    # Extract quality from title or use default
+                    quality = self._extract_quality(title)
+                    
+                    # Extract host from URL
+                    parsed_url = urllib.parse.urlparse(stream_url)
+                    host = parsed_url.hostname or 'Unknown'
+                    
+                    # Determine if it's a direct stream
+                    direct = self._is_direct_stream(stream_url, host)
+                    
+                    source = {
+                        'class': self,
+                        'host': host,
+                        'label': title,
+                        'multi-part': False,
+                        'quality': quality,
+                        'url': stream_url,
+                        'direct': direct,
+                        'debridonly': False
+                    }
+                    
+                    sources.append(source)
+                    logger.log('WebStreamr: Found source: %s from %s' % (title, host), log_utils.LOGDEBUG)
+                    
+                except Exception as e:
+                    logger.log('WebStreamr: Error processing stream: %s' % str(e), log_utils.LOGWARNING)
+                    continue
+
+        except Exception as e:
+            logger.log('WebStreamr: Unexpected error in get_sources: %s' % str(e), log_utils.LOGERROR)
+
+        logger.log('WebStreamr: Returning %d sources' % len(sources), log_utils.LOGDEBUG)
+        return sources
+
+    def _build_config_url(self):
+        """Build the configuration URL with enabled language options"""
+        config = {}
+        
+        # Add language configurations
+        if self.config['multi']:
+            config['multi'] = 'on'
+        if self.config['en']:
+            config['en'] = 'on'       
+        if self.config['includeExternalUrls']:
+            config['includeExternalUrls'] = 'on'
+            
+        # Add MediaFlow proxy settings if configured
+        if self.config['mediaFlowProxyUrl']:
+            config['mediaFlowProxyUrl'] = self.config['mediaFlowProxyUrl']
+        if self.config['mediaFlowProxyPassword']:
+            config['mediaFlowProxyPassword'] = self.config['mediaFlowProxyPassword']
+        
+        # If no languages selected, default to English
+        if not any([self.config['multi'], self.config['en']]):
+            config['en'] = 'on'
+            
+        config_json = json.dumps(config)
+        config_encoded = urllib.parse.quote(config_json)
+        final_url = f"{self.base_url}/{config_encoded}"
+        
+        # DEBUG: Log configuration building
+        logger.log(f'🌐 WebStreamr Config URL Debug:', log_utils.LOGDEBUG)
+        logger.log(f'  Built config: {config}', log_utils.LOGDEBUG)
+        logger.log(f'  JSON: {config_json}', log_utils.LOGDEBUG)
+        logger.log(f'  Final URL: {final_url}', log_utils.LOGDEBUG)
+        
+        return final_url
+
+    def _extract_quality(self, title):
+        """Extract quality from stream title"""
+        title_lower = title.lower()
+        
+        if any(q in title_lower for q in ['4k', '2160p']):
+            return QUALITIES.HD4K
+        elif any(q in title_lower for q in ['1080p', 'fhd']):
+            return QUALITIES.HD1080
+        elif any(q in title_lower for q in ['720p', 'hd']):
+            return QUALITIES.HD720
+        elif any(q in title_lower for q in ['480p', 'sd']):
+            return QUALITIES.HIGH
+        elif any(q in title_lower for q in ['360p']):
+            return QUALITIES.MEDIUM
+        else:
+            return QUALITIES.HIGH
+
+    def _is_direct_stream(self, url, host):
+        """Determine if the stream is direct based on URL patterns"""
+        direct_indicators = [
+            '.mp4', '.mkv', '.avi', '.m3u8', '.ts'
+        ]
+        
+        # Check if URL contains direct stream indicators
+        url_lower = url.lower()
+        if any(indicator in url_lower for indicator in direct_indicators):
+            return True
+            
+        # Known direct streaming hosts
+        direct_hosts = [
+            'googlevideo.com', 'googleusercontent.com',
+            'github.io', 'githubusercontent.com'
+        ]
+        
+        if any(direct_host in host.lower() for direct_host in direct_hosts):
+            return True
+            
+        return False
+
+    def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8):
+        """HTTP GET request with proper error handling"""
+        try:
+            headers = {
+                'User-Agent': scraper_utils.get_ua(),
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+            }
+            
+            if data:
+                data = data.encode('utf-8')
+                
+            req = urllib.request.Request(url, data=data, headers=headers)
+            
+            with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                content = response.read()
+                if isinstance(content, bytes):
+                    content = content.decode('utf-8', errors='ignore')
+                return content
+                
+        except urllib.error.HTTPError as e:
+            logger.log('HTTP Error %s: %s' % (e.code, url), log_utils.LOGWARNING)
+        except urllib.error.URLError as e:
+            logger.log('URL Error: %s - %s' % (e.reason, url), log_utils.LOGWARNING)
+        except Exception as e:
+            logger.log('Unexpected error: %s - %s' % (str(e), url), log_utils.LOGWARNING)
+            
+        return ''
+
+    def search(self, video_type, title, year, season=''):
+        """Search is not implemented for WebStreamr as it works with IMDB IDs"""
+        logger.log('Search not implemented for WebStreamr - requires IMDB ID', log_utils.LOGDEBUG)
+        return []

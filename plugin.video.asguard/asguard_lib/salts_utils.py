@@ -17,10 +17,6 @@
 """
 import os, time, datetime, xbmc, xbmcgui, xbmcvfs, sys
 import string
-try:
-    HANDLE = int(sys.argv[1])
-except IndexError:
-    HANDLE = -1
 
 addon_dir = os.path.dirname(os.path.dirname(__file__)) 
 scrapers_dir = os.path.join(addon_dir, 'scrapers')
@@ -75,8 +71,8 @@ def make_info(item, show=None, people=None):
     if 'genres' in item and item['genres']:
         genres = get_genres()
         item_genres = [genres[genre] for genre in item['genres'] if genre in genres]
-        info['genre'] = ', '.join(item_genres)
-    if 'network' in item: info['studio'] = item['network']
+        info['genre'] = item_genres  # Keep as list for proper infotagger handling
+    if 'network' in item: info['studio'] = [item['network']]  # Convert to list for proper infotagger handling
     if 'status' in item: info['status'] = item['status']
     if 'tagline' in item: info['tagline'] = item['tagline']
     if 'watched' in item and item['watched']: info['playcount'] = 1
@@ -98,12 +94,19 @@ def make_info(item, show=None, people=None):
     if 'year' in show: info['year'] = show['year']
     if 'runtime' in show and show['runtime'] is not None: info['duration'] = show['runtime'] * 60
     if 'title' in show: info['tvshowtitle'] = show['title']
-    if 'network' in show: info['studio'] = show['network']
+    if 'network' in show: info['studio'] = [show['network']]  # Convert to list for proper infotagger handling
     if 'status' in show: info['status'] = show['status']
     if 'trailer' in show and show['trailer']: info['trailer'] = utils2.make_trailer(show['trailer'])
     if show: info['mediatype'] = 'episode'
     info.update(utils2.make_ids(show))
     info.update(utils2.make_people(people))
+    # ADD THIS: Process cast data if people contains cast
+    if people and 'cast' in people:
+        cast = make_cast(item.get('ids', {}), people)
+        if cast:
+            info['cast'] = cast  # Rich format for InfoTagVideo.setCast()
+            info['castandrole'] = [(actor['name'], actor['role']) for actor in cast]  # Legacy format
+    
     logger.log('Final Info: %s' % (info), log_utils.LOGDEBUG)
     # Fetch and apply translations
     if 'translations' in show:
@@ -113,10 +116,10 @@ def make_info(item, show=None, people=None):
                     if v and str(info.get('number', 0)) not in v and info.get('title') and str(info.get('number', 0)) not in info.get('title'):
                         info[k] = v
 
-    # Fetch aliases
-    aliases = trakt_api.get_show_aliases(show.get('ids', {}).get('trakt'))
-    if aliases:
-        info['aliases'] = aliases
+    # # Fetch aliases
+    # aliases = trakt_api.get_show_aliases(show.get('ids', {}).get('trakt'))
+    # if aliases:
+    #     info['aliases'] = aliases
 
     logger.log('Final Info: %s' % (info), log_utils.LOGDEBUG)
     return info
@@ -142,12 +145,12 @@ def make_cast(ids, people, cached=True):
     for person in people.get('cast', []):
         if cast_enable:
             art = image_scraper.get_person_images(ids, person, cached)
+            logger.log('Cast Art: %s' % art, log_utils.LOGDEBUG)
+            # Fallback if image_scraper returns None
+            if art is None:
+                art = {'thumb': ''}
         else:
             art = {'thumb': ''}
-        
-        # Ensure 'thumb' key is present in art
-        if 'thumb' not in art:
-            art['thumb'] = ''
             
         cast.append({'name': person['person']['name'], 'role': person['character'], 'thumbnail': art['thumb']})
     
@@ -253,79 +256,15 @@ def parallel_get_sources(scraper, video):
     result = {'name': scraper.get_name(), 'hosters': hosters}
     return result
 
-def get_cache_check_reg(episode):
-    try:
-        playList = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
-        info = playList[playList.getposition()].getVideoInfoTag()
-        season = str(info.getSeason()).zfill(2)
-    except:
-        season = ''
-
-    reg_string = r'''(?ix)                              # Ignore case (i), and use verbose regex (x)
-                 (?:                                    # non-grouping pattern
-                   s|season                             # s or season
-                   )?
-                 ({})?                                  #season num format
-                 (?:                                    # non-grouping pattern
-                   e|x|episode|ep|ep\.|_|-|\(              # e or x or episode or start of a line
-                   )                                    # end non-grouping pattern
-                 \s*                                    # 0-or-more whitespaces
-                 (?<![\d])
-                 ({}|{})                                # episode num format: xx or xxx
-                 (?![\d])
-                 '''.format(season, episode.zfill(2), episode.zfill(3))
-
-    return re.compile(reg_string)
-
-def get_best_match(dict_key, dictionary_list, episode, pack_select=False):
-    regex = get_cache_check_reg(episode)
-
-    files = []
-    for i in dictionary_list:
-        path = re.sub(r'\[.*?\]', '', i[dict_key].split('/')[-1])
-        i['regex_matches'] = regex.findall(path)
-        files.append(i)
-
-    if control.getSetting('general_manual_select') == 'true' or pack_select:
-        files = user_select(files, dict_key)
-    else:
-        files = [i for i in files if len(i['regex_matches']) > 0]
-
-        if len(files) == 0:
-            return None
-
-        files = sorted(files, key=lambda x: len(' '.join(list(x['regex_matches'][0]))), reverse=True)
-
-        if len(files) != 1:
-            files = user_select(files, dict_key)
-
-    return files[0]
-
-def user_select(files, dict_key):
-    idx = control.select_dialog('Select File', [i[dict_key].rsplit('/')[-1] for i in files])
-    if idx == -1:
-        file = [{'path': ''}]
-    else:
-        file = [files[idx]]
-    return file
-
-def is_file_ext_valid(file_name):
-    try:
-        COMMON_VIDEO_EXTENSIONS = xbmc.getSupportedMedia('video').split('|')
-
-        COMMON_VIDEO_EXTENSIONS = [i for i in COMMON_VIDEO_EXTENSIONS if i != '' and i != '.zip']
-    except:
-        pass
-
-    if '.' + file_name.split('.')[-1] not in COMMON_VIDEO_EXTENSIONS:
-        return False
-
-    return True
-
 # Run a task on startup. Settings and mode values must match task name
 def do_startup_task(task):
     run_on_startup = kodi.get_setting('auto-%s' % task) == 'true' and kodi.get_setting('%s-during-startup' % task) == 'true'
-    if run_on_startup and not xbmc.abortRequested:
+    # Create monitor instance for Kodi 20+ compatibility
+    monitor = xbmc.Monitor()
+   
+    # Check abort status using appropriate method for version
+    abort_requested = monitor.abortRequested() if monitor else xbmc.abortRequested
+    if run_on_startup and not abort_requested:
         logger.log('Service: Running startup task [%s]' % (task), log_utils.LOGNOTICE)
         now = datetime.datetime.now()
         xbmc.executebuiltin('RunPlugin(plugin://%s/?mode=%s)' % (kodi.get_id(), task))
@@ -337,14 +276,14 @@ def do_scheduled_task(task, isPlaying):
     now = datetime.datetime.now()
     if kodi.get_setting('auto-%s' % task) == 'true':
         if last_check < now - datetime.timedelta(minutes=1):
-            logger.log('Check Triggered: Last: %s Now: %s' % (last_check, now), log_utils.LOGDEBUG)
+            # logger.log('Check Triggered: Last: %s Now: %s' % (last_check, now), log_utils.LOGDEBUG)
             next_run = get_next_run(task)
             last_check = now
         else:
             # hack next_run to be in the future
             next_run = now + datetime.timedelta(seconds=1)
 
-        logger.log("Update Status on [%s]: Currently: %s Will Run: %s Last Check: %s" % (task, now, next_run, last_check), log_utils.LOGDEBUG)
+        # logger.log("Update Status on [%s]: Currently: %s Will Run: %s Last Check: %s" % (task, now, next_run, last_check), log_utils.LOGDEBUG)
         if now >= next_run:
             is_scanning = xbmc.getCondVisibility('Library.IsScanningVideo')
             if not is_scanning:
@@ -358,7 +297,7 @@ def do_scheduled_task(task, isPlaying):
                     logger.log('Service: Playing... Busy... Postponing [%s]' % (task), log_utils.LOGDEBUG)
             else:
                 logger.log('Service: Scanning... Busy... Postponing [%s]' % (task), log_utils.LOGDEBUG)
-
+                
 def get_next_run(task):
     last_run_string = db_connection.get_setting(task + '-last_run')
     if not last_run_string: last_run_string = LONG_AGO
@@ -457,7 +396,14 @@ def do_disable_check():
                 line1 = utils2.i18n('disable_line1') % (cls.get_name(), fails)
                 line2 = utils2.i18n('disable_line2')
                 line3 = utils2.i18n('disable_line3')
-                ret = dialog.yesno('Asguard', line1, line2, line3, utils2.i18n('keep_enabled'), utils2.i18n('disable_it'))
+                # Combine lines and use keyword arguments for labels
+                message = '\n'.join([line1, line2, line3])
+                ret = dialog.yesno(
+                    'Asguard',
+                    message,
+                    nolabel=utils2.i18n('keep_enabled'),
+                    yeslabel=utils2.i18n('disable_it')
+                )
                 if ret:
                     kodi.set_setting('%s-enable' % (cls.get_name()), 'false')
                     cur_failures[cls.get_name()] = 0
@@ -519,3 +465,24 @@ def clear_thumbnails(images):
             continue
         
         logger.log('Removed thumbnail: %s' % (file_path))
+
+def user_select(files, dict_key):
+    idx = control.select_dialog('Select File', [i[dict_key].rsplit('/')[-1] for i in files])
+    if idx == -1:
+        file = [{'path': ''}]
+    else:
+        file = [files[idx]]
+    return file
+
+def is_file_ext_valid(file_name):
+    try:
+        COMMON_VIDEO_EXTENSIONS = xbmc.getSupportedMedia('video').split('|')
+
+        COMMON_VIDEO_EXTENSIONS = [i for i in COMMON_VIDEO_EXTENSIONS if i != '' and i != '.zip']
+    except:
+        pass
+
+    if '.' + file_name.split('.')[-1] not in COMMON_VIDEO_EXTENSIONS:
+        return False
+
+    return True

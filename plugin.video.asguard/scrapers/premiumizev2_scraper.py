@@ -188,11 +188,31 @@ class Scraper(scraper.Scraper):
     @classmethod
     def get_settings(cls):
         name = cls.get_name()
-        settings = [
-            '         <setting id="%s-enable" type="bool" label="%s %s" default="true" visible="true"/>' % (name, name, i18n('enabled')),
-            '         <setting id="%s-sub_check" type="bool" label="    %s" default="false" visible="eq(-1,true)"/>' % (name, i18n('page_existence')),
+        parent_id = f"{name}-enable"
+        label_id = kodi.Translations.get_scraper_label_id(name)
+        
+        return [
+            f'''\t\t<setting id="{parent_id}" type="boolean" label="{label_id}" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>true</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition on="property" name="InfoBool">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>''',
+            f'''\t\t<setting id="{name}-sub_check" type="boolean" label="30176" help="">
+\t\t\t<level>0</level>
+\t\t\t<default>false</default>
+\t\t\t<dependencies>
+\t\t\t\t<dependency type="visible">
+\t\t\t\t\t<condition operator="is" setting="{parent_id}">true</condition>
+\t\t\t\t</dependency>
+\t\t\t</dependencies>
+\t\t\t<control type="toggle"/>
+\t\t</setting>'''
         ]
-        return settings
 
     def _http_get(self, url, params=None, data=None, allow_redirect=True, cache_limit=8):
         if not self.username or not self.password:

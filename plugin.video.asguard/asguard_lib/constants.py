@@ -15,12 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+
 def __enum(**enums):
     return type('Enum', (), enums)
 
+
+
 MODES = __enum(
     MAIN='main', BROWSE='browse', TRENDING='trending', RECOMMEND='recommend', CAL='calendar', MY_CAL='my_calendar', MY_LISTS='lists',
-    SEARCH='search', SEASONS='seasons', EPISODES='episodes', GET_SOURCES='get_sources', MANAGE_SUBS='manage_subs', GET_LIST='get_list', SET_URL_MANUAL='set_url_manual',
+    SEARCH='search', SEASONS='seasons', EPISODES='episodes', GET_SOURCES='get_sources', GET_SOURCES2='get_sources2', MANAGE_SUBS='manage_subs', GET_LIST='get_list', SET_URL_MANUAL='set_url_manual',
     SET_URL_SEARCH='set_url_search', SHOW_FAVORITES='browse_favorites', SHOW_WATCHLIST='browse_watchlist', PREMIERES='premiere_calendar', SHOW_LIST='show_list',
     OTHER_LISTS='other_lists', ADD_OTHER_LIST='add_other_list', PICK_SUB_LIST='pick_sub_list', PICK_FAV_LIST='pick_fav_list', UPDATE_SUBS='update_subs', CLEAN_SUBS='clean_subs',
     SET_SUB_LIST='set_sub_list', SET_FAV_LIST='set_fav_list', REM_FROM_LIST='rem_from_list', ADD_TO_LIST='add_to_list', ADD_TO_LIBRARY='add_to_library', SCRAPERS='scrapers',
@@ -37,15 +41,17 @@ MODES = __enum(
     RESET_FAILS='reset_failures', MANAGE_PROGRESS='toggle_progress', AUTOPLAY='autoplay', INSTALL_THEMES='install_themes', RESET_REL_URLS='reset_rel_urls',
     ANTICIPATED='anticipated', SHOW_REWATCH='show_rewatch', PICK_REWATCH_LIST='pick_rewatch_list', SET_REWATCH_LIST='set_rewatch_list', MANAGE_REWATCH='manage_rewatch',
     BUILD_SOURCE_DIR='build_source_dir', GENRES='genres', SHOW_GENRE='show_genre', PRUNE_CACHE='prune_cache', FLUSH_IMAGES='flush_images', REFRESH_IMAGES='refresh_images',
-    INSTALL_CACHE='install_cache', REPAIR_URLRESOLVER='repair_urlresolver', TMDB_SEARCH='tmdb_search', TMDB_TV_SEARCH='tmdb_tv_search', TMDB_SEASONS='tmdb_seasons', TMDB_EPISODES='tmdb_episodes', PLAY='play')
-SECTIONS = __enum(TV='TV', MOVIES='Movies')
-VIDEO_TYPES = __enum(TVSHOW='TV Show', MOVIE='Movie', EPISODE='Episode', SEASON='Season')
+    INSTALL_CACHE='install_cache', GROUP_EPISODES='group_episodes', TMDB_GROUP_SEASONS='tmdb_group_seasons', TMDB_EPISODE_GROUPS='tmdb_episode_groups', EPISODE_GROUPS='episode_groups', 
+    ADD_TO_QUEUE='add_to_queue', AUTH_ALLDEBRID='auth_alldebrid', REPAIR_URLRESOLVER='repair_urlresolver', TMDB_SEARCH='tmdb_search', TMDB_TV_SEARCH='tmdb_tv_search', TMDB_SEASONS='tmdb_seasons', TMDB_EPISODES='tmdb_episodes', PLAY='play',
+    SIMKL_SEARCH='simkl_search', BROWSE_ANIME='browse_anime', SIMKL_AUTH='simkl_auth', SIMKL_TRENDING='simkl_trending', SIMKL_POPULAR='simkl_popular', SIMKL_EPISODES='simkl_episodes')
+SECTIONS = __enum(TV='TV', MOVIES='Movies', ANIME='Anime')
+VIDEO_TYPES = __enum(TVSHOW='TV Show', MOVIE='Movie', EPISODE='Episode', SEASON='Season', ANIME='Anime')
 CONTENT_TYPES = __enum(TVSHOWS='tvshows', MOVIES='movies', SEASONS='seasons', EPISODES='episodes', FILES='files', ADDONS='addons')
 TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
 TRAKT_SORT = __enum(TITLE='title', RECENT_ACTIVITY='recent-activity', MOST_COMPLETED='most-completed', LEAST_COMPLETED='least-completed', RECENTLY_AIRED='recently-aired',
                     PREVIOUSLY_AIRED='previously-aired', PAST_ACTIVITY='past-activity')
 TRAKT_LIST_SORT = __enum(RANK='rank', RECENTLY_ADDED='added', TITLE='title', RELEASE_DATE='released', RUNTIME='runtime', POPULARITY='popularity',
-                         PERCENTAGE='percentage', VOTES='votes')
+                         PERCENTAGE='percentage', VOTES='votes', PLAYS='plays')
 TRAKT_SORT_DIR = __enum(ASCENDING='asc', DESCENDING='desc')
 SORT_MAP = [TRAKT_SORT.RECENT_ACTIVITY, TRAKT_SORT.TITLE, TRAKT_SORT.MOST_COMPLETED, TRAKT_SORT.LEAST_COMPLETED, TRAKT_SORT.RECENTLY_AIRED,
             TRAKT_SORT.PREVIOUSLY_AIRED, TRAKT_SORT.PAST_ACTIVITY]
@@ -57,7 +63,7 @@ GENRE_LIST = __enum(TRENDING=0, POPULAR=1, ANTICIPATED=2, MOST_WATCHED_WEEK=3, M
                     MOST_COLLECTED_WEEK=9, MOST_COLLECTED_MONTH=10, MOST_COLLECTED_ALL=11)
 WATCHLIST_SLUG = 'watchlist_slug'
 COLLECTION_SLUG = 'collection_slug'
-SEARCH_HISTORY = 10
+SEARCH_HISTORY = 50
 DEFAULT_EXT = '.mpg'
 CHUNK_SIZE = 512 * 1024
 PROGRESS = __enum(OFF=0, WINDOW=1, BACKGROUND=2)
@@ -73,7 +79,7 @@ DEFAULT_TIMEOUT = 30
 # unknown (i.e. None) is always worst
 SORT_KEYS = {}
 SORT_KEYS['quality'] = {None: 0, QUALITIES.LOW: 1, QUALITIES.MEDIUM: 2, QUALITIES.HIGH: 3, QUALITIES.HD720: 4, QUALITIES.HD1080: 5, QUALITIES.HD4K: 6}
-SORT_LIST = ['none', 'source', 'quality', 'views', 'rating', 'direct', 'debrid']
+SORT_LIST = ['none', 'source', 'quality', 'views', 'rating', 'direct', 'debrid', 'dual-audio']
 SORT_SIGNS = {'0': -1, '1': 1}  # 0 = Best to Worst; 1 = Worst to Best
 
 HOURS_LIST = {}
@@ -92,20 +98,20 @@ BLOG_Q_MAP[QUALITIES.HD1080] = ['1080']
 BLOG_Q_MAP[QUALITIES.HD4K] = ['4K']
 
 HOST_Q = {}
-HOST_Q[QUALITIES.LOW] = ['youwatch', 'allmyvideos', 'played.to', 'easyload', 'scenerls']
-HOST_Q[QUALITIES.MEDIUM] = ['primeshare', 'exashare', 'rlsbb', 'bestreams', 'flashx', 'vidto', 'vodlocker', 'scenerls', 'vidbull', 'realvid', 'nosvideo',
-                            'daclips', 'cdn', 'loadvid', 'rlsbb', 'filehoot', 'vshare.io']
-HOST_Q[QUALITIES.HIGH] = ['vidspot', 'alldebrid', 'rlsbb', 'loadvid', 'easyload', 'streamcloud', 'scenerlscom', 'novamov', 'mail.ru', 'vid.ag', 'rapidmoviez', 'gcloud.live', 'google.com', 'easyload.io', 'directdl', 'oload.tv', 'scenerls', 'rapidvideo.com', 'raptu.com', 'vev.io', 'uptobox.com', 'mpf7f9.alldebridro', 'uptostream.com', 'xvidstage.com', 'streamango.com']
-HOST_Q[QUALITIES.HD720] = ['scenerlscom', 'alldebrid', 'ddlspot', 'scenerls', 'easyload', 'loadvid', 'cdn', 'rlsbb', 'nowvideo', 'vidbux', 'streamin.to', 'allvid.ch', 'weshare', 'gcloud.live', 'google.com', 'easyload.io', 'directdl', 'oload.tv', 'scenerls', 'rapidvideo.com', 'raptu.com', 'vev.io', 'uptobox.com', 'mpf7f9.alldebridro', 'uptostream.com', 'xvidstage.com', 'rapidmoviez', '1fichier.com', 'oboom.com', 'rapidgator.net', 'rg.to', 'uploaded.net', 'uploaded.to', 'ul.to', 'filefactory.com', 'nitroflare.com', 'turbobit.net', 'uploadrocket.net']
-HOST_Q[QUALITIES.HD1080] = ['scenerlscom', 'loadvid', 'rlsbb', 'alldebrid', 'ddlspot', 'easyload', 'scenerls', 'cdn', 'allmyvideos', '1fichier.com', 'oboom.com', 'rapidgator.net', 'rg.to', 'uploaded.net', 'uploaded.to', 'ul.to', 'filefactory.com', 'nitroflare.com', 'turbobit.net', 'uploadrocket.net', 'gcloud.live', 'google.com', 'mpf7f9.alldebridro', 'vidtodo', 'rapidmoviez', 'vev.red', 'rapidvideo.com', 'raptu.com', 'vev.io', 'directdl', 'uptobox.com', 'uptostream.com', 'xvidstage.com', 'easyload.io']
-HOST_Q[QUALITIES.HD4K] = ['scenerlscom', 'loadvid', 'rlsbb', 'alldebrid', 'ddlspot', 'easyload', 'scenerls', 'cdn', 'allmyvideos', '1fichier.com', 'oboom.com', 'rapidgator.net', 'rg.to', 'uploaded.net', 'uploaded.to', 'ul.to', 'filefactory.com', 'nitroflare.com', 'turbobit.net', 'uploadrocket.net', 'gcloud.live', 'google.com', 'mpf7f9.alldebridro', 'vidtodo', 'rapidmoviez', 'vev.red', 'rapidvideo.com', 'raptu.com', 'vev.io', 'directdl', 'uptobox.com', 'uptostream.com', 'xvidstage.com', 'easyload.io']
+HOST_Q[QUALITIES.LOW] = ['streamtape', 'allmyvideos', 'vidsrc.to', 'filemoon', 'dood']
+HOST_Q[QUALITIES.MEDIUM] = ['hexload', 'filemoon', 'd0o0d.com', 'mixdrop', 'filelions', 'vidto', 'vodlocker', 'dood', 'vidbull', 'upstream', 'vipfile.cc',
+                            'filemoon', 'cdn', 'streamtape', 'rlsbb', 'filehoot', 'megacloud.tv', 'playtaku.net']
+HOST_Q[QUALITIES.HIGH] = ['vidspot', 'alldebrid', 'd0o0d.com', 'hexload', 'filemoon', 'streamcloud', 'mixdrop', 'filelions', 'mail.ru', 'streamtape', 'highstream.tv', 'gcloud.live', 'google.com', 'easyload.io', 'dood', 'oload.tv', 'gembedhd.com', 'upstream', 'raptu.com', 'vev.io', 'vidsrc', 'mpf7f9.alldebridro', 'megacloud.tv', 'xvidstage.com', 'streamango.com', 'vidstreaming', 'playtaku.net', 'dood.to', 'dood.so', 'gogohd.pro']
+HOST_Q[QUALITIES.HD720] = ['streamwish', 'alldebrid', 'hexload', 'debrid', 'filemoon', 'mixdrop', 'cdn', 'rlsbb', 'filelions', 'streamtape', 'vipfile.cc', 'allvid.ch', 'weshare', 'gcloud.live', 'google.com', 'easyload.io', 'dood', 'oload.tv', 'gembedhd', 'rapidvideo.com', 'raptu.com', 'vev.io', 'vidsrc', 'mpf7f9.alldebridro', 'megacloud.tv', 'xvidstage.com', 'highstream.tv', '1fichier.com', 'oboom.com', 'vidstreaming.io', 'rapidgator.net', 'rg.to', 'uploaded.net', 'uploaded.to', 'upstream', 'filefactory.com', 'nitroflare.com', 'turbobit.net', 'vidsrc.to', 'playtaku.net', 'dood.so', 'dood.to', 'gogohd', 'goload.io']
+HOST_Q[QUALITIES.HD1080] = ['streamwish', 'hexload', 'd0o0d.com', 'debrid', 'ddlspot', 'mixdrop', 'gembedhd', 'cdn', 'filelions', '1fichier.com', 'oboom.com', 'rapidgator.net', 'rg.to', 'uploaded.net', 'uploaded.to', 'dood', 'filefactory.com', 'streamtape', 'turbobit.net', 'vidsrc', 'gcloud.live', 'google.com', 'mpf7f9.alldebridro', 'vidtodo', 'highstream.tv', 'vev.red', 'rapidvideo.com', 'raptu.com', 'vev.io', 'ddl.to', 'vidsrc.pro', 'megacloud.tv', 'upstream', 'easyload.io', 'playtaku.net', 'dood.so', 'dood.to', 'gogohd.pro', 'goload.io']
+HOST_Q[QUALITIES.HD4K] = ['streamwish', 'hexload', 'd0o0d.com', 'debrid', 'ddlspot', 'easyload', 'gembedhd', 'cdn', 'filelions', '1fichier.com', 'oboom.com', 'rapidgator.net', 'rg.to', 'uploaded.net', 'uploaded.to', 'dood', 'filefactory.com', 'streamtape', 'turbobit.net', 'vidsrc', 'gcloud.live', 'google.com', 'mpf7f9.alldebridro', 'vidtodo', 'highstream.tv', 'vev.red', 'rapidvideo.com', 'raptu.com', 'vev.io', 'ddl.to', 'vidsrc.pro', 'megacloud.tv', 'easyload.io', 'upstream', 'playtaku.net', 'dood.so', 'dood.to', 'gogohd.pro', 'goload.io']
 
 Q_ORDER = {QUALITIES.LOW: 1, QUALITIES.MEDIUM: 2, QUALITIES.HIGH: 3, QUALITIES.HD720: 4, QUALITIES.HD1080: 5, QUALITIES.HD4K: 6}
 
 IMG_SIZES = ['full', 'medium', 'thumb']
 
 XHR = {'X-Requested-With': 'XMLHttpRequest'}
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 BR_VERS = [
     ['%s.0' % i for i in range(18, 53)],
     ['37.0.2062.103', '37.0.2062.120', '37.0.2062.124', '38.0.2125.101', '38.0.2125.104', '38.0.2125.111', '39.0.2171.71', '39.0.2171.95', '39.0.2171.99', '40.0.2214.93', '40.0.2214.111',

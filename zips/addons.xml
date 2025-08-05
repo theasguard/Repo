@@ -30,6 +30,8 @@
         <import addon="script.module.asguard"/>
 		<import addon="script.module.requests" />
         <import addon="script.module.dateutil"/>
+        <import addon="script.module.simplejson" version="3.17.0"/>
+        <import addon="script.module.simplecache" version="2.0.2"/>
         <import addon="script.module.arrow" version="1.0.3"/>
 		<import addon="script.module.beautifulsoup4" version="4.5.3" />
 		<import addon="script.module.inputstreamhelper" version="0.3.3" />
@@ -37,6 +39,7 @@
 		<import addon="script.module.kodi-six" version="0.1.3"/>
 		<import addon="script.module.orion" />
 		<import addon="script.module.html5lib" />
+        <import addon="script.otaku.mappings" optional="true" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>
@@ -79,6 +82,30 @@ This is a Non-profit resource, organized solely for educational purposes which i
 	<extension point="xbmc.addon.metadata">
 		<summary>The Official Repo for MrBlamo</summary>
 		<description>The Official Repo for MrBlamo</description>
+		<platform>all</platform>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<genre>movies,usa</genre>
+	</extension>
+</addon>
+
+<addon id="repository.example" name="Example Repository" version="1.0.0" provider-name="YourName">
+	<extension point="xbmc.addon.repository" name="Example Repository">
+		<dir minversion="20.90.0" maxversion="22.9.9">
+            <info compressed="false">https://your-repo-url.com/zips/addons.xml</info>
+            <checksum>https://your-repo-url.com/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://your-repo-url.com/zips/</datadir>
+		</dir>
+		<dir>
+        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
+        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
+        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
+        </dir>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary>Example Kodi repository</summary>
+		<description>This is an example Kodi repository containing various addons</description>
 		<platform>all</platform>
 		<assets>
 			<icon>icon.png</icon>

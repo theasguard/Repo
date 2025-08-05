@@ -1,28 +1,16 @@
-"""
-    Asguard Addon
-    Copyright (C) 2016 tknorris
-    Derived from Shani's LPro Code (https://github.com/Shani-08/ShaniXBMCWork2/blob/master/plugin.video.live.streamspro/unCaptcha.py)
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 import re
 import log_utils
-from six.moves import urllib_parse, urllib_request, urllib_error
+import requests
+import urllib.error
+import urllib.request as urllib_request
+import urllib.parse as urllib_parse
+import urllib.error as urllib_error
+
 from asguard_lib import recaptcha_v2
 from asguard_lib.constants import USER_AGENT
 
 logger = log_utils.Logger.get_logger(__name__)
+
 logger.disable()
 
 class NoRedirection(urllib_request.HTTPErrorProcessor):
@@ -40,8 +28,14 @@ def solve(url, cj, user_agent=None, name=None):
     try:
         response = urllib_request.urlopen(request)
         html = response.read()
+        # Decode bytes to string for pattern matching
+        if isinstance(html, bytes):
+            html = html.decode('utf-8', errors='ignore')
     except urllib_error.HTTPError as e:
         html = e.read()
+        # Decode bytes to string for pattern matching
+        if isinstance(html, bytes):
+            html = html.decode('utf-8', errors='ignore')
 
     match = re.search('data-sitekey="([^"]+)', html)
     match1 = re.search('data-ray="([^"]+)', html)
@@ -78,6 +72,10 @@ def solve(url, cj, user_agent=None, name=None):
                     response = urllib_request.urlopen(request)
 
                 final = response.read()
+                # Decode bytes to string for consistent return type
+                if isinstance(final, bytes):
+                    final = final.decode('utf-8', errors='ignore')
+                    
                 if cj is not None:
                     cj.extract_cookies(response, request)
                     cj.save(ignore_discard=True)

@@ -35,15 +35,12 @@ db_connection = local_lib.db_utils.DBCache(local_lib.DB_PATH)
 TMDB_API_KEY = kodi.get_setting('tmdb_key')
 
 def fetch_images_from_tmdb(tmdb_id, media_type):
-    url = image_scraper.get_images
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    elif response.status_code == 404:
-        logger.log(f"No images found for {media_type} with TMDB ID {tmdb_id}", log_utils.LOGWARNING)
-        return {}
-    else:
-        raise Exception(f"Failed to fetch images: {response.status_code}")
+    # Convert tmdb_id and media_type to the format expected by image_scraper.get_images
+    video_ids = {'tmdb': tmdb_id}
+    video_type = 'movie' if media_type == 'movie' else 'tvshow'  
+    
+    # Call the function with proper parameters
+    return image_scraper.get_images(video_type, video_ids, cached=False)
 
 def get_movie_images(tmdb_id):
     try:
