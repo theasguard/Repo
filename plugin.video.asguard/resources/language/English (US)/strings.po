@@ -2252,7 +2252,7 @@ msgid "Manual File Selection"
 msgstr ""
 
 msgctxt "#40482"
-msgid "Enable Manual File Selection for Batch Torrents"
+msgid "Process P2P Hashes"
 msgstr ""
 
 msgctxt "#40632"
@@ -2412,3 +2412,14 @@ msgctxt "#40524"
 msgid "Re-authenticate Trakt"
 msgstr ""
 
+msgctxt "#40525"
+msgid "TorBox API"
+msgstr ""
+
+msgctxt "#40526"
+msgid "Debridlink API"
+msgstr ""
+
+msgctxt "#40527"
+msgid "Custom Config"
+msgstr ""

@@ -21,19 +21,24 @@ import json
 import urllib.parse
 from asguard_lib import scraper_utils
 from asguard_lib.constants import VIDEO_TYPES, QUALITIES
+import kodi
 from . import scraper
 import log_utils
 
 logger = log_utils.Logger.get_logger()
 
+BASE_URL = 'https://stremthru.elfhosted.com'
+
 class Scraper(scraper.Scraper):
-    base_url = 'https://stremthru.elfhosted.com'
-    # Base64 encoded config: {"stores":[{"c":"p2p","t":""}]}
-    config_path = 'stremio/torz/eyJzdG9yZXMiOlt7ImMiOiJwMnAiLCJ0IjoiIn1dfQ=='
-    movie_search_url = '/stream/movie/%s.json'
-    tv_search_url = '/stream/series/%s:%s:%s.json'
+    base_url = BASE_URL
+
     
     def __init__(self, timeout=scraper.DEFAULT_TIMEOUT):
+        self.base_url = kodi.get_setting(f'{self.get_name()}-base_url')
+        # Base64 encoded config: {"stores":[{"c":"p2p","t":""}]}
+        self.config_path = 'stremio/torz/eyJzdG9yZXMiOlt7ImMiOiJwMnAiLCJ0IjoiIn1dfQ=='
+        self.movie_search_url = '/stream/movie/%s.json'
+        self.tv_search_url = '/stream/series/%s:%s:%s.json'
         self.timeout = timeout
 
     @classmethod

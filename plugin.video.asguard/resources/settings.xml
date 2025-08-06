@@ -436,14 +436,59 @@
 					</control>
 				</setting>
 
-				<setting id="simkl_oauth_token" type="string" help="">
+				<setting id="realdebrid.apikey" type="string" label="40618" help="">
 					<level>0</level>
-					<default/>
+					<default></default>
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
 					<control type="edit" format="string">
-						<heading>Simkl OAuth Token</heading>
+						<heading>Real-Debrid API Key</heading>
+						<hidden>true</hidden>
+					</control>
+				</setting>
+				<setting id="alldebrid_api_key" type="string" label="30311" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>AllDebrid API Key</heading>
+						<hidden>true</hidden>
+					</control>
+				</setting>
+				<setting id="premiumize.apikey" type="string" label="40619" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>Premiumize API Key</heading>
+						<hidden>true</hidden>
+					</control>
+				</setting>
+				<setting id="torbox.apikey" type="string" label="40525" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>TorBox API Key</heading>
+						<hidden>true</hidden>
+					</control>
+				</setting>
+				<setting id="debridlink.apikey" type="string" label="40526" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>DebridLink API Key</heading>
+						<hidden>true</hidden>
 					</control>
 				</setting>
 				<setting id="tvdb_api_key" type="string" label="40640" help="">
@@ -2512,6 +2557,41 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+					<setting id="AioStreams-bypass_filter" type="boolean" label="40483" help="">
+						<level>0</level>
+						<default>false</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AioStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AioStreams-custom_config" type="string" label="40527" help="Leave empty to use default config. Visit aiostreams.elfhosted.com/stremio/configure to generate your own configuration with debrid services and filters.">
+						<level>0</level>
+						<default></default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AioStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Custom Configuration URL</heading>
+						</control>
+					</setting>
+					<setting id="AioStreams-process_p2p_hashes" type="boolean" label="40482" help="Enable processing of P2P torrent hashes using your debrid service. This can provide more streams but may be slower.">
+						<level>0</level>
+						<default>false</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AioStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
 					<setting id="Anidex-enable" type="boolean" label="30421" help="">
 						<level>0</level>
 						<default>true</default>
@@ -2652,9 +2732,13 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_2" label="30319" help="">
+			<group id="102">
 					<setting id="AniRena-enable" type="boolean" label="40639" help="">
 						<level>0</level>
-						<default>false</default>
+						<default>true</default>
 						<dependencies>
 							<dependency type="visible">
 								<condition on="property" name="InfoBool">true</condition>
@@ -2687,10 +2771,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_2" label="30319" help="">
-			<group id="102">
 					<setting id="BitCQ-enable" type="boolean" label="40616" help="">
 						<level>0</level>
 						<default>true</default>
@@ -2904,6 +2984,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_3" label="30320" help="">
+			<group id="103">
 					<setting id="EasyNews-enable" type="boolean" label="30402" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3002,10 +3086,6 @@
 							<popup>false</popup>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_3" label="30320" help="">
-			<group id="103">
 					<setting id="EZTV-enable" type="boolean" label="30423" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3190,6 +3270,10 @@
 							<popup>false</popup>
 						</control>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_4" label="30321" help="">
+			<group id="104">
 					<setting id="IsoHunt2-enable" type="boolean" label="40614" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3315,10 +3399,6 @@
 						</dependencies>
 						<control type="spinner" format="string"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_4" label="30321" help="">
-			<group id="104">
 					<setting id="M4UHD-enable" type="boolean" label="40818" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3459,6 +3539,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_5" label="30322" help="">
+			<group id="105">
 					<setting id="Orion-enable" type="boolean" label="30405" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3604,10 +3688,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_5" label="30322" help="">
-			<group id="105">
 					<setting id="Premiumize.V2-enable" type="boolean" label="30407" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3733,6 +3813,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_6" label="30323" help="">
+			<group id="106">
 					<setting id="Thepiratebay-enable" type="boolean" label="40628" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3879,10 +3963,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_6" label="30323" help="">
-			<group id="106">
 					<setting id="TorrentGalaxy-enable" type="boolean" label="30410" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3988,6 +4068,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_7" label="40710" help="">
+			<group id="107">
 					<setting id="Torrentz2-enable" type="boolean" label="30430" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4140,10 +4224,6 @@
 							<heading>MediaFlow Proxy Password</heading>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_7" label="40710" help="">
-			<group id="107">
 					<setting id="YourBittorrent-enable" type="boolean" label="40615" help="">
 						<level>0</level>
 						<default>true</default>

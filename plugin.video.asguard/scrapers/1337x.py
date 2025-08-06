@@ -139,24 +139,7 @@ class Scraper(scraper.Scraper):
                 return True
         return False
 
-    def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
-        if require_debrid:
-            if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
-            if not Scraper.debrid_resolvers:
-                logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
-                return ''
-        try:
-            headers = {'User-Agent': scraper_utils.get_ua()}
-            req = urllib.request.Request(url, data=data, headers=headers)
-            logging.debug("HTTP request: %s", req)
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                return response.read().decode('utf-8')
-        except urllib.error.HTTPError as e:
-            logger.log(f'HTTP Error: {e.code} - {url}', log_utils.LOGWARNING)
-        except urllib.error.URLError as e:
-            logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
-        return ''
+
     
     @classmethod
     def get_settings(cls):
