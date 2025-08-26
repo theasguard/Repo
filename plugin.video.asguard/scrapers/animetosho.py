@@ -65,7 +65,7 @@ class Scraper(scraper.Scraper):
         return 'Animetosho'
 
     def resolve_link(self, link):
-        logging.debug("Resolving link: %s", link)
+
         return link
 
     def parse_season_from_name(self, name):

@@ -58,7 +58,6 @@ class Scraper(scraper.Scraper):
         return 'Mediafusion'
     
     def resolve_link(self, link):
-        logging.debug("Resolving link: %s", link)
         return link
 
     def _set_apikeys(self):

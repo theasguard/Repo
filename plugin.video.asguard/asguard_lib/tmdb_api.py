@@ -10,6 +10,7 @@ import time
 import threading
 from functools import wraps
 from asguard_lib import control
+from asguard_lib.db_utils import cache_tmdb_trakt_mapping, get_trakt_id_by_tmdb_cached
 
 addon = xbmcaddon.Addon('plugin.video.asguard')
 
@@ -173,20 +174,52 @@ def search_tmdb(query, page=1, overview=True):
     }
     return _rate_limited_request(TMDB_SEARCH_URL, params)
 
-def search_tmdb_tv(query, page=1):
+def search_tmdb_tv(query, page=1, include_adult=False):
     """
     Search TMDB for TV shows matching the query.
     
     :param query: The search query string.
     :param page: The page number to retrieve.
+    :param include_adult: Whether to include adult content in results.
     :return: A list of search results.
     """
     params = {
         'api_key': TMDB_API_KEY,
         'query': query,
-        'page': page
+        'page': page,
+        'include_adult': include_adult,
+        'language': 'en-US'
     }
     return _rate_limited_request(TMDB_SEARCH_TV_URL, params)
+    
+def search_tmdb_tv_multi_page(query, max_pages=3, include_adult=False):
+    """
+    Search TMDB for TV shows across multiple pages to get more results.
+    
+    :param query: The search query string.
+    :param max_pages: Maximum number of pages to retrieve (default: 3).
+    :param include_adult: Whether to include adult content in results.
+    :return: A combined list of search results from all pages.
+    """
+    all_results = []
+    
+    for page in range(1, max_pages + 1):
+        try:
+            results = search_tmdb_tv(query, page, include_adult)
+            if not results or 'results' not in results or not results['results']:
+                break
+                
+            all_results.extend(results['results'])
+            
+            # If we've reached the last page, stop
+            if page >= results.get('total_pages', 1):
+                break
+                
+        except Exception as e:
+            logger.log(f"Error fetching page {page} of search results: {e}", log_utils.LOGERROR)
+            break
+    
+    return all_results
 
 def get_tv_details(tmdb_id, overview=True, trakt_id=None):
     """
@@ -206,7 +239,32 @@ def get_tv_details(tmdb_id, overview=True, trakt_id=None):
         params['trakt_id'] = trakt_id
     
     url = TMDB_TV_DETAILS_URL.format(tmdb_id)
-    return _rate_limited_request(url, params)
+    result = _rate_limited_request(url, params)
+    
+    # If we have external IDs, try to get/save the Trakt ID mapping
+    if result and 'external_ids' in result:
+        ext_ids = result.get('external_ids', {})
+        logger.log(f'External IDs: {ext_ids}', log_utils.LOGDEBUG)
+        imdb_id = ext_ids.get('imdb_id')
+        
+        # If we have an IMDB ID but no Trakt ID passed in, try to find the Trakt ID
+        if imdb_id and not trakt_id:
+            # First check if we already have a mapping
+            trakt_id = get_trakt_id_by_tmdb_cached(tmdb_id)
+            
+            # If no mapping exists, we could try to fetch it from Trakt API
+            # but for now we'll just cache any we find through other means
+            if not trakt_id and 'trakt_id' in ext_ids:
+                found_trakt_id = ext_ids.get('trakt_id')
+                if found_trakt_id:
+                    try:
+                        cache_tmdb_trakt_mapping(tmdb_id, found_trakt_id)
+                        logger.log(f'Cached Trakt ID {found_trakt_id} for TMDB ID {tmdb_id} from external IDs', 
+                                  log_utils.LOGDEBUG)
+                    except Exception as e:
+                        logger.log(f'Failed to cache Trakt ID from external IDs: {e}', log_utils.LOGWARNING)
+    
+    return result
 
 def get_tv_seasons(tmdb_id):
     """

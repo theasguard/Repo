@@ -41,7 +41,7 @@ MODES = __enum(
     RESET_FAILS='reset_failures', MANAGE_PROGRESS='toggle_progress', AUTOPLAY='autoplay', INSTALL_THEMES='install_themes', RESET_REL_URLS='reset_rel_urls',
     ANTICIPATED='anticipated', SHOW_REWATCH='show_rewatch', PICK_REWATCH_LIST='pick_rewatch_list', SET_REWATCH_LIST='set_rewatch_list', MANAGE_REWATCH='manage_rewatch',
     BUILD_SOURCE_DIR='build_source_dir', GENRES='genres', SHOW_GENRE='show_genre', PRUNE_CACHE='prune_cache', FLUSH_IMAGES='flush_images', REFRESH_IMAGES='refresh_images',
-    INSTALL_CACHE='install_cache', GROUP_EPISODES='group_episodes', TMDB_GROUP_SEASONS='tmdb_group_seasons', TMDB_EPISODE_GROUPS='tmdb_episode_groups', EPISODE_GROUPS='episode_groups', 
+    INSTALL_CACHE='install_cache', GROUP_EPISODES='group_episodes', TMDB_GROUP_SEASONS='tmdb_group_seasons', TMDB_EPISODE_GROUPS='tmdb_episode_groups', EPISODE_GROUPS='episode_groups', TRAKT_EPISODE_GROUPS='trakt_episode_groups', 
     ADD_TO_QUEUE='add_to_queue', AUTH_ALLDEBRID='auth_alldebrid', REPAIR_URLRESOLVER='repair_urlresolver', TMDB_SEARCH='tmdb_search', TMDB_TV_SEARCH='tmdb_tv_search', TMDB_SEASONS='tmdb_seasons', TMDB_EPISODES='tmdb_episodes', PLAY='play',
     SIMKL_SEARCH='simkl_search', BROWSE_ANIME='browse_anime', SIMKL_AUTH='simkl_auth', SIMKL_TRENDING='simkl_trending', SIMKL_POPULAR='simkl_popular', SIMKL_EPISODES='simkl_episodes')
 SECTIONS = __enum(TV='TV', MOVIES='Movies', ANIME='Anime')

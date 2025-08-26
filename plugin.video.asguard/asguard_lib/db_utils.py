@@ -759,6 +759,13 @@ class DB_Connection():
                     )
                 ''')
                 self.__execute('''
+                    CREATE TABLE IF NOT EXISTS id_mapping (
+                        themoviedb_id INTEGER NOT NULL,
+                        trakt_id INTEGER,
+                        PRIMARY KEY(themoviedb_id)
+                    )
+                ''')
+                self.__execute('''
                     CREATE TABLE IF NOT EXISTS genres_cache (
                         slug VARCHAR(255) NOT NULL, 
                         name VARCHAR(255) NOT NULL, 
@@ -852,6 +859,12 @@ class DB_Connection():
                         clearart TEXT, 
                         clearlogo TEXT, 
                         PRIMARY KEY(object_type, trakt_id, season, episode)
+                    )
+                ''')
+                self.__execute('''
+                    CREATE TABLE IF NOT EXISTS id_mapping (
+                        themoviedb_id INTEGER PRIMARY KEY,
+                        trakt_id INTEGER
                     )
                 ''')
                 self.__execute('''
@@ -1305,6 +1318,82 @@ def get_trakt_id_by_tmdb(tmdb_id):
     finally:
         control.try_release_lock(control.mappingDB_lock)
     return mapping['trakt_id'] if mapping else None
+
+def _ensure_tmdb_trakt_table(conn):
+    try:
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS tmdb_trakt (
+                themoviedb_id INTEGER PRIMARY KEY,
+                trakt_id INTEGER
+            )
+        ''')
+        conn.commit()
+        cur.close()
+    except Exception:
+        pass
+
+def cache_tmdb_trakt_mapping(tmdb_id, trakt_id):
+    """Persist a TMDB->Trakt mapping in the MAIN DB (id_mapping table)."""
+    if not tmdb_id or not trakt_id:
+        return False
+    control.mappingDB_lock.acquire()
+    try:
+        # Create a proper DB_Connection instance and use it
+        db_conn = DB_Connection()
+        # Access the database directly
+        if db_conn.db_type == DB_TYPES.SQLITE:
+            conn = sqlite3.connect(db_conn.db_path, timeout=60.0)
+        else:
+            conn = db_conn.db_lib.connect(database=db_conn.dbname, user=db_conn.username, 
+                                         password=db_conn.password, host=db_conn.address, buffered=True)
+        conn.row_factory = _dict_factory
+        conn.execute("PRAGMA FOREIGN_KEYS = 1")
+        cur = conn.cursor()
+        cur.execute('REPLACE INTO id_mapping (themoviedb_id, trakt_id) VALUES (?, ?)', (int(tmdb_id), int(trakt_id)))
+        conn.commit()
+        cur.close()
+        return True
+    except Exception as e:
+        logger.log('Failed to cache tmdb->trakt mapping: %s' % str(e), log_utils.LOGWARNING)
+        return False
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+
+def get_cached_tmdb_trakt_mapping(tmdb_id):
+    """Read a cached TMDB->Trakt mapping from MAIN DB (id_mapping)."""
+    control.mappingDB_lock.acquire()
+    try:
+        # Use main Asguard DB (same as url_cache, image_cache, etc.)
+        db_conn = DB_Connection()
+        # Access the database directly
+        if db_conn.db_type == DB_TYPES.SQLITE:
+            conn = sqlite3.connect(db_conn.db_path, timeout=60.0)
+        else:
+            conn = db_conn.db_lib.connect(database=db_conn.dbname, user=db_conn.username, 
+                                         password=db_conn.password, host=db_conn.address, buffered=True)
+        cur = conn.cursor()
+        cur.execute('SELECT trakt_id FROM id_mapping WHERE themoviedb_id = ?', (tmdb_id,))
+        row = cur.fetchone()
+        cur.close()
+        # row is a tuple in main DB connection mode
+        return row[0] if row else None
+    except Exception:
+        return None
+    finally:
+        control.try_release_lock(control.mappingDB_lock)
+
+def get_trakt_id_by_tmdb_cached(tmdb_id):
+    """Try anime mapping first, then fallback MAIN DB id_mapping table."""
+    tid = get_trakt_id_by_tmdb(tmdb_id)
+    if tid:
+        # also backfill into main DB for future lookups
+        try:
+            cache_tmdb_trakt_mapping(tmdb_id, tid)
+        except Exception:
+            pass
+        return tid
+    return get_cached_tmdb_trakt_mapping(tmdb_id)
 
 def get_tvdb_season(trakt_id):
     control.mappingDB_lock.acquire()

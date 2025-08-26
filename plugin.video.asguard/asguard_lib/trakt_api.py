@@ -435,6 +435,7 @@ class Trakt_API():
 
     def get_bookmark(self, show_id, season, episode):
         response = self.get_bookmarks()
+        logger.log('Trakt bookmarks: %s' % response, log_utils.LOGDEBUG)
         for bookmark in response:
             if not season or not episode:
                 if bookmark['type'] == 'movie' and int(show_id) == bookmark['movie']['ids']['trakt']:
@@ -680,9 +681,7 @@ class Trakt_API():
                     raise
 
         try:
-            logger.log('DEBUG: result type=%s, value=%s' % (type(result), str(result)[:100] if result else 'NONE'), log_utils.LOGDEBUG)
             js_data = utils.json_loads_as_str(result)
-            logger.log('js_data before sort: %s' % (js_data), log_utils.LOGDEBUG)
             if 'x-sort-by' in res_headers and 'x-sort-how' in res_headers:
                 js_data = utils2.sort_list(res_headers['x-sort-by'], res_headers['x-sort-how'], js_data)
         except ValueError:

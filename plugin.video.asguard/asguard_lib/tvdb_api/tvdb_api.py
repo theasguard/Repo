@@ -94,10 +94,8 @@ class TheTvDb(object):
             # Log the request for debugging
             self._log_msg(f"TVDB: Requesting URL: {url} with params: {params}", xbmc.LOGDEBUG)
             response = self.session.get(url, headers=headers, params=params, timeout=10)
-            self._log_msg(f"TVDB: Response status: {response.status_code}", xbmc.LOGDEBUG)
             if response.status_code == 200:
                 data = response.json()
-                self._log_msg(f"TVDB: Response data: {data}", xbmc.LOGDEBUG)
                 return data
             elif response.status_code == 404:
                 self._log_msg("TVDB: 404 error for %s" % url, xbmc.LOGWARNING)

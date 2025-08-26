@@ -117,7 +117,7 @@ class Scraper(scraper.Scraper):
         if video.video_type == VIDEO_TYPES.MOVIE:
             query = f'{video.title} {video.year}'
         else:
-            query = f'{video.title} S{int(video.season):02d} E{int(video.episode):02d}'
+            query = f'{video.title} S{int(video.season):02d}E{int(video.episode):02d}'
         return f'{self.base_url}{SEARCH_URL % quote_plus(query)}'
 
     @classmethod

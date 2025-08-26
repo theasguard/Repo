@@ -31,7 +31,7 @@ import log_utils  # @UnusedImport
 from asguard_lib.net import Net, get_ua  # @UnusedImport  # NOQA
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH, Q_ORDER, SHORT_MONS, VIDEO_TYPES, DEFAULT_TIMEOUT
-from asguard_lib.db_utils import DB_Connection
+from asguard_lib.db_utils import DB_Connection, cache_tmdb_trakt_mapping
 from asguard_lib.utils2 import i18n, ungz
 
 import xbmcgui
@@ -167,12 +167,24 @@ class Scraper(object):
                 details = trakt_api.get_movie_details(video.trakt_id)
                 if details and 'ids' in details:
                     imdb_id = details['ids'].get('imdb', '')
+                    try:
+                        tmdb = details['ids'].get('tmdb')
+                        if tmdb and video.trakt_id:
+                            cache_tmdb_trakt_mapping(tmdb, video.trakt_id)
+                    except Exception:
+                        pass
                     
             elif video.video_type in [VIDEO_TYPES.TVSHOW, VIDEO_TYPES.EPISODE, VIDEO_TYPES.SEASON]:
                 logger.log(f'get_imdb_id: Fetching show details for trakt_id: {video.trakt_id}', log_utils.LOGDEBUG)
                 details = trakt_api.get_show_details(video.trakt_id)
                 if details and 'ids' in details:
                     imdb_id = details['ids'].get('imdb', '')
+                    try:
+                        tmdb = details['ids'].get('tmdb')
+                        if tmdb and video.trakt_id:
+                            cache_tmdb_trakt_mapping(tmdb, video.trakt_id)
+                    except Exception:
+                        pass
             
             # Cache the result (even if empty to avoid repeated API calls)
             if imdb_id:
