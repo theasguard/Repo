@@ -26,7 +26,7 @@ import log_utils
 import utils
 import kodi
 from url_dispatcher import URL_Dispatcher
-from asguard_lib.db_utils import get_trakt_id_by_tmdb_cached
+from asguard_lib.db_utils import DB_Connection
 
 from asguard_lib.trakt_api import Trakt_API
 from asguard_lib import salts_utils, image_scraper, tmdb_api
@@ -86,7 +86,7 @@ def make_tv_show_item(show):
 
     # Provide both a stable cache key ('trakt') and the real TMDB id for image lookups
     tmdb_id = show.get('id')
-    trakt_id = get_trakt_id_by_tmdb_cached(tmdb_id)
+    trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
     ids = {
         'trakt': int(trakt_id) if trakt_id else tmdb_id,  # cache key; prefer real trakt id if available
         'tmdb': tmdb_id
@@ -137,7 +137,7 @@ def make_tmdb_season_item(season, show, tmdb_id):
     label = '{} {}'.format(i18n('season'), season['season_number'])
     # Provide ids including tmdb (and tvdb if available) so season art can be fetched by scrapers
     tmdb_show_id = int(show.get('id'))
-    trakt_id = get_trakt_id_by_tmdb_cached(tmdb_id)
+    trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
     ids = {
         'trakt': int(trakt_id) if trakt_id else tmdb_id,
         'tmdb': tmdb_id
@@ -208,7 +208,7 @@ def make_tmdb_episode_item(show, episode, tmdb_id):
     logger.log('make_tmdb_episode_item_show: {}'.format(show), log_utils.LOGNOTICE)
     logger.log('make_tmdb_episode_item: {}'.format(episode), log_utils.LOGNOTICE)
     logger.log('make_tmdb_episode_item_tmdb_id: {}'.format(tmdb_id), log_utils.LOGNOTICE)
-    trakt_id = get_trakt_id_by_tmdb_cached(tmdb_id)
+    trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
     ids = {
         'trakt': trakt_id if trakt_id else tmdb_id,
         'tmdb': tmdb_id

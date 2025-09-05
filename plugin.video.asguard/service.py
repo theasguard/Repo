@@ -306,8 +306,7 @@ def show_next_up(last_label, sf_begin):
     token = kodi.get_setting('trakt_oauth_token')
 
     container_content = xbmc.getInfoLabel('Container.Content')
-    logger.log(f'Service: Container Content: {container_content}', log_utils.LOGDEBUG)
-    
+
     if token and xbmc.getInfoLabel('Container.PluginName') == kodi.get_id() and xbmc.getInfoLabel('Container.Content') == 'tvshows':
         if xbmc.getInfoLabel('ListItem.Title') != last_label:
             sf_begin = time.time()

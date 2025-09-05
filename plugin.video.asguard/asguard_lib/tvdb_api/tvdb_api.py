@@ -12,6 +12,7 @@ from requests.adapters import HTTPAdapter
 import xbmc
 import xbmcgui
 import xbmcaddon
+import log_utils
 from datetime import timedelta, date
 from operator import itemgetter
 try:
@@ -24,6 +25,7 @@ import urllib.request, urllib.error
 from urllib.parse import unquote
 import re
 
+logger = log_utils.Logger.get_logger()
 # set some parameters to the requests module
 requests.packages.urllib3.disable_warnings()
 SES = requests.Session()
@@ -178,16 +180,18 @@ class TheTvDb(object):
     @use_cache(7)
     def get_episode_by_number(self, seriesid, season, episode):
         """Get a specific episode by season and episode number (TVDB v3)"""
-        if not seriesid or not season or not episode:
+        if not seriesid:
             return None
             
         # TVDB v3 endpoint for episode query
         endpoint = f'series/{seriesid}/episodes/query'
+        logger.log('TVDB Endpoint: %s' % endpoint, log_utils.LOGDEBUG)
         params = {
             'airedSeason': season,
             'airedEpisode': episode
         }
         response = self.get_data(endpoint, params=params)
+        logger.log('TVDB ep by num Response: %s' % response, log_utils.LOGDEBUG)
         
         # Handle TVDB v3 response format
         if response and response.get('data'):

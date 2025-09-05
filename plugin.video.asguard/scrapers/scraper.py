@@ -31,7 +31,7 @@ import log_utils  # @UnusedImport
 from asguard_lib.net import Net, get_ua  # @UnusedImport  # NOQA
 from asguard_lib import scraper_utils
 from asguard_lib.constants import FORCE_NO_MATCH, Q_ORDER, SHORT_MONS, VIDEO_TYPES, DEFAULT_TIMEOUT
-from asguard_lib.db_utils import DB_Connection, cache_tmdb_trakt_mapping
+from asguard_lib.db_utils import DB_Connection
 from asguard_lib.utils2 import i18n, ungz
 
 import xbmcgui
@@ -170,7 +170,7 @@ class Scraper(object):
                     try:
                         tmdb = details['ids'].get('tmdb')
                         if tmdb and video.trakt_id:
-                            cache_tmdb_trakt_mapping(tmdb, video.trakt_id)
+                            self.db_connection().cache_tmdb_trakt_mapping(tmdb, video.trakt_id)
                     except Exception:
                         pass
                     
@@ -182,7 +182,7 @@ class Scraper(object):
                     try:
                         tmdb = details['ids'].get('tmdb')
                         if tmdb and video.trakt_id:
-                            cache_tmdb_trakt_mapping(tmdb, video.trakt_id)
+                            self.db_connection().cache_tmdb_trakt_mapping(tmdb, video.trakt_id)
                     except Exception:
                         pass
             
@@ -507,7 +507,7 @@ class Scraper(object):
         logger.log('_cached_http_get called with URL: %s' % url, log_utils.LOGDEBUG)
         if require_debrid:
             if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.resolve(url) if resolver.isUniversal()]
+                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
             if not Scraper.debrid_resolvers:
                 logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
                 return ''
@@ -683,6 +683,232 @@ class Scraper(object):
         return html
 
 
+    def _http_get_alt(self, url, params=None, data=None, multipart_data=None, headers=None, cookies=None,
+                       allow_redirect=True, method=None, require_debrid=False, read_error=False, cache_limit=8,
+                       use_flaresolver=False, json_data=None):
+        """
+        Improved HTTP GET wrapper that leverages the alternate cached requester.
+        Keeps the same signature as the legacy method for drop-in use.
+        """
+        html = self._cached_http_get_alt(
+            url, self.base_url, self.timeout, params=params, data=data, multipart_data=multipart_data,
+            headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method,
+            require_debrid=require_debrid, read_error=read_error, cache_limit=cache_limit,
+            use_flaresolver=use_flaresolver, json_data=json_data
+        )
+        sucuri_cookie = scraper_utils.get_sucuri_cookie(html or '')
+        if sucuri_cookie:
+            logger.log('Setting sucuri cookie (alt): %s' % (sucuri_cookie), log_utils.LOGDEBUG)
+            if cookies is not None:
+                cookies = cookies.update(sucuri_cookie)
+            else:
+                cookies = sucuri_cookie
+            html = self._cached_http_get_alt(
+                url, self.base_url, self.timeout, params=params, data=data, multipart_data=multipart_data,
+                headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method,
+                require_debrid=require_debrid, read_error=read_error, cache_limit=0,
+                use_flaresolver=use_flaresolver, json_data=json_data
+            )
+        return html
+
+    def _cached_http_get_alt(self, url, base_url, timeout, params=None, data=None, multipart_data=None, headers=None,
+                              cookies=None, allow_redirect=True, method=None, require_debrid=False, read_error=False,
+                              cache_limit=8, use_flaresolver=False, json_data=None):
+        """
+        Alternate cached HTTP getter using requests with retries, robust cookie handling,
+        optional Cloudflare/recaptcha fallbacks, and consistent decoding.
+        """
+        logger.log('_cached_http_get_alt called with URL: %s' % url, log_utils.LOGDEBUG)
+        if require_debrid:
+            try:
+                if Scraper.debrid_resolvers is None:
+                    # Fallback behavior in case resolveurl interface differs
+                    Scraper.debrid_resolvers = [r for r in resolveurl.relevant_resolvers(order_matters=True) if getattr(r, 'isUniversal', lambda: True)()]
+                if not Scraper.debrid_resolvers:
+                    logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
+                    return ''
+            except Exception:
+                # Be permissive if resolveurl is not present/compatible
+                pass
+
+        # Normalize inputs
+        if cookies is None:
+            cookies = {}
+        if headers is None:
+            headers = {}
+        if timeout == 0:
+            timeout = None
+        if url.startswith('//'):
+            url = 'http:' + url
+
+        # Build Referer and UA
+        referer = headers.get('Referer') or base_url
+        ua = scraper_utils.get_ua()
+
+        # Prepare querystring if provided
+        if params:
+            try:
+                # Preserve existing query if any by merging
+                from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+                p = urlparse(url)
+                q = parse_qs(p.query)
+                q.update(params)
+                url = urlunparse((p.scheme, p.netloc, p.path, p.params, urlencode(q, doseq=True), p.fragment))
+            except Exception:
+                pass
+
+        # Build cache key using existing DB helper
+        cache_body = None
+        if data is not None and not isinstance(data, six.string_types):
+            try:
+                cache_body = urllib.parse.urlencode(data, True)
+            except Exception:
+                cache_body = str(data)
+        else:
+            cache_body = data
+
+        _created, _res_header, html = self.db_connection().get_cached_url(url, cache_body, cache_limit)
+        if html:
+            logger.log('Returning cached result (alt) for: %s' % (url), log_utils.LOGDEBUG)
+            if isinstance(html, bytes):
+                try:
+                    html = html.decode('utf-8', errors='ignore')
+                except Exception:
+                    pass
+            return html
+
+        # Build a requests session with retry/backoff
+        session = requests.Session()
+        retry = Retry(
+            total=3,
+            connect=3,
+            read=3,
+            backoff_factor=0.5,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods=frozenset(['HEAD', 'GET', 'POST'])
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+
+        # Default headers
+        req_headers = {
+            'User-Agent': ua,
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+            'Referer': referer or ''
+        }
+        # Merge custom headers last
+        req_headers.update(headers or {})
+
+        # Load LWPCookieJar and sync into session
+        self.cj = self._set_cookies(base_url, cookies)
+        try:
+            for c in self.cj:
+                session.cookies.set(name=c.name, value=c.value, domain=c.domain or urllib.parse.urlsplit(base_url).hostname, path=c.path or '/')
+        except Exception:
+            pass
+
+        # Choose method
+        req_method = (method or ('POST' if (data or multipart_data or json_data) else 'GET')).upper()
+        allow_redirects = bool(allow_redirect)
+
+        # Build request args
+        request_kwargs = {
+            'headers': req_headers,
+            'timeout': timeout or DEFAULT_TIMEOUT,
+            'allow_redirects': allow_redirects,
+        }
+        if req_method in ('POST', 'PUT', 'PATCH'):
+            if multipart_data is not None:
+                request_kwargs['data'] = multipart_data
+            elif json_data is not None:
+                request_kwargs['json'] = json_data
+            else:
+                request_kwargs['data'] = data
+
+        try:
+            resp = session.request(req_method, url, **request_kwargs)
+        except requests.RequestException as e:
+            logger.log('Requests error during alt http get: %s - %s' % (str(e), url), log_utils.LOGWARNING)
+            if not read_error:
+                return ''
+            return ''
+
+        # Handle no-redirect case: return Location
+        if not allow_redirects and resp.is_redirect:
+            redir_url = resp.headers.get('Location') or ''
+            return redir_url
+
+        # Update LWPCookieJar with response cookies and persist
+        try:
+            for c in resp.cookies:
+                try:
+                    self.cj.set_cookie(http.cookiejar.Cookie(
+                        version=0, name=c.name, value=c.value, port=None, port_specified=False,
+                        domain=c.domain or urllib.parse.urlsplit(url).hostname, domain_specified=True, domain_initial_dot=False,
+                        path=c.path or '/', path_specified=True, secure=False, expires=None, discard=False,
+                        comment=None, comment_url=None, rest={}
+                    ))
+                except Exception:
+                    pass
+            self.cj._cookies = scraper_utils.fix_bad_cookies(self.cj._cookies)
+            self.cj.save(ignore_discard=True)
+        except Exception:
+            pass
+
+        # Error handling and CF/recaptcha fallbacks
+        text_sample = ''
+        try:
+            text_sample = resp.text[:2048]
+        except Exception:
+            pass
+
+        if resp.status_code in (403, 503):
+            if CF_CAPCHA_ENABLED and 'cf-captcha-bookmark' in (text_sample or ''):
+                html = cf_captcha.solve(url, self.cj, ua, self.get_name())
+                if not html:
+                    return ''
+                # On success, retry main request uncached
+                return self._cached_http_get_alt(url, base_url, timeout, params=None, data=data, multipart_data=multipart_data,
+                                                 headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method,
+                                                 require_debrid=require_debrid, read_error=read_error, cache_limit=0,
+                                                 use_flaresolver=use_flaresolver, json_data=json_data)
+            if 'cf-browser-verification' in (text_sample or ''):
+                html = cloudflare.solve(url, self.cj, ua, extra_headers=headers or {})
+                if not html and use_flaresolver:
+                    fs = self.do_flaresolver(url)
+                    if isinstance(fs, dict):
+                        html = fs.get('response') or fs.get('html') or ''
+                if not html:
+                    return ''
+                # Retry uncached
+                return self._cached_http_get_alt(url, base_url, timeout, params=None, data=data, multipart_data=multipart_data,
+                                                 headers=headers, cookies=cookies, allow_redirect=allow_redirect, method=method,
+                                                 require_debrid=require_debrid, read_error=read_error, cache_limit=0,
+                                                 use_flaresolver=use_flaresolver, json_data=json_data)
+
+        # Read limited content and decode safely
+        try:
+            content = resp.content[:MAX_RESPONSE]
+        except Exception:
+            content = b''
+        # Determine encoding
+        encoding = resp.encoding or getattr(resp, 'apparent_encoding', None) or 'utf-8'
+        try:
+            html = content.decode(encoding, errors='ignore')
+        except Exception:
+            try:
+                html = content.decode('utf-8', errors='ignore')
+            except Exception:
+                html = ''
+
+        # Cache the result
+        self.db_connection().cache_url(url, html, cache_body)
+        return html
+
+
     def _set_cookies(self, base_url, cookies):
         cookie_file = os.path.join(COOKIEPATH, f'{self.get_name()}_cookies.lwp')
         cj = http.cookiejar.LWPCookieJar(cookie_file)
@@ -722,27 +948,24 @@ class Scraper(object):
     def do_flaresolver(self, url):
         """
         Breaks Cloudflare using FLARESOLVER.
-
         """
         try:
-            # Prepare the payload for FLARESOLVER
+            ua = scraper_utils.get_ua()
             payload = {
                 "cmd": "request.get",
                 "url": url,
                 "maxTimeout": 60000,
-                "session": True,
-                "cookies": True,
-                "userAgent": scraper_utils.get_ua()
+                "session": "asguard",
+                "userAgent": ua,
+                "followRedirects": True,
+                "returnOnlyCookies": False
             }
-
-            # Send the request to FLARESOLVER
             response = requests.post(f'{FLARESOLVERR_URL}/v1', json=payload)
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'ok':
                     return data.get('solution', {})
-                else:
-                    logger.log(f'FLARESOLVER error: {data.get("message")}', log_utils.LOGERROR)
+                logger.log(f'FLARESOLVER error: {data.get("message")}', log_utils.LOGERROR)
             else:
                 logger.log(f'Failed FLARESOLVER: {response.text}', log_utils.LOGERROR)
         except Exception as e:

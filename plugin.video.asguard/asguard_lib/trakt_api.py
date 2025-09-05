@@ -360,6 +360,46 @@ class Trakt_API():
         response = self.__call_trakt(url, params=params)
         return [item[TRAKT_SECTIONS[section][:-1]] for item in response]
 
+    def search_by_id(self, id_type, external_id, section=None, limit=1, cached=True):
+        """
+        Lookup Trakt items by external ID using /search/{id_type}/{id}.
+        - id_type: 'tmdb', 'imdb', or 'tvdb'
+        - external_id: the external ID value
+        - section: SECTIONS.MOVIES or SECTIONS.TV, or None to try movie/show/episode
+        - limit: number of results to request per media type
+        Returns a list of matched item dicts (movie/show/episode objects).
+        """
+        id_type = str(id_type).lower()
+        url = f'/search/{id_type}/{external_id}'
+        results = []
+        if section:
+            media_types = [TRAKT_SECTIONS[section][:-1]]
+        else:
+            media_types = ['movie', 'show', 'episode']
+        for media in media_types:
+            params = {'type': media, 'extended': 'full', 'limit': limit}
+            try:
+                logger.log('Trakt API ID Lookup URL: %s' % url, log_utils.LOGDEBUG)
+                logger.log('Trakt API ID Lookup Params: %s' % params, log_utils.LOGDEBUG)
+                resp = self.__call_trakt(url, params=params, cached=cached)
+                for item in resp:
+                    if media in item:
+                        results.append(item[media])
+            except TraktNotFoundError:
+                continue
+        return results
+
+    def get_trakt_id_by_external(self, id_type, external_id, section):
+        """
+        Convenience method: return Trakt ID for a given external ID and media section.
+        Example: get_trakt_id_by_external('tmdb', 550, SECTIONS.MOVIES) -> 1
+        """
+        items = self.search_by_id(id_type, external_id, section=section, limit=1)
+        if items:
+            ids = items[0].get('ids') or {}
+            return ids.get('trakt')
+        return None
+
     def get_collection(self, section, full=True, cached=True):
         url = '/users/me/collection/{}'.format(TRAKT_SECTIONS[section])
         params = {'extended': 'full'} if full else None
@@ -509,7 +549,7 @@ class Trakt_API():
         
         # Call the working Trakt API method with error handling
         try:
-            result = self.__call_trakt_optimized(url, data=data, cache_limit=0)
+            result = self.__call_trakt(url, data=data, cache_limit=0)
         except Exception as e:
             error_msg = str(e)
             logger.log(f'Collection API call failed: {error_msg}', log_utils.LOGERROR)
@@ -590,10 +630,10 @@ class Trakt_API():
                 db_cache_limit = cache_limit
             else:
                 db_cache_limit = 8
-        json_data = json.dumps(data).encode('utf-8') if data else None
+        json_data = json.dumps(data) if data else None
         logger.log('***Trakt Call: %s, data: %s cache_limit: %s cached: %s' % (url, json_data, cache_limit, cached), log_utils.LOGDEBUG)
 
-        headers = {'Content-Type': 'application/json', 'trakt-api-key': V2_API_KEY, 'trakt-api-version': 2}
+        headers = {'Content-Type': 'application/json', 'trakt-api-key': V2_API_KEY, 'trakt-api-version': '2'}
         url = '%s%s%s' % (self.protocol, BASE_URL, url)
         if params: 
             url = url + '?' + urllib_parse.urlencode(params)
@@ -601,7 +641,6 @@ class Trakt_API():
 
         db_connection = self.__get_db_connection()
         created, cached_headers, cached_result = db_connection.get_cached_url(url, json_data, db_cache_limit)
-        logger.log('DEBUG: cached_result type=%s, value=%s' % (type(cached_result), str(cached_result)[:100] if cached_result else 'NONE'), log_utils.LOGDEBUG)
         if cached_result and (self.offline or (time.time() - created) < (60 * 60 * cache_limit)):
             result = cached_result
             res_headers = dict(cached_headers)
@@ -613,22 +652,64 @@ class Trakt_API():
                     if auth: 
                         headers.update({'Authorization': 'Bearer %s' % (self.token)})
                     logger.log('***Trakt Call: %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
-                    request = urllib_request.Request(url, data=json_data, headers=headers)
-                    if method is not None: 
-                        request.get_method = lambda: method.upper()
-
-
-                    response = self.opener.open(request, timeout=self.timeout)
-                    result = ''
-                    while True:
-                        data = response.read()
-                        if not data:
+                    # Use persistent HTTP session with retries
+                    logger.log('***Trakt Call (requests): %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
+                    req_method = 'POST' if json_data is not None else (method.upper() if method else 'GET')
+                    try:
+                        r = session.request(req_method, url, headers=headers, data=json_data, timeout=self.timeout)
+                    except requests.exceptions.SSLError as e:
+                        raise ssl.SSLError(str(e))
+                    except requests.exceptions.Timeout as e:
+                        raise socket.timeout(str(e))
+                    except requests.exceptions.ConnectionError as e:
+                        if cached_result:
+                            result = cached_result
+                            res_headers = dict(cached_headers)
+                            logger.log('Temporary Trakt Error (%s). Using Cached Page Instead.' % (str(e)), log_utils.LOGWARNING)
                             break
-                        result += data.decode('utf-8')
+                        else:
+                            raise TransientTraktError('Temporary Trakt Error: ' + str(e))
+
+                    status = r.status_code
+                    if status >= 400:
+                        # Preserve legacy device auth polling semantics: raise HTTPError so caller can handle 400/429/418/410
+                        if url.endswith('/oauth/device/token'):
+                            raise urllib_error.HTTPError(url, status, None, r.headers, None)
+                        if status in TEMP_ERRORS:
+                            if cached_result:
+                                result = cached_result
+                                res_headers = dict(cached_headers)
+                                logger.log('Temporary Trakt Error (%s). Using Cached Page Instead.' % (status), log_utils.LOGWARNING)
+                                break
+                            else:
+                                raise TransientTraktError('Temporary Trakt Error: HTTP %s' % status)
+                        elif status in (401, 405):
+                            # token is fine, profile is private
+                            if r.headers.get('X-Private-User') == 'true':
+                                raise TraktAuthError('Object is No Longer Available (%s)' % (status))
+                            # auth failure retry or a token request
+                            elif auth_retry or url.endswith('/oauth/token'):
+                                self.token = None
+                                kodi.set_setting('trakt_oauth_token', '')
+                                kodi.set_setting('trakt_refresh_token', '')
+                                raise TraktAuthError('Trakt Call Authentication Failed (%s)' % (status))
+                            # first try token fail, try to refresh token
+                            else:
+                                result = self.refresh_token(kodi.get_setting('trakt_refresh_token'))
+                                self.token = result['access_token']
+                                kodi.set_setting('trakt_oauth_token', result['access_token'])
+                                kodi.set_setting('trakt_refresh_token', result['refresh_token'])
+                                auth_retry = True
+                                continue
+                        elif status == 404:
+                            raise TraktNotFoundError('Object Not Found (%s): %s' % (status, url))
+                        else:
+                            raise TraktError('Trakt Error: HTTP %s' % status)
+
+                    result = r.text
                     logger.log('***Trakt Response: %s' % (result), log_utils.LOGDEBUG)
-
-
-                    db_connection.cache_url(url, result, json_data, response.info().items())
+                    res_headers = dict(r.headers)
+                    db_connection.cache_url(url, result, json_data, list(r.headers.items()))
                     break
                 except (ssl.SSLError, socket.timeout) as e:
                     logger.log('Socket Timeout or SSL Error occurred: {}'.format(e), log_utils.LOGWARNING)
@@ -691,86 +772,6 @@ class Trakt_API():
 
         return js_data
 
-    def __call_trakt_simple(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True) -> Union[str, list, dict, Any]:
-        """Simplified HTTP handler similar to POV's approach"""
-        try:
-            import requests
-            
-            # Use requests session for better performance
-            if not hasattr(self, '_session'):
-                self._session = requests.Session()
-                # Set up retry strategy
-                retry_strategy = requests.adapters.Retry(
-                    total=3,
-                    status_forcelist=[429, 500, 502, 503, 504],
-                    allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"]
-                )
-                adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
-                self._session.mount("http://", adapter)
-                self._session.mount("https://", adapter)
-            
-            headers = {
-                'Content-Type': 'application/json',
-                'trakt-api-key': V2_API_KEY,
-                'trakt-api-version': '2'
-            }
-            
-            if auth and self.token:
-                headers['Authorization'] = f'Bearer {self.token}'
-            
-            full_url = f'{self.protocol}{BASE_URL}{url}'
-            method = method or ('POST' if data else 'GET')
-            
-            logger.log(f'Trakt Simple Call: {method} {full_url}', log_utils.LOGDEBUG)
-            
-            response = self._session.request(
-                method=method,
-                url=full_url,
-                params=params,
-                json=data,
-                headers=headers,
-                timeout=self.timeout or 30
-            )
-            
-            if response.status_code == 401:
-                # Try to refresh token once
-                if hasattr(self, '_token_refresh_attempted'):
-                    raise TraktAuthError('Authentication failed after token refresh')
-                
-                self._token_refresh_attempted = True
-                refresh_result = self.refresh_token(kodi.get_setting('trakt_refresh_token'))
-                if refresh_result and 'access_token' in refresh_result:
-                    self.token = refresh_result['access_token']
-                    kodi.set_setting('trakt_oauth_token', refresh_result['access_token'])
-                    kodi.set_setting('trakt_refresh_token', refresh_result['refresh_token'])
-                    
-                    # Retry the request with new token
-                    headers['Authorization'] = f'Bearer {self.token}'
-                    response = self._session.request(
-                        method=method,
-                        url=full_url,
-                        params=params,
-                        json=data,
-                        headers=headers,
-                        timeout=self.timeout or 30
-                    )
-                else:
-                    raise TraktAuthError('Token refresh failed')
-            
-            # Reset token refresh flag on success
-            if hasattr(self, '_token_refresh_attempted'):
-                delattr(self, '_token_refresh_attempted')
-            
-            response.raise_for_status()
-            
-            try:
-                return response.json()
-            except ValueError:
-                return response.text
-                
-        except requests.exceptions.RequestException as e:
-            logger.log(f'Trakt request error: {str(e)}', log_utils.LOGERROR)
-            raise TraktError(f'Trakt request failed: {str(e)}')
 
     def get_show_play_counts(self, trakt_id):
         url = f'/shows/{trakt_id}/progress/watched'
@@ -821,17 +822,6 @@ class Trakt_API():
         except Exception as e:
             logger.log(f'Error clearing cache pattern {pattern}: {str(e)}', log_utils.LOGDEBUG)
 
-    def __call_trakt_optimized(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True, cache_limit: float = .25, cached: bool = True) -> Union[str, list, dict, Any]:
-        """Use optimized HTTP handler when enabled"""
-        if self.use_optimized_methods:
-            try:
-                # Use the new simple HTTP handler for better performance
-                return self.__call_trakt_simple(url, method, data, params, auth)
-            except Exception as e:
-                logger.log(f'Optimized call failed, falling back to original: {str(e)}', log_utils.LOGDEBUG)
-                
-        # Fall back to original method
-        return self.__call_trakt(url, method, data, params, auth, cache_limit, cached)
 
 def trakt_expires(func):
     def wrapper(*args, **kwargs):
@@ -839,6 +829,7 @@ def trakt_expires(func):
             expires = float(kodi.get_setting('trakt_expires', '0'))
             if (expires - time.time()) < 28800:  # 8 hours
                 self = args[0]  # instance method
+                logger.log(f'Trakt Instance: {self}', log_utils.LOGDEBUG)
                 self.refresh_token(kodi.get_setting('trakt_refresh_token'))
         return func(*args, **kwargs)
     return wrapper

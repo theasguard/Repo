@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Integration Guide: Asguard Sources Progress Window (POV-style)
+=============================================================
+
+This file documents, step-by-step, how to integrate a dedicated sources
+progress dialog with quality summary into get_sources(), without modifying
+other parts of the code structure.
+
+Prerequisites
+-------------
+1) Python module (already provided):
+   addons/plugin.video.asguard/asguard_lib/windows/sources_progress.py
+
+2) Skin XML (already provided example):
+   addons/plugin.video.asguard/resources/skins/Default/1080p/sources_progress.xml
+   Ensure your XML contains labels/progress with these control IDs:
+     - 100: Header/Title
+     - 110: Line 1
+     - 120: Line 2
+     - 130: Line 3 (remaining info)
+     - 140: Line 4 (optional)
+     - 200: Progress
+     - 210: Counts (Found/Total)
+     - 220: Current scraper name
+     - 230: Elapsed time
+     - 240: Quality (e.g., Best: 1080p | 4K:2 1080p:12 720p:5)
+     - 300: Cancel button
+
+Imports
+-------
+Add at the top of default.py:
+    from asguard_lib.windows.sources_progress import SourcesProgressDialog, make_progress_title
+
+Construct the dialog title
+--------------------------
+Before starting scrapers, build a user-friendly header similar to POV:
+    title_hdr = make_progress_title(
+        video_type=video_type,
+        title=title,
+        year=year or '',
+        season=season or '',
+        episode=episode or ''
+    )
+
+Open the dialog
+---------------
+Replace your existing ProgressDialog block with:
+
+    dlg = SourcesProgressDialog(
+        'sources_progress.xml',
+        kodi.get_path(),   # addon base path
+        'Default',
+        '1080p',
+        header=title_hdr,
+        line1='', line2='', line3='', line4=''
+    )
+    dlg.doModal()
+
+Request loop updates (0–25%)
+----------------------------
+Inside the for i, cls in enumerate(scrapers) loop, before wp.request(...) call:
+
+    if dlg.is_canceled():
+        return False
+    dlg.set_line1('Requesting sources…')
+    dlg.set_current_scraper(cls.get_name())
+    dlg.set_progress(i * 25 / total_scrapers)
+    # then dispatch the request
+    wp.request(salts_utils.parallel_get_sources, [scraper, video])
+
+Receive loop updates (25–100%)
+------------------------------
+After result = wp.receive(timeout):
+
+    hoster_count = len(result['hosters'])
+    # Aggregate
+    hosters += result['hosters']
+    fails.remove(result['name'])
+
+    progress = (result_count * 75 / total_scrapers) + 25
+    dlg.set_progress(progress)
+    dlg.set_line1('Received %d results' % hoster_count)
+    dlg.set_current_scraper(result['name'])
+
+    # Update counts + remaining list
+    remaining = list(fails)
+    dlg.set_counts(found=len(hosters), total=sum(counts.values()), remaining_names=remaining)
+
+    # Optional: show remaining as text when few
+    if len(fails) > 5:
+        dlg.set_line3(i18n('remaining_over') % (len(fails), total_scrapers))
+    else:
+        dlg.set_line3(i18n('remaining_under') % (', '.join([name for name in fails])))
+
+    if dlg.is_canceled():
+        cancelled = True
+        break
+
+Applying filters stage
+----------------------
+Right before filtering:
+
+    dlg.set_progress(100)
+    dlg.set_line1(i18n('applying_source_filters'))
+    dlg.set_line2('')
+    dlg.set_line3('')
+
+Quality summary
+---------------
+After filtering calls (filter_exclusions, filter_quality, apply_urlresolver, sort),
+build a simple quality breakdown and send to the dialog:
+
+    def _build_quality_summary(hosters_list):
+        counts = {}
+        best = None
+        for h in hosters_list:
+            q = (h.get('quality') or '').upper()
+            if not q:
+                continue
+            if q in ('2160P', 'UHD', '4K'): q = '4K'
+            elif q in ('1080', '1080P', 'FHD'): q = '1080p'
+            elif q in ('720', '720P', 'HD'): q = '720p'
+            elif q in ('SD', '480P', '360P'): q = 'SD'
+            counts[q] = counts.get(q, 0) + 1
+        priority = ['4K', '1080p', '720p', 'SD']
+        for p in priority:
+            if p in counts:
+                best = p
+                break
+        return best, counts
+
+    best, qcounts = _build_quality_summary(hosters)
+    dlg.set_quality_counts(best, qcounts)
+
+Close the dialog before exit/transition
+--------------------------------------
+When you’re about to autoplay or open a selection UI, close the dialog first:
+
+    try:
+        if pseudo_tv == 'true' or (mode == MODES.GET_SOURCES and kodi.get_setting('auto-play') == 'true') or mode == MODES.AUTOPLAY:
+            dlg.close()
+            auto_play_sources(hosters, video_type, trakt_id, season, episode)
+        else:
+            plugin_name = xbmc.getInfoLabel('Container.PluginName')
+            if kodi.get_setting('source-win') == 'Dialog' or plugin_name == '':
+                dlg.close()
+                stream_url, direct = pick_source_dialog(hosters)
+                return play_source(mode, stream_url, direct, video_type, trakt_id, season, episode)
+            else:
+                dlg.close()
+                pick_source_dir(mode, hosters, video_type, trakt_id, season, episode)
+    finally:
+        try: worker_pool.reap_workers(workers, None)
+        except UnboundLocalError: pass
+
+Cancellation handling
+---------------------
+- At both request and receive stages, if dlg.is_canceled(): set cancelled = True and break.
+- Your existing timeout/cancel paths will continue to work.
+
+Optional throttling
+-------------------
+To reduce UI updates during bursts:
+
+    last_ui = 0
+    now = time.time()
+    if now - last_ui > 0.1:
+        # do dlg.set_* calls
+        last_ui = now
+
+Fallback to built-in ProgressDialog
+-----------------------------------
+Keep a fallback if the XML is missing or errors occur:
+
+    try:
+        dlg = SourcesProgressDialog('sources_progress.xml', kodi.get_path(), 'Default', '1080p', header=title_hdr)
+        dlg.doModal()
+        use_adv = True
+    except Exception:
+        use_adv = False
+        pd = kodi.ProgressDialog(i18n('getting_sources'), utils2.make_progress_msg(video), active=active)
+
+Reference: minimal dialog XML snippet
+------------------------------------
+Place this content in resources/skins/Default/1080p/sources_progress.xml (if you haven’t already):
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <window>
+        <defaultcontrol always="true">300</defaultcontrol>
+        <allowoverlay>no</allowoverlay>
+        <controls>
+            <control type="label" id="100"><posx>260</posx><posy>250</posy><width>1400</width><height>40</height><font>font13_title</font><textcolor>white</textcolor><label>Getting sources…</label></control>
+            <control type="label" id="110"><posx>260</posx><posy>300</posy><width>1400</width><height>35</height><font>font12</font><textcolor>white</textcolor><label></label></control>
+            <control type="label" id="120"><posx>260</posx><posy>340</posy><width>1400</width><height>35</height><font>font12</font><textcolor>white</textcolor><label></label></control>
+            <control type="label" id="130"><posx>260</posx><posy>380</posy><width>1400</width><height>35</height><font>font12</font><textcolor>white</textcolor><label></label></control>
+            <control type="label" id="140"><posx>260</posx><posy>420</posy><width>1400</width><height>35</height><font>font12</font><textcolor>white</textcolor><label></label></control>
+            <control type="progress" id="200"><posx>260</posx><posy>470</posy><width>1400</width><height>16</height><info>Container.Progress</info></control>
+            <control type="label" id="210"><posx>260</posx><posy>500</posy><width>800</width><height>30</height><font>font12</font><textcolor>white</textcolor><label>Found: 0 | Total: 0</label></control>
+            <control type="label" id="220"><posx>1060</posx><posy>500</posy><width>600</width><height>30</height><font>font12</font><align>right</align><textcolor>white</textcolor><label>Scraper:</label></control>
+            <control type="label" id="230"><posx>260</posx><posy>540</posy><width>1400</width><height>30</height><font>font12</font><textcolor>white</textcolor><label>Elapsed: 0m 00s</label></control>
+            <control type="label" id="240"><posx>260</posx><posy>570</posy><width>1400</width><height>30</height><font>font12</font><textcolor>white</textcolor><label></label></control>
+            <control type="button" id="300"><posx>1160</posx><posy>610</posy><width>500</width><height>54</height><label>Cancel</label><font>font12_title</font></control>
+        </controls>
+    </window>
+
+End of integration guide.
+-->
+<integrationDoc/>

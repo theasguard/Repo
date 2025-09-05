@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024
+    Copyright (C) 2025
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -314,24 +314,36 @@ class Scraper(scraper.Scraper):
 
     def _clean_title_for_url(self, title):
         """
-        Clean title for URL use, fallback if scraper_utils.to_slug doesn't exist
+        Clean title for URL use, ensuring words are hyphen-separated (handles CamelCase and no-space titles),
+        fallback if scraper_utils.to_slug doesn't exist
         """
         try:
+            t = title or ''
+            # Normalize common separators to spaces
+            t = re.sub(r'[_./]+', ' ', t)
+            # Insert spaces at CamelCase boundaries if there are no spaces
+            if ' ' not in t and re.search(r'[a-z0-9][A-Z]', t):
+                t = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', t)
+            # Replace ampersand with 'and' for stable slugs
+            t = t.replace('&', 'and')
+            # Collapse multiple spaces
+            t = re.sub(r'\s+', ' ', t).strip()
+
             if hasattr(scraper_utils, 'to_slug'):
-                return scraper_utils.to_slug(title)
+                slug = scraper_utils.to_slug(t)
             else:
                 # Fallback manual slug creation
-                import re
-                # Convert to lowercase and replace spaces/special chars with hyphens
-                slug = re.sub(r'[^\w\s-]', '', title.lower())
+                slug = re.sub(r'[^\w\s-]', '', t.lower())
                 slug = re.sub(r'[-\s]+', '-', slug)
                 slug = slug.strip('-')
-                logger.log(f'[BSTSRS] Manual slug creation: {title} -> {slug}', log_utils.LOGDEBUG)
-                return slug
+                logger.log(f'[BSTSRS] Manual slug creation: {t} -> {slug}', log_utils.LOGDEBUG)
+
+            logger.log(f'[BSTSRS] Clean title for URL: {title} -> {slug}', log_utils.LOGDEBUG)
+            return slug
         except Exception as e:
             logger.log(f'[BSTSRS] Error in _clean_title_for_url: {e}', log_utils.LOGERROR)
             # Ultimate fallback - just return original title with basic cleanup
-            return title.lower().replace(' ', '-').replace("'", "")
+            return (title or '').lower().replace(' ', '-').replace("'", "")
 
     def search(self, video_type, title, year, season=''):
         """

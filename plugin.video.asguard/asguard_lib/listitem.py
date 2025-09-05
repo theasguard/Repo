@@ -166,14 +166,12 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
 
     def set_info_cast(self, cast: list, *args, **kwargs):
         """ Wrapper to convert cast and castandrole from ListItem.setInfo() to InfoTagVideo.setCast() """
-        kodi_log(f'[CAST_DEBUG] set_info_cast called with {len(cast)} cast members', level=LOGINFO)
-        kodi_log(f'[CAST_DEBUG] cast type: {type(cast)}', level=LOGINFO)
+
         if cast:
             kodi_log(f'[CAST_DEBUG] first cast member: {cast[0]}', level=LOGINFO)
-            kodi_log(f'[CAST_DEBUG] first cast member type: {type(cast[0])}', level=LOGINFO)
         
         def _set_cast_member(x, i):
-            kodi_log(f'[CAST_DEBUG] processing cast member {x}: {i} (type: {type(i)})', level=LOGINFO)
+
             if isinstance(i, dict):
                 # Handle rich dictionary format with thumbnails
                 result = {
@@ -186,13 +184,11 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
             elif isinstance(i, tuple):
                 # Handle legacy tuple format
                 result = {'name': f'{i[0]}', 'role': f'{i[1]}', 'order': x, 'thumbnail': ''}
-                kodi_log(f'[CAST_DEBUG] tuple format - no thumbnail', level=LOGINFO)
+
             else:
                 # Fallback for other formats
                 result = {'name': str(i), 'role': '', 'order': x, 'thumbnail': ''}
-                kodi_log(f'[CAST_DEBUG] fallback format - no thumbnail', level=LOGINFO)
-            
-            kodi_log(f'[CAST_DEBUG] final cast member result: {result}', level=LOGINFO)
+
             return result
 
         processed_cast = [Actor(**_set_cast_member(x, i)) for x, i in enumerate(cast, start=1)]
@@ -207,9 +203,7 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
         # NOTE: getCast() has a known bug in some Kodi versions returning string instead of Actor objects
         try:
             set_cast = self._info_tag.getCast()
-            kodi_log(f'[CAST_DEBUG] verification - getCast() returned {len(set_cast)} members', level=LOGINFO)
-            kodi_log(f'[CAST_DEBUG] verification - getCast() type: {type(set_cast)}', level=LOGINFO)
-            
+
             # Check if getCast() returned corrupted string data (known bug)
             if isinstance(set_cast, str):
                 kodi_log(f'[CAST_DEBUG] BUG DETECTED: getCast() returned string instead of Actor list!', level=LOGINFO)
@@ -217,7 +211,6 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
                 kodi_log(f'[CAST_DEBUG] Actor data should still display in player despite getCast() verification bug', level=LOGINFO)
             elif isinstance(set_cast, list) and set_cast:
                 kodi_log(f'[CAST_DEBUG] verification - first cast member: {repr(set_cast[0])}', level=LOGINFO)
-                kodi_log(f'[CAST_DEBUG] verification - first cast member type: {type(set_cast[0])}', level=LOGINFO)
                 # Try to access Actor properties
                 try:
                     first_actor = set_cast[0]
@@ -276,6 +269,10 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
     def set_resume_point(self, infoproperties: dict, resume_key='ResumeTime', total_key='TotalTime', pop_keys=True):
         """ Wrapper to get/pop resumetime and totaltime properties for InfoTagVideo.setResumePoint() """
         getter_func = infoproperties.pop if pop_keys else infoproperties.get
+        kodi_log(f'[RESUME_DEBUG] set_resume_point called with {infoproperties}', level=LOGINFO)
+        kodi_log(f'[RESUME_DEBUG] resume_key: {resume_key}', level=LOGINFO)
+        kodi_log(f'[RESUME_DEBUG] total_key: {total_key}', level=LOGINFO)
+        kodi_log(f'[RESUME_DEBUG] pop_keys: {pop_keys}', level=LOGINFO)
         try:
             resume_time = float(getter_func(resume_key, 0.0))
         except ValueError:

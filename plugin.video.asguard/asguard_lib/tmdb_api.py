@@ -10,7 +10,7 @@ import time
 import threading
 from functools import wraps
 from asguard_lib import control
-from asguard_lib.db_utils import cache_tmdb_trakt_mapping, get_trakt_id_by_tmdb_cached
+from asguard_lib.db_utils import DB_Connection
 
 addon = xbmcaddon.Addon('plugin.video.asguard')
 
@@ -250,7 +250,7 @@ def get_tv_details(tmdb_id, overview=True, trakt_id=None):
         # If we have an IMDB ID but no Trakt ID passed in, try to find the Trakt ID
         if imdb_id and not trakt_id:
             # First check if we already have a mapping
-            trakt_id = get_trakt_id_by_tmdb_cached(tmdb_id)
+            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
             
             # If no mapping exists, we could try to fetch it from Trakt API
             # but for now we'll just cache any we find through other means
@@ -258,7 +258,7 @@ def get_tv_details(tmdb_id, overview=True, trakt_id=None):
                 found_trakt_id = ext_ids.get('trakt_id')
                 if found_trakt_id:
                     try:
-                        cache_tmdb_trakt_mapping(tmdb_id, found_trakt_id)
+                        DB_Connection().cache_tmdb_trakt_mapping(tmdb_id, found_trakt_id)
                         logger.log(f'Cached Trakt ID {found_trakt_id} for TMDB ID {tmdb_id} from external IDs', 
                                   log_utils.LOGDEBUG)
                     except Exception as e:

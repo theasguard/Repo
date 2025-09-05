@@ -209,12 +209,6 @@ class Scraper(scraper.Scraper):
         return False
     
     def _build_query(self, video):
-        tvdbseason = db_utils.get_tvdb_season(video.trakt_id)
-        logger.log(f'TVDB season: {tvdbseason}', log_utils.LOGDEBUG)
-        tvdbpart = db_utils.get_tvdb_part(video.trakt_id)
-        logger.log(f'TVDB part: {tvdbpart}', log_utils.LOGDEBUG)
-        tvdb_id = db_utils.get_thetvdb_id(video.trakt_id)
-        logger.log(f'TVDB ID: {tvdb_id}', log_utils.LOGDEBUG)
         query = video.title
         if video.video_type == VIDEO_TYPES.EPISODE:
             query += f'|"Complete"|"Batch"|"E{int(video.episode):02d}"'
@@ -227,22 +221,4 @@ class Scraper(scraper.Scraper):
         logger.log(f'Final query: {query}', log_utils.LOGDEBUG)
         return query
 
-    def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
-        if require_debrid:
-            if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
-            if not Scraper.debrid_resolvers:
-                logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
-                return ''
-        try:
-            headers = {'User-Agent': scraper_utils.get_ua()}
-            req = urllib.request.Request(url, data=data, headers=headers)
-            logging.debug("HTTP request: %s", req)
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                return response.read().decode('utf-8')
-        except urllib.error.HTTPError as e:
-            logger.log(f'HTTP Error: {e.code} - {url}', log_utils.LOGWARNING)
-        except urllib.error.URLError as e:
-            logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
-        return ''
     

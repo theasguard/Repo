@@ -107,8 +107,7 @@ def _released_key(item):
         return 0
 
 def sort_list(sort_key, sort_direction, list_data):
-    logger.log('Sorting List: %s - %s' % (sort_key, sort_direction), log_utils.LOGDEBUG)
-    
+
     # Defensive programming: ensure list_data is actually a list
     if not isinstance(list_data, list):
         logger.log('sort_list: Expected list, got %s. Returning original data.' % type(list_data), log_utils.LOGWARNING)

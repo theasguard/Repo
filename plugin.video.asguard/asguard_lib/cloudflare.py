@@ -75,8 +75,20 @@ def solve(url, cj, user_agent=None, wait=True, extra_headers=None):
     try:
         response = urllib_request.urlopen(request)
         html = response.read()
+        # Decode bytes to string for pattern matching
+        if isinstance(html, bytes):
+            try:
+                html = html.decode('utf-8', errors='ignore')
+            except Exception:
+                pass
     except urllib_error.HTTPError as e:
         html = e.read()
+        # Decode bytes to string for pattern matching
+        if isinstance(html, bytes):
+            try:
+                html = html.decode('utf-8', errors='ignore')
+            except Exception:
+                pass
 
     tries = 0
     while tries < MAX_TRIES:
@@ -173,7 +185,13 @@ def solve(url, cj, user_agent=None, wait=True, extra_headers=None):
 
                 response = urllib_request.urlopen(request)
             final = response.read()
-            if 'cf-browser-verification' in final.decode('utf-8'):
+            # Ensure final is a decoded string for downstream checks/return
+            if isinstance(final, bytes):
+                try:
+                    final = final.decode('utf-8', errors='ignore')
+                except Exception:
+                    final = ''
+            if 'cf-browser-verification' in final:
                 util.info('[CF] Failure: html: %s url: %s' % (html, url))
                 tries += 1
                 html = final

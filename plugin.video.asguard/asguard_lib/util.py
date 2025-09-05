@@ -18,6 +18,7 @@
 import os, json, re, sys, pickle, queue
 import url_dispatcher
 import traceback
+import log_utils
 import six
 from six.moves import urllib_request, urllib_parse, urllib_error, html_entities
 from six.moves import http_cookiejar as cookielib
@@ -30,7 +31,7 @@ from . import cloudflare
 UA = 'Mozilla/6.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.5) Gecko/2008092417 Firefox/3.0.3'
 LOG = 2
 sys.path.append(os.path.join(os.path.dirname(__file__), 'contentprovider'))
-
+logger = log_utils.Logger.get_logger()
 _cookie_jar = None
 
 CACHE_COOKIES = 'cookies'
@@ -235,7 +236,7 @@ try:
         xbmc.log(str([text]), xbmc.LOGDEBUG)
 
     def info(text):
-        xbmc.log(str([text]), xbmc.LOGNOTICE)
+        logger.log(str([text]), log_utils.LOGNOTICE)
 
     def error(text):
         xbmc.log(str([text]), xbmc.LOGERROR)

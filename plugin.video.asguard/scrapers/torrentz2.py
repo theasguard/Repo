@@ -19,6 +19,7 @@
 import logging
 import re
 import urllib.parse
+import urllib.request, urllib.error
 from bs4 import BeautifulSoup
 import requests
 import log_utils
@@ -66,60 +67,157 @@ class Scraper(scraper.Scraper):
 
     def get_sources(self, video):
         sources = []
+        seen_hashes = set()
+
+        def parse_page(html, mark_as_pack_default=None):
+            if not html:
+                return
+            soup = BeautifulSoup(html, 'html.parser')
+            for a in soup.find_all('a', href=lambda h: isinstance(h, str) and h.startswith('magnet:')):
+                try:
+                    magnet_link = a.get('href')
+                    m = re.search(r'btih:([A-F0-9]+)', magnet_link, re.I)
+                    if not m:
+                        continue
+                    infohash = m.group(1).upper()
+                    if infohash in seen_hashes:
+                        continue
+
+                    # locate card container for metadata
+                    card = a
+                    while card and (card.name != 'div' or 'p-6' not in (card.get('class') or [])):
+                        card = card.parent
+
+                    # Title
+                    name = None
+                    if card:
+                        h3 = card.find('h3')
+                        if h3:
+                            title_a = h3.find('a')
+                            if title_a and title_a.get_text(strip=True):
+                                name = title_a.get_text(strip=True)
+                    if not name:
+                        dn_match = re.search(r'[?&]dn=([^&]+)', magnet_link)
+                        if dn_match:
+                            try:
+                                name = urllib.parse.unquote(dn_match.group(1))
+                            except Exception:
+                                name = dn_match.group(1)
+                    if not name:
+                        continue
+                    clean_name = scraper_utils.cleanTitle(name)
+
+                    # Size
+                    size_text = ''
+                    if card:
+                        text = card.get_text(" ", strip=True)
+                        size_m = re.search(r'(\d+(?:\.\d+)?)\s*(TB|GB|MB)', text, re.I)
+                        if size_m:
+                            size_text = f"{size_m.group(1)} {size_m.group(2).upper()}"
+                    dsize = None
+                    isize = ''
+                    if size_text:
+                        try:
+                            dsize, isize = scraper_utils._size(size_text)
+                            logger.log('Size: %s' % isize, log_utils.LOGDEBUG)
+                        except Exception:
+                            isize = size_text
+
+                    # Seeders/Leechers
+                    seeders = 0
+                    leechers = 0
+                    if card:
+                        def get_stat(lbl):
+                            s = card.find('span', string=lambda s: isinstance(s, str) and s.strip().lower() == lbl)
+                            if s and s.parent:
+                                num_span = s.parent.find('span', class_='font-medium')
+                                if num_span:
+                                    try:
+                                        return self.parse_number(num_span.get_text(strip=True))
+                                    except Exception:
+                                        return 0
+                            return 0
+                        seeders = get_stat('seeders')
+                        leechers = get_stat('leechers')
+
+                    # Determine if this is a season pack
+                    pack = False
+                    if mark_as_pack_default is not None:
+                        pack = bool(mark_as_pack_default)
+                    else:
+                        try:
+                            season_num = int(getattr(video, 'season', 0) or 0)
+                        except Exception:
+                            season_num = 0
+                        if season_num:
+                            # Heuristics: contains Season XX, Complete, Pack, range E01-E??, or Sxx without Eyy
+                            if re.search(r'(?:complete|pack|full|collection)', clean_name, re.I):
+                                pack = True
+                            if re.search(r'\bseason\s*0?%02d\b' % season_num, clean_name, re.I):
+                                pack = True
+                            if re.search(r'\bS%02d\b(?!E\d{2})' % season_num, clean_name, re.I):
+                                pack = True
+                            if re.search(r'E\d{2}\s*[-–]\s*E\d{2}', clean_name, re.I):
+                                pack = True
+
+                    quality = scraper_utils.get_tor_quality(clean_name)
+
+                    item = {
+                        'class': self,
+                        'host': 'magnet',
+                        'label': f"{clean_name} | {dsize}" if dsize else clean_name,
+                        'seeders': seeders,
+                        'hash': infohash,
+                        'name': clean_name,
+                        'quality': quality,
+                        'multi-part': False,
+                        'url': magnet_link,
+                        'info': isize,
+                        'direct': False,
+                        'debridonly': True,
+                        'size': dsize
+                    }
+                    if pack:
+                        item['pack'] = True
+                        item['extra'] = 'PACK'
+                        try:
+                            item['season'] = int(video.season)
+                        except Exception:
+                            pass
+
+                    sources.append(item)
+                    seen_hashes.add(infohash)
+                except Exception as e:
+                    logger.log(f'Error processing Torrentz2 source: {str(e)}', log_utils.LOGERROR)
+                    continue
+
+        # Build one or more queries
+        queries = []
+        # Primary query
         search_url = self._build_query(video)
-        page_url = scraper_utils.urljoin(self.base_url, SEARCH_URL % urllib.parse.quote_plus(search_url))
-        logger.log(f"torrentz2 Retrieved page_url: {page_url}", log_utils.LOGDEBUG)
-        html = self._http_get(page_url, require_debrid=True, cache_limit=.5)
-        logger.log(f"torrentz2 Retrieved html: {html}", log_utils.LOGDEBUG)
+        page_url = scraper_utils.urljoin(self.base_url or BASE_URL, SEARCH_URL % urllib.parse.quote_plus(search_url))
+        queries.append((page_url, None))  # None -> let parser decide pack by heuristics
 
-        soup = BeautifulSoup(html, 'html.parser')
-        logger.log(f"torrentz2 Retrieved soup: {soup}", log_utils.LOGDEBUG)
-        rows = soup.find_all('dl')
-        logger.log(f"torrentz2 Retrieved rows: {rows}", log_utils.LOGDEBUG)
-        for row in rows:
-            try:
-                # Extract the magnet link from the first <span> within <dd>
-                magnet_link = row.find('dd').find('a')['href']
-                logger.log(f"Magnet link: {magnet_link}", log_utils.LOGDEBUG)
+        # If EPISODE, also add season pack query
+        if getattr(video, 'video_type', None) == VIDEO_TYPES.EPISODE and getattr(video, 'season', None):
+            season_q = self._build_season_query(video)
+            if season_q:
+                season_url = scraper_utils.urljoin(self.base_url or BASE_URL, SEARCH_URL % urllib.parse.quote_plus(season_q))
+                queries.append((season_url, True))  # mark season results as pack
 
-                # Extract other details from the <span> elements
-                spans = row.find_all('span')
-                age = spans[1].get_text()
-                size = spans[2].get_text()
-                seeders = self.parse_number(spans[3].get_text())
-                leechers = self.parse_number(spans[4].get_text())
+        # If SEASON request, just add season query (in case default builder didn't)
+        if getattr(video, 'video_type', None) == VIDEO_TYPES.SEASON and getattr(video, 'season', None):
+            if not queries:
+                season_q = self._build_season_query(video)
+                if season_q:
+                    season_url = scraper_utils.urljoin(self.base_url or BASE_URL, SEARCH_URL % urllib.parse.quote_plus(season_q))
+                    queries.append((season_url, True))
 
-                # Extract hash from the magnet link
-                hash = re.search(r'btih:(.*?)&', magnet_link, re.I).group(1)
-                logger.log(f"Hash: {hash}", log_utils.LOGDEBUG)
+        # Fetch and parse all queries
+        for url, mark_pack in queries:
+            html = self._http_get_alt(url, require_debrid=True, cache_limit=.5)
+            parse_page(html, mark_as_pack_default=mark_pack)
 
-                # Extract name and quality
-                name = scraper_utils.cleanTitle(magnet_link.split('&dn=')[1])
-                quality = scraper_utils.get_tor_quality(name)
-
-                # Convert size to a displayable format
-                dsize, isize = scraper_utils._size(size)
-                logger.log('Size: %s' % isize, log_utils.LOGDEBUG)
-
-                # Construct the source dictionary
-                sources.append({
-                    'class': self,
-                    'host': 'magnet',
-                    'label': f"{name} | {dsize}",
-                    'seeders': seeders,
-                    'hash': hash,
-                    'name': name,
-                    'quality': quality,
-                    'multi-part': False,
-                    'url': magnet_link,
-                    'info': isize,
-                    'direct': False,
-                    'debridonly': True,
-                    'size': dsize
-                })
-            except Exception as e:
-                logger.log(f'Error processing Torrentz2 source: {str(e)}', log_utils.LOGERROR)
-                continue
         return sources
 
     def _build_query(self, video):
@@ -157,24 +255,21 @@ class Scraper(scraper.Scraper):
         logging.debug("Final query: %s", query)
         return query
 
-    def _http_get(self, url, data=None, retry=True, allow_redirect=True, cache_limit=8, require_debrid=True):
-        if require_debrid:
-            if Scraper.debrid_resolvers is None:
-                Scraper.debrid_resolvers = [resolver for resolver in resolveurl.choose_source(url) if resolver.isUniversal()]
-            if not Scraper.debrid_resolvers:
-                logger.log('%s requires debrid: %s' % (self.__module__, Scraper.debrid_resolvers), log_utils.LOGDEBUG)
-                return ''
+    def _build_season_query(self, video):
+        """Build a query aimed at season packs for the given video."""
         try:
-            headers = {'User-Agent': scraper_utils.get_ua()}
-            req = urllib.request.Request(url, data=data, headers=headers)
-            logging.debug("Retrieved req: %s", req)
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                return response.read().decode('utf-8')
-        except urllib.error.HTTPError as e:
-            logger.log(f'HTTP Error: {e.code} - {url}', log_utils.LOGWARNING)
-        except urllib.error.URLError as e:
-            logger.log(f'URL Error: {e.reason} - {url}', log_utils.LOGWARNING)
-        return ''
+            season_num = int(getattr(video, 'season', 0) or 0)
+        except Exception:
+            season_num = 0
+        if not season_num:
+            return ''
+        base_title = video.title
+        # Prefer Sxx form which the site understands well
+        query = f"{base_title} S{season_num:02d}"
+        query = query.replace(' ', '+').replace('+-', '-')
+        return query
+
+
     
     @classmethod
     def get_settings(cls):
