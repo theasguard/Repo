@@ -252,7 +252,6 @@ class DB_Connection():
         """Persist a TMDB->Trakt mapping in the MAIN DB (id_mapping table)."""
         if not tmdb_id or not trakt_id:
             return False
-        control.mappingDB_lock.acquire()
         try:
             sql = 'REPLACE INTO id_mapping (themoviedb_id, trakt_id) VALUES (?, ?)'
             self.__execute(sql, (int(tmdb_id), int(trakt_id)))
@@ -260,20 +259,17 @@ class DB_Connection():
         except Exception as e:
             logger.log('Failed to cache tmdb->trakt mapping: %s' % str(e), log_utils.LOGWARNING)
             return False
-        finally:
-            control.try_release_lock(control.mappingDB_lock)
+
 
     def get_cached_tmdb_trakt_mapping(self, tmdb_id):
         """Read a cached TMDB->Trakt mapping from MAIN DB (id_mapping)."""
-        control.mappingDB_lock.acquire()
+        if not tmdb_id: return None
         try:
             sql = 'SELECT trakt_id FROM id_mapping WHERE themoviedb_id = ?'
             rows = self.__execute(sql, (tmdb_id,))
             return rows[0][0] if rows else None
         except Exception:
             return None
-        finally:
-            control.try_release_lock(control.mappingDB_lock)
 
     def get_trakt_id_by_tmdb_cached(self, tmdb_id):
         """Try anime mapping first, then fallback MAIN DB id_mapping table."""
