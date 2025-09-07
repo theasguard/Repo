@@ -5,6 +5,12 @@ SALTS Fork Asguard - Kodi Addon Documentation
 Overview
 SALTS Fork Asguard is a powerful Kodi addon designed to provide users with a seamless streaming experience, integrating advanced features for movies, TV shows, and more. This fork builds upon the original SALTS foundation, introducing significant enhancements in metadata handling, database management, image scraping, torrent provider support, and API integrations.
 
+# todo 
+- test cfscrape if error occurs remove from module and use in plugin.
+
+# Asguard Kodi Addon
+Asguard is a Kodi addon that provides access to a wide range of streaming content. It is designed to be a successor to the popular SALTS (Stream All The Sources) addon, offering improved performance and additional features.
+
 Key Features & Enhancements
 1. TMDB Group Episodes
 New Data Handling: The addon now supports TMDB group episodes, allowing for improved episode grouping and metadata accuracy for TV series.
@@ -37,27 +43,6 @@ Configuration: Set up your Trakt and debrid service accounts in the addon settin
 Usage: Browse, search, and stream content using the enhanced features described above.
 Contributing
 Contributions are welcome! Please submit issues, feature requests, or pull requests via GitHub.
-
-# todo 
-- the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. (Complete for now)
-
-- test cfscrape if error occurs remove from module and use in plugin.
-- remember to add the torrentdownload and 1337x scrapers after label and title sorting has been fixed for them.
-- look into the sort_keys in utils 2 to see if we can make it more robust and handle more list structures.
-- (Important) sort out the select source for the resolveurl (I think it's mostly just for all debrid I'm having the auto resolve issues with the resolveurl for full season packs)
-- fix 1337x to return season packs along with single episodes. 
-- connect the tmdb sections listing episodes and movies to the get sources or create an alternate get sources for it then we can pass it to the resolveurl as we already do.
-- check the trakt context for making new menu items (complete) 
-- make sure all the trakt functions for adding to lists making new lists copying etc function properly.(complete) 
-- create more scrapers for the addon.
-- add some extra filtering for titles like "You", and "See" some single title names return wrong sources in torrentdownload and the other, look into that further
-- incorporate an extended video function in the default.py and init of the scrapers directory for using anime ID's
-- if I think of a anything else I'll update this. 
-
-# Asguard Kodi Addon
-Asguard is a Kodi addon that provides access to a wide range of streaming content. It is designed to be a successor to the popular SALTS (Stream All The Sources) addon, offering improved performance and additional features.
-
-## Features
 
 - Stream movies and TV shows from various sources.
 - Integration with Trakt for tracking watched content.
