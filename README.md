@@ -1,6 +1,42 @@
 # Repo
 
 # Still in Development
+SALTS Fork Asguard - Kodi Addon Documentation
+Overview
+SALTS Fork Asguard is a powerful Kodi addon designed to provide users with a seamless streaming experience, integrating advanced features for movies, TV shows, and more. This fork builds upon the original SALTS foundation, introducing significant enhancements in metadata handling, database management, image scraping, torrent provider support, and API integrations.
+
+Key Features & Enhancements
+1. TMDB Group Episodes
+New Data Handling: The addon now supports TMDB group episodes, allowing for improved episode grouping and metadata accuracy for TV series.
+Benefits: Enhanced episode navigation and display, especially for series with complex episode structures.
+2. TMDB Search Sections
+Expanded Search: New TMDB search sections have been added, enabling users to search for movies, TV shows, and people directly from TMDB.
+Internal TMDB IDs: TMDB IDs are now incorporated internally throughout the addon, improving metadata consistency and enabling advanced search and filtering capabilities.
+3. Database Management
+Improved Storage: The database management system has been overhauled for better performance and reliability.
+Best Practices: SQLite databases are now stored in the addon's profile directory, reducing file locking issues and improving compatibility with Kodi's environment.
+4. Image Scrapers
+New Scrapers: Additional image scrapers have been integrated, providing higher-quality artwork and more sources for posters, fanart, and thumbnails.
+Supported Sources: Includes TMDB, fanart.tv, and other popular image providers.
+5. Trakt Integration
+Rewritten Trakt API: The Trakt integration has been completely rewritten for better reliability, error handling, and performance.
+New Functionality: A new Trakt function is coming soon, allowing users to search by ID (TMDB, IMDB, Trakt) for movies and TV shows.
+Improved Exception Handling: Network errors and retries are now handled gracefully, preventing Kodi from hanging or requiring a force close.
+6. Torrent Providers
+Expanded Support: More torrent providers have been added, increasing the number of available sources for streaming content.
+Provider Management: Users can enable or disable providers as needed for optimal performance and content availability.
+7. API Access for Debrid Services
+New Functions: The addon now includes API access for popular debrid services (e.g., Real-Debrid, Premiumize, AllDebrid), allowing users to stream high-quality content with fewer buffering issues.
+Integration: Debrid services are seamlessly integrated into the search and playback workflow.
+8. Additional New Functions
+Search by ID: Users can now search for content using TMDB, IMDB, or Trakt IDs, making it easier to find specific movies or episodes.
+Enhanced Metadata: Improved metadata retrieval and display throughout the addon.
+Getting Started
+Installation: Download the addon from the official repository or GitHub and install it via Kodi's Add-ons menu.
+Configuration: Set up your Trakt and debrid service accounts in the addon settings for full functionality.
+Usage: Browse, search, and stream content using the enhanced features described above.
+Contributing
+Contributions are welcome! Please submit issues, feature requests, or pull requests via GitHub.
 
 # todo 
 - the resolve URL I'm being sort of lazy on resolving the all debrid auto resolve if anyone is interested in helping me I'm open to help with that. (Complete for now)
