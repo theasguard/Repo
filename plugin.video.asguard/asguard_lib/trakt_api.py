@@ -34,7 +34,8 @@ from asguard_lib import utils2  # Use relative import
 import logging
 
 from asguard_lib.constants import SECTIONS, TEMP_ERRORS, TRAKT_SECTIONS  # Ensure relative import
-from asguard_lib.db_utils import DB_Connection  # Ensure relative import
+from asguard_lib.db_utils import DB_Connection
+import xbmc  # Ensure relative import
 
 logger = log_utils.Logger.get_logger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -42,7 +43,7 @@ logging.basicConfig(level=logging.DEBUG)
 def __enum(**enums):
     return type('Enum', (), enums)
 
-TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524, 400]
+TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
 SECTIONS = __enum(TV='TV', MOVIES='Movies')
 TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
 session = requests.Session()
@@ -675,6 +676,9 @@ class Trakt_API():
                         # Preserve legacy device auth polling semantics: raise HTTPError so caller can handle 400/429/418/410
                         if url.endswith('/oauth/device/token'):
                             raise urllib_error.HTTPError(url, status, None, r.headers, None)
+
+                        elif url.endswith('/oauth/token'):
+                            raise urllib_error.HTTPError(url, status, None, r.headers, None)
                         if status in TEMP_ERRORS:
                             if cached_result:
                                 result = cached_result
@@ -823,13 +827,28 @@ class Trakt_API():
             logger.log(f'Error clearing cache pattern {pattern}: {str(e)}', log_utils.LOGDEBUG)
 
 
-def trakt_expires(func):
-    def wrapper(*args, **kwargs):
-        if kodi.get_setting('trakt_refresh_token'):
-            expires = float(kodi.get_setting('trakt_expires', '0'))
-            if (expires - time.time()) < 28800:  # 8 hours
-                self = args[0]  # instance method
-                logger.log(f'Trakt Instance: {self}', log_utils.LOGDEBUG)
-                self.refresh_token(kodi.get_setting('trakt_refresh_token'))
-        return func(*args, **kwargs)
-    return wrapper
+    def trakt_refresh(self):
+        try:
+            url = '/oauth/token'
+            data = {'redirect_uri': REDIRECT_URI, 'client_secret': CLIENT_SECRET, 'client_id': V2_API_KEY}
+            data.update({'refresh_token': kodi.get_setting('trakt_refresh_token'), 'grant_type': 'refresh_token'})
+            response = self.__call_trakt(url, data=data, auth=False)
+            expires = int(response['created_at']) + int(response['expires_in'])
+            refresh, token = response['refresh_token'], response['access_token']
+            kodi.set_setting('trakt_oauth_token', token)
+            kodi.set_setting('trakt_refresh_token', refresh)
+            kodi.set_setting('trakt.expires', str(expires))
+        except Exception as e: logger.log('trakt_refresh error', str(e), log_utils.LOGERROR)
+        else: return True
+        return False
+
+    def trakt_expires(self, func):
+        def wrapper(*args, **kwargs):
+            logger.log('Trakt expires wrapper: %s - |%s|' % (*args, *kwargs), log_utils.LOGDEBUG)
+            if kodi.get_setting('trakt_refresh_token'):
+                expires = float(kodi.get_setting('trakt.expires', '0'))
+                refresh = (expires - time.time()) // 3600 < 8
+                logger.log('Trakt refresh token exists. Checking expiration...', log_utils.LOGDEBUG)
+                if refresh and self.trakt_refresh(): xbmc.sleep(1000)
+            return func(*args, **kwargs)
+        return wrapper
