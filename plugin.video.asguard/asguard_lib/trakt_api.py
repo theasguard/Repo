@@ -42,7 +42,7 @@ logging.basicConfig(level=logging.DEBUG)
 def __enum(**enums):
     return type('Enum', (), enums)
 
-TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
+TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524, 400]
 SECTIONS = __enum(TV='TV', MOVIES='Movies')
 TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
 session = requests.Session()
