@@ -405,7 +405,7 @@ def get_cache_stats():
     with _cache_lock:
         return {
             'entries': len(_cache),
-            'max_entries': 500,
+            'max_entries': 5000,
             'cache_duration': CACHE_DURATION
         }
 
@@ -424,6 +424,9 @@ def get_tv_details_batch(tmdb_ids, overview=True):
     results = {}
     uncached_ids = []
     
+    if not tmdb_ids:
+        return results
+        
     # Check cache for each ID first
     for tmdb_id in tmdb_ids:
         params = {
