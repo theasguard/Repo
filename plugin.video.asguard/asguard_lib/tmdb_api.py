@@ -3,7 +3,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import log_utils
 import xbmcgui
-import logging
+import json
+
 import xbmcaddon
 import kodi
 import time
@@ -26,8 +27,9 @@ TMDB_EPISODE_GROUPS_URL = 'https://api.themoviedb.org/3/tv/{}/episode_groups'
 TMDB_EPISODE_GROUPS_DETAILS_URL = 'https://api.themoviedb.org/3/tv/episode_group/{}'
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = log_utils.Logger.get_logger(__name__)
+
+db_connection = DB_Connection()
 
 # Session and caching configuration
 _session = None
@@ -35,8 +37,8 @@ _cache = {}
 _cache_lock = threading.Lock()
 _rate_limit_lock = threading.Lock()
 _last_request_time = 0
-CACHE_DURATION = 300  # 5 minutes
-RATE_LIMIT_DELAY = 0.25  # 250ms between requests
+CACHE_DURATION = 3600  # 1 Hour
+RATE_LIMIT_DELAY = 0.15  # 150ms between requests
 REQUEST_TIMEOUT = 10  # 10 second timeout
 
 
@@ -52,7 +54,7 @@ def _get_session():
             retry_strategy = Retry(
                 total=3,
                 status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=["HEAD", "GET", "OPTIONS"],
+                allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
                 backoff_factor=1
             )
         except TypeError:
@@ -60,12 +62,12 @@ def _get_session():
             retry_strategy = Retry(
                 total=3,
                 status_forcelist=[429, 500, 502, 503, 504],
-                method_whitelist=["HEAD", "GET", "OPTIONS"],
+                method_whitelist=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
                 backoff_factor=1
             )
         
         # Mount adapter with retry strategy
-        adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
+        adapter = HTTPAdapter(pool_connections=50, pool_maxsize=50, max_retries=retry_strategy)
         _session.mount("http://", adapter)
         _session.mount("https://", adapter)
         
@@ -105,22 +107,40 @@ def _cache_response(cache_key, data):
         _cache[cache_key] = (data, time.time())
         logger.log(f'Cached response for key: {cache_key[:8]}...', log_utils.LOGDEBUG)
         
-        # Clean up old cache entries (keep max 100 entries)
-        if len(_cache) > 100:
+        # Clean up old cache entries (keep max 5000 entries)
+        if len(_cache) > 5000:
             oldest_key = min(_cache.keys(), key=lambda k: _cache[k][1])
             del _cache[oldest_key]
 
 def _rate_limited_request(url, params=None, timeout=REQUEST_TIMEOUT):
-    """Make rate-limited request with caching"""
+    """Make rate-limited request with caching (memory + DB)"""
     global _last_request_time
-    
-    # Check cache first
+
+    # Build keys
     cache_key = _cache_key(url, params)
+    params_data = json.dumps(params, sort_keys=True) if params else ''
+
+    # 1) In-memory cache first
     cached_response = _get_cached_response(cache_key)
     if cached_response is not None:
         return cached_response
-    
-    # Rate limiting
+
+    # 2) DB cache
+    try:
+        cache_limit_hours = max(0.001, CACHE_DURATION / 3600.0)
+        _created, _res_headers, html = db_connection.get_cached_url(url, params_data, cache_limit=cache_limit_hours)
+        if html:
+            try:
+                data = html if isinstance(html, dict) else (json.loads(html) if isinstance(html, str) else {})
+            except Exception:
+                data = {}
+            if data:
+                _cache_response(cache_key, data)
+                return data
+    except Exception as e:
+        logger.log(f'TMDB DB cache read error: {e}', log_utils.LOGDEBUG)
+
+    # 3) Rate limiting then network
     with _rate_limit_lock:
         current_time = time.time()
         time_since_last = current_time - _last_request_time
@@ -129,18 +149,23 @@ def _rate_limited_request(url, params=None, timeout=REQUEST_TIMEOUT):
             logger.log(f'Rate limiting: sleeping {sleep_time:.3f}s', log_utils.LOGDEBUG)
             time.sleep(sleep_time)
         _last_request_time = time.time()
-    
+
     # Make request
     session = _get_session()
     try:
         logger.log(f'Making TMDB request: {url}', log_utils.LOGDEBUG)
         response = session.get(url, params=params, timeout=timeout)
         response.raise_for_status()
-        
+
         data = response.json()
+        # Write-through: memory + DB
         _cache_response(cache_key, data)
+        try:
+            db_connection.cache_url(url, json.dumps(data), data=params_data, res_header=list(response.headers.items()))
+        except Exception as e:
+            logger.log(f'TMDB DB cache write error: {e}', log_utils.LOGDEBUG)
         return data
-        
+
     except requests.exceptions.Timeout:
         logger.log(f'Request timeout for URL: {url}', log_utils.LOGERROR)
         return {}
@@ -380,7 +405,7 @@ def get_cache_stats():
     with _cache_lock:
         return {
             'entries': len(_cache),
-            'max_entries': 100,
+            'max_entries': 500,
             'cache_duration': CACHE_DURATION
         }
 

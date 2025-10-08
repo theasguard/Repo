@@ -15,10 +15,12 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import ctypes
 import gc
 import re, subprocess
 import socket
 import sys
+import threading
 import xbmc, xbmcgui, xbmcaddon
 import time
 import kodi
@@ -49,6 +51,7 @@ logger.log(f'Service: TOKEN: {TOKEN}', log_utils.LOGDEBUG)
 
 class Service(xbmc.Player):
     def __init__(self, *args, **kwargs):
+        self.player = xbmc.Player()
         logger.log('Service: starting...', log_utils.LOGNOTICE)
         self.db_connection = DB_Connection()
         xbmc.Player.__init__(self, *args, **kwargs)
@@ -220,7 +223,7 @@ class Service(xbmc.Player):
         if playing and self._totalTime > 0:
             logger.log(f'Service: Starting monitoring thread - TotalTime: {self._totalTime}', log_utils.LOGDEBUG)
             try:
-                Thread(target=self.monitor_playback_progress).start()
+                self.run_in_background(self.monitor_playback_progress)
             except Exception as e:
                 logger.log(f'Service: Failed to start monitoring thread: {str(e)}', log_utils.LOGERROR)
 
@@ -247,7 +250,18 @@ class Service(xbmc.Player):
         except:
             pass
         finally:
+            gc.collect()
             logger.log('Service: Monitoring thread exited', log_utils.LOGDEBUG)
+
+    def run_in_background(self, task_function, *args, **kwargs):
+        """Executes a function in a separate, non-blocking thread."""
+        thread = Thread(target=task_function, args=args, kwargs=kwargs)
+        thread.daemon = True  # Allows the main program to exit without waiting for this thread
+        try:
+            thread.start()
+        except Exception as e:
+            logger.log(f'Service: Failed to start background thread: {str(e)}', log_utils.LOGERROR)
+
 
     def onPlayBackStopped(self):
         logger.log('Service: Playback Stopped', log_utils.LOGNOTICE)
@@ -285,6 +299,17 @@ class Service(xbmc.Player):
         logger.log('Service: Playback completed', log_utils.LOGNOTICE)
         self.onPlayBackStopped()
 
+    def onPlayBackPaused(self):
+        logger.log('Service: Playback paused', log_utils.LOGDEBUG)
+    
+    def onPlayBackResumed(self):
+        logger.log('Service: Playback resumed', log_utils.LOGDEBUG)
+        
+    def cleanup(self):
+        if self.db_connection is not None:
+            self.db_connection.close()
+            self.db_connection = None
+
     @staticmethod
     def _is_video_window_open():
 
@@ -301,6 +326,90 @@ class Service(xbmc.Player):
                 logger.log('Skipped to last 5 seconds of playback', log_utils.LOGDEBUG)
             except Exception as e:
                 logger.log(f'Skip to end failed: {str(e)}', log_utils.LOGERROR)
+
+    def check_threads(self):
+        """Check and properly terminate any stuck threads with enhanced termination methods"""
+        active_threads = []
+        main_thread = threading.current_thread()
+        
+        # First pass: Identify all non-main threads
+        for thread in threading.enumerate():
+            if thread.is_alive() and thread != main_thread:
+                active_threads.append(thread)
+                logger.log('Thread %s (ID: %s) still alive - will attempt termination' % (thread.name, thread.ident), log_utils.LOGDEBUG)
+        
+        # Second pass: Try different termination strategies
+        for thread in active_threads:
+            try:
+                # Strategy 1: Try standard stop method if available
+                if hasattr(thread, 'stop'):
+                    logger.log('Attempting standard stop on thread %s' % thread.name, log_utils.LOGDEBUG)
+                    thread.stop()
+                    thread.join(timeout=1.0)
+                    if not thread.is_alive():
+                        logger.log('Successfully terminated thread %s with standard stop' % thread.name, log_utils.LOGDEBUG)
+                        continue
+                
+                # Strategy 2: Try _stop method if available
+                if hasattr(thread, '_stop'):
+                    logger.log('Attempting _stop on thread %s' % thread.name, log_utils.LOGDEBUG)
+                    thread._stop()
+                    thread.join(timeout=1.0)
+                    if not thread.is_alive():
+                        logger.log('Successfully terminated thread %s with _stop' % thread.name, log_utils.LOGDEBUG)
+                        continue
+                
+                # Strategy 3: Try _Thread__stop method if available
+                if hasattr(thread, '_Thread__stop'):
+                    logger.log('Attempting _Thread__stop on thread %s' % thread.name, log_utils.LOGDEBUG)
+                    thread._Thread__stop()
+                    thread.join(timeout=1.0)
+                    if not thread.is_alive():
+                        logger.log('Successfully terminated thread %s with _Thread__stop' % thread.name, log_utils.LOGDEBUG)
+                        continue
+                
+                # Strategy 4: For daemon threads, set daemon status and try to trigger exit
+                if thread.daemon:
+                    logger.log('Attempting daemon thread termination for %s' % thread.name, log_utils.LOGDEBUG)
+                    # Set an exception in the thread to try to break it out of any loops
+                    try:
+                        # This is a bit hacky but can work for some threads
+                        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit))
+                        thread.join(timeout=1.0)
+                        if not thread.is_alive():
+                            logger.log('Successfully terminated daemon thread %s with async exception' % thread.name, log_utils.LOGDEBUG)
+                            continue
+                    except Exception as e:
+                        logger.log('Failed to terminate daemon thread %s with async exception: %s' % (thread.name, str(e)), log_utils.LOGWARNING)
+                
+                # Strategy 5: Last resort - log details about the stubborn thread
+                if thread.is_alive():
+                    logger.log('WARNING: Thread %s (ID: %s) refused to terminate. Details: %s' % 
+                            (thread.name, thread.ident, str(thread)), log_utils.LOGWARNING)
+                    
+                    # Log thread stack trace if possible
+                    try:
+                        import sys, traceback
+                        for thread_id, frame in sys._current_frames().items():
+                            if thread_id == thread.ident:
+                                logger.log('Stack trace for thread %s:\n%s' % 
+                                        (thread.name, ''.join(traceback.format_stack(frame))), log_utils.LOGDEBUG)
+                                break
+                    except Exception as e:
+                        logger.log('Failed to get stack trace for thread %s: %s' % (thread.name, str(e)), log_utils.LOGWARNING)
+            
+            except Exception as e:
+                logger.log('Error attempting to terminate thread %s: %s' % (thread.name, str(e)), log_utils.LOGERROR)
+        
+        # Final report
+        remaining_threads = [t for t in threading.enumerate() if t.is_alive() and t != main_thread]
+        if remaining_threads:
+            logger.log('WARNING: %d threads remain after termination attempts' % len(remaining_threads), log_utils.LOGWARNING)
+            for thread in remaining_threads:
+                logger.log('Remaining thread: %s (ID: %s)' % (thread.name, thread.ident), log_utils.LOGWARNING)
+        else:
+            logger.log('All non-main threads successfully terminated', log_utils.LOGDEBUG)
+
 
 def show_next_up(last_label, sf_begin):
     token = kodi.get_setting('trakt_oauth_token')
@@ -390,6 +499,7 @@ def main(argv=None):  # @UnusedVariable
 
         if monitor.waitForAbort(.5):
             break
+
 
     proxy.stop_proxy()
     logger.log('Service: shutting down...', log_utils.LOGNOTICE)

@@ -166,66 +166,26 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
 
     def set_info_cast(self, cast: list, *args, **kwargs):
         """ Wrapper to convert cast and castandrole from ListItem.setInfo() to InfoTagVideo.setCast() """
-
-        if cast:
-            kodi_log(f'[CAST_DEBUG] first cast member: {cast[0]}', level=LOGINFO)
-        
         def _set_cast_member(x, i):
 
-            if isinstance(i, dict):
-                # Handle rich dictionary format with thumbnails
-                result = {
+            # Handle case where cast member is a string
+            if isinstance(i, str):
+                return {'name': i, 'role': '', 'order': x, 'thumbnail': ''}
+
+            # Handle case where cast member is a dictionary
+            elif isinstance(i, dict):
+                return {
                     'name': str(i.get('name', '')), 
                     'role': str(i.get('role', '')), 
                     'order': x, 
                     'thumbnail': str(i.get('thumbnail', ''))
                 }
-                kodi_log(f'[CAST_DEBUG] dict format - thumbnail: {i.get("thumbnail", "NONE")}', level=LOGINFO)
-            elif isinstance(i, tuple):
-                # Handle legacy tuple format
-                result = {'name': f'{i[0]}', 'role': f'{i[1]}', 'order': x, 'thumbnail': ''}
 
-            else:
-                # Fallback for other formats
-                result = {'name': str(i), 'role': '', 'order': x, 'thumbnail': ''}
+            if not isinstance(i, tuple):
+                i = (i, '',)
+            return {'name': f'{i[0]}', 'role': f'{i[1]}', 'order': x, 'thumbnail': ''}
 
-            return result
-
-        processed_cast = [Actor(**_set_cast_member(x, i)) for x, i in enumerate(cast, start=1)]
-        kodi_log(f'[CAST_DEBUG] processed {len(processed_cast)} Actor objects', level=LOGINFO)
-        if processed_cast:
-            kodi_log(f'[CAST_DEBUG] first Actor object: {processed_cast[0]}', level=LOGINFO)
-        
-        self._info_tag.setCast(processed_cast)
-        kodi_log(f'[CAST_DEBUG] setCast completed', level=LOGINFO)
-        
-        # Verify what was actually set  
-        # NOTE: getCast() has a known bug in some Kodi versions returning string instead of Actor objects
-        try:
-            set_cast = self._info_tag.getCast()
-
-            # Check if getCast() returned corrupted string data (known bug)
-            if isinstance(set_cast, str):
-                kodi_log(f'[CAST_DEBUG] BUG DETECTED: getCast() returned string instead of Actor list!', level=LOGINFO)
-                kodi_log(f'[CAST_DEBUG] This is a known Kodi InfoTagVideo bug - cast data was set correctly', level=LOGINFO)
-                kodi_log(f'[CAST_DEBUG] Actor data should still display in player despite getCast() verification bug', level=LOGINFO)
-            elif isinstance(set_cast, list) and set_cast:
-                kodi_log(f'[CAST_DEBUG] verification - first cast member: {repr(set_cast[0])}', level=LOGINFO)
-                # Try to access Actor properties
-                try:
-                    first_actor = set_cast[0]
-                    if hasattr(first_actor, 'name'):
-                        kodi_log(f'[CAST_DEBUG] verification - first actor name: {first_actor.name}', level=LOGINFO)
-                    if hasattr(first_actor, 'role'):
-                        kodi_log(f'[CAST_DEBUG] verification - first actor role: {first_actor.role}', level=LOGINFO)
-                    if hasattr(first_actor, 'thumbnail'):
-                        kodi_log(f'[CAST_DEBUG] verification - first actor thumbnail: {first_actor.thumbnail}', level=LOGINFO)
-                except AttributeError as ae:
-                    kodi_log(f'[CAST_DEBUG] verification - Actor attribute error: {str(ae)}', level=LOGINFO)
-        except Exception as e:
-            kodi_log(f'[CAST_DEBUG] verification failed: {str(e)}', level=LOGINFO)
-            
-        kodi_log(f'[CAST_DEBUG] *** CAST PROCESSING COMPLETE - Cast successfully set on InfoTagVideo ***', level=LOGINFO)
+        self._info_tag.setCast([Actor(**_set_cast_member(x, i)) for x, i in enumerate(cast, start=1)])
 
     def set_cast(self, cast: list, *args, **kwargs):
         """ Wrapper for compatibility with Matrix ListItem.setCast() method """

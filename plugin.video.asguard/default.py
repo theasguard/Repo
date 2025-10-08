@@ -32,7 +32,7 @@ from asguard_lib.srt_scraper import SRT_Scraper
 from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
 from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper, worker_pool, tmdb_api, control
 from asguard_lib.third_party.simkl import SimklAPI
-from asguard_lib.listitem import ListItemInfoTag, set_info_tag
+from asguard_lib.listitem import ListItemInfoTag, set_info_tag, _ListItemInfoTagVideo
 from asguard_lib.ui import makeitem
 from asguard_lib.constants import *  # @UnusedWildImport
 from asguard_lib.utils2 import i18n
@@ -617,7 +617,7 @@ def show_history(section, page=1):
             show = item['show']
             item['episode']['watched'] = True
             menu_items = []
-            queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb']}
+            queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb'], 'tmdb_id': show['ids']['tmdb']}
             menu_items.append((i18n('browse_seasons'), 'Container.Update(%s)' % (kodi.get_plugin_url(queries))),)
             liz, liz_url = make_episode_item(show, item['episode'], show_subs=False, menu_items=menu_items)
             label = liz.getLabel()
@@ -892,7 +892,7 @@ def show_rewatch():
                 episode['watched'] = plays.get(next_episode['season'], {}).get(next_episode['episode'], 0) > 0
                 
                 menu_items = []
-                queries = {'mode': MODES.SEASONS, 'trakt_id': trakt_id, 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb']}
+                queries = {'mode': MODES.SEASONS, 'trakt_id': trakt_id, 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb'], 'tmdb_id': show['ids']['tmdb']}
                 menu_items.append((i18n('browse_seasons'), 'Container.Update(%s)' % (kodi.get_plugin_url(queries))),)
                 label, new_method = utils2.get_next_rewatch_method(trakt_id)
                 queries = {'mode': MODES.MANAGE_REWATCH, 'trakt_id': trakt_id, 'new_method': new_method}
@@ -1071,7 +1071,7 @@ def show_progress():
                     date_time = date
     
                 menu_items = []
-                queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb']}
+                queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb'], 'tmdb_id': show['ids']['tmdb']}
                 menu_items.append((i18n('browse_seasons'), 'Container.Update(%s)' % (kodi.get_plugin_url(queries))),)
                 liz, liz_url = make_episode_item(show, episode['episode'], show_subs=False, menu_items=menu_items)
                 label = liz.getLabel()
@@ -1240,20 +1240,23 @@ def search_results(section, query, page=1):
         logger.log('No results found for query: %s' % query, log_utils.LOGNOTICE)
         kodi.notify(msg='No results found', duration=5000)
 
-@url_dispatcher.register(MODES.SEASONS, ['trakt_id', 'title', 'year'], ['tvdb_id'])
-def browse_seasons(trakt_id, title, year, tvdb_id=None):
-    logger.log('Entering browse_seasons: trakt_id=%s, title=%s, year=%s, tvdb_id=%s' % (trakt_id, title, year, tvdb_id), log_utils.LOGDEBUG)
+@url_dispatcher.register(MODES.SEASONS, ['trakt_id', 'title', 'year'], ['tvdb_id', 'tmdb_id'])
+def browse_seasons(trakt_id, title, year, tvdb_id=None, tmdb_id=None):
+    if tvdb_id is None:
+        show_meta = trakt_api.get_show_details(trakt_id) or {} 
+        tvdb_id = show_meta.get('ids', {}).get('tvdb') 
+    logger.log('browse_seasons: resolved tvdb from Trakt: %s' % tvdb_id, log_utils.LOGDEBUG) 
+
+    logger.log('Entering browse_seasons: trakt_id=%s, title=%s, year=%s, tvdb_id=%s, tmdb_id=%s' % (trakt_id, title, year, tvdb_id, tmdb_id), log_utils.LOGDEBUG)
     seasons = sorted(trakt_api.get_seasons(trakt_id), key=lambda x: x['number'])
     logger.log('TRAKT Seasons: %s' % seasons, log_utils.LOGDEBUG)
-    
+
     # Check for TMDB episode groups
     results = tmdb_api.search_tmdb_tv(title)
     logger.log('TMDB Search Results: %s' % results, log_utils.LOGDEBUG)
     shows = results.get('results', [])
-    logger.log('Group Shows: %s' % shows, log_utils.LOGDEBUG)
     if shows:
         tmdb_id = shows[0]['id']
-        logger.log('TMDB ID: %s' % tmdb_id, log_utils.LOGDEBUG)
         tmdb_seasons = tmdb_api.get_tv_episode_groups(tmdb_id)
         logger.log('TMDB Group Seasons: %s' % tmdb_seasons, log_utils.LOGDEBUG)
         
@@ -1275,7 +1278,7 @@ def browse_seasons(trakt_id, title, year, tvdb_id=None):
     for season in seasons:
         if kodi.get_setting('show_season0') == 'true' or season['number'] != 0:
             season_info = info.get(str(season['number']), {'season': season['number']})
-            liz = make_season_item(season, season_info, trakt_id, title, year, tvdb_id)
+            liz = make_season_item(season, season_info, trakt_id, title, year, tvdb_id, tmdb_id)
             queries = {'mode': MODES.EPISODES, 'trakt_id': trakt_id, 'season': season['number'], 'random': time.time()}
             kodi.add_item(queries, liz, is_folder=True, total_items=total_items)
     kodi.set_view(CONTENT_TYPES.SEASONS, True)
@@ -1283,7 +1286,6 @@ def browse_seasons(trakt_id, title, year, tvdb_id=None):
 
 def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season, ep_watched):
     """Create a list item for group episodes similar to make_episode_item"""
-    logger.log('Episode watched: %s' % ep_watched, log_utils.LOGDEBUG)
     ep_num = episode.get('order', 0) + 1
     label = f"{int(season)}x{ep_num} {episode.get('name', 'Episode')}"
 
@@ -1312,25 +1314,28 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
         'mediatype': 'episode',
         'watched': True if ep_watched else False  # Set playcount directly in metadata
     }
-    logger.log('Episode info: %s' % episode_info, log_utils.LOGDEBUG)
+    logger.log('Group Episode info: %s' % episode_info, log_utils.LOGDEBUG)
     
     # Combine show and episode info
     meta = salts_utils.make_info(episode_info, show_info)
     
     # Create list item
     li = utils.make_list_item(label, meta)
-
-    # Set unique IDs
-    valid_ids = {
-        'imdb': meta.get('imdbnumber'),
-        'tmdb': meta.get('tmdb_id'),
-        'tvdb': meta.get('tvdb_id'),
-        'trakt': meta.get('trakt_id'),
-        'slug': meta.get('slug'),
-        'tvshow.tmdb': str(tmdb_id),  # TV show context
-        'tvshow.imdb': meta.get('imdb_id', '')  # TV show context
-    }
-    li.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
+    if ep_watched:
+        li.setProperty('playcount', '1')
+    else:
+        li.setProperty('playcount', '0')
+    # # Set unique IDs
+    # valid_ids = {
+    #     'imdb': meta.get('imdbnumber'),
+    #     'tmdb': meta.get('tmdb_id'),
+    #     'tvdb': meta.get('tvdb_id'),
+    #     'trakt': meta.get('trakt_id'),
+    #     'slug': meta.get('slug'),
+    #     'tvshow.tmdb': str(tmdb_id),  # TV show context
+    #     'tvshow.imdb': meta.get('imdb_id', '')  # TV show context
+    # }
+    # li.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
     
 
     # Set artwork
@@ -1391,7 +1396,7 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
 
     # Set info tag
     set_info_tag(li, meta, 'video', 
-                old_method_keys=('size', 'count', 'date', 'duration', 'genre', 'year', 'episode', 'season'))
+                old_method_keys=('size', 'count', 'date',))
     
     return li, liz_url
 
@@ -1442,27 +1447,25 @@ def browse_episode_groups(tmdb_id, trakt_id, title='', tvdb_id=None):
                 season_query = {'mode': MODES.EPISODE_GROUPS, 'group_id': group_id, 'season': season_number, 'trakt_id': trakt_id}
                 art = image_scraper.get_images(VIDEO_TYPES.SEASON, ids, season_number)
                 li = utils.make_list_item(season_label, meta, art=art)
-                valid_ids = {
-                    'imdb': 'imdbnumber' in meta and meta['imdbnumber'] or None,
-                    'tmdb': meta.get('tmdb_id'),
-                    'tvdb': meta.get('tvdb_id'),
-                    'trakt': meta.get('trakt_id'),
-                    'slug': meta.get('slug')
-                }
-                li.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
+                # valid_ids = {
+                #     'imdb': 'imdbnumber' in meta and meta['imdbnumber'] or None,
+                #     'tmdb': meta.get('tmdb_id'),
+                #     'tvdb': meta.get('tvdb_id'),
+                #     'trakt': meta.get('trakt_id'),
+                #     'slug': meta.get('slug')
+                # }
+                # li.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
                 set_info_tag(li, meta, 'video', 
-                            old_method_keys=('size', 'count', 'date', 'duration', 'genre', 'year', 'episode', 'season'))
+                            old_method_keys=('size', 'count', 'date',))
                 li.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
-                kodi.add_item(season_query, list_item=li, is_folder=True)
+                kodi.add_item(queries=season_query, list_item=li, is_folder=True)
     
     kodi.set_view(CONTENT_TYPES.SEASONS, True)
     kodi.end_of_directory()
 
 @url_dispatcher.register(MODES.EPISODE_GROUPS, ['group_id', 'season'], ['trakt_id', 'title', 'tvdb_id', 'trakt'])
 def browse_group_episodes(group_id, season, trakt_id=None):
-    logger.log('Browsing group episodes for season: %s' % season, log_utils.LOGDEBUG)
-    logger.log('Main Group ID: %s' % group_id, log_utils.LOGDEBUG)
-
+    logger.log('Browsing group episodes for group_id=%s, season=%s, trakt_id=%s' % (group_id, season, trakt_id), log_utils.LOGDEBUG)
     # Get watched history if logged in to Trakt
     watched = {}
     if TOKEN:
@@ -1486,8 +1489,21 @@ def browse_group_episodes(group_id, season, trakt_id=None):
             if not episodes or not isinstance(episodes[0], dict):
                 logger.log('Invalid episode format in group data', log_utils.LOGERROR)
                 continue
-            total_items = len(episodes)
-                
+            totalItems = len(episodes)
+            logger.log('Total Group episodes: %s' % totalItems, log_utils.LOGDEBUG)
+
+            # Get all unique show IDs from episodes to batch fetch show details
+            show_ids = set()
+            for ep in episodes:
+                show_id = ep.get('show_id')
+                if show_id:
+                    show_ids.add(show_id)
+            
+            # Batch fetch show details
+            show_details_map = {}
+            if show_ids:
+                show_details_map = tmdb_api.get_tv_details_batch(list(show_ids))
+
             for ep in episodes:
                 logger.log('Main Group Episode: %s' % ep, log_utils.LOGDEBUG)
 
@@ -1505,12 +1521,11 @@ def browse_group_episodes(group_id, season, trakt_id=None):
                 ep_num = ep.get('order', 0) + 1
                 year = ep.get('air_date').split('-')[0]
                 tmdb_id = ep.get('show_id')
-                tmdb_group_details = tmdb_api.get_tv_details(tmdb_id)
+                tmdb_group_details = show_details_map.get(str(tmdb_id), {})
                 if tmdb_group_details:
                     title = tmdb_group_details.get('name')
                     external_ids = tmdb_group_details.get('external_ids')
                     logger.log('TMDB group external IDs: %s' % external_ids, log_utils.LOGDEBUG)
-                    logger.log('TMDB group title: %s' % title, log_utils.LOGDEBUG)
                     # year = tmdb_group_details.get('first_air_date').split('-')[0]
                     trakt_id = db_connection.get_trakt_id_by_tmdb(tmdb_id)
                     ids = {'trakt': trakt_id, 'tmdb': tmdb_id}
@@ -1524,7 +1539,7 @@ def browse_group_episodes(group_id, season, trakt_id=None):
                         season,
                         ep_watched
                     )
-                    xbmcplugin.addDirectoryItem(HANDLE, liz_url, li, isFolder=False)
+                    xbmcplugin.addDirectoryItem(HANDLE, liz_url, li, isFolder=False, totalItems=totalItems)
 
     kodi.set_view(CONTENT_TYPES.EPISODES, True)
     kodi.end_of_directory()
@@ -1535,7 +1550,6 @@ def browse_episodes(trakt_id, season):
     show = trakt_api.get_show_details(trakt_id)
     logger.log('Show details: %s' % show, log_utils.LOGDEBUG)
     episodes = trakt_api.get_episodes(trakt_id, season)
-    logger.log('Episodes: %s' % episodes, log_utils.LOGDEBUG)
     
     if TOKEN:
         progress = trakt_api.get_show_progress(trakt_id, hidden=True, specials=True)
@@ -1969,7 +1983,6 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
                 show_meta = trakt_api.get_show_details(trakt_id) or {}
                 logger.log('Playback Show Meta: %s' % show_meta, log_utils.LOGDEBUG)
                 tvdb_id = show_meta.get('ids', {}).get('tvdb')
-                logger.log('Playback TVDB ID: %s' % tvdb_id, log_utils.LOGDEBUG)
                 
                 try:
                     ep_meta = trakt_api.get_episode_details(trakt_id, season, episode)
@@ -2061,14 +2074,6 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
         set_info_tag(listitem, info, 'video', 
                     old_method_keys=('size', 'count', 'date',))
         
-        valid_ids = {
-            'imdb': 'imdbnumber' in info and info['imdbnumber'] or None,
-            'tmdb': info.get('tmdb_id'),
-            'tvdb': info.get('tvdb_id'),
-            'trakt': info.get('trakt_id'),
-            'slug': info.get('slug')
-        }
-        listitem.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
         wd.update_progress(100)
 
     if mode == MODES.RESOLVE_SOURCE or from_library or utils2.from_playlist():
@@ -2856,7 +2861,7 @@ def write_nfo(path, video_type, meta_ids):
     if nfo_string:
         filename = video_type.lower().replace(' ', '') + '.nfo'
         path = os.path.join(path, filename)
-        path = xbmc.makeLegalFilename(path)
+        path = xbmcvfs.makeLegalFilename(path)
         if not xbmcvfs.exists(os.path.dirname(path)):
             try:
                 try: xbmcvfs.mkdirs(os.path.dirname(path))
@@ -2881,7 +2886,7 @@ def write_nfo(path, video_type, meta_ids):
                     logger.log('Failed to create .nfo file (%s): %s' % (path, e), log_utils.LOGERROR)
 
 def write_strm(stream, path, video_type, title, year, trakt_id, season='', episode='', require_source=False):
-    path = xbmc.makeLegalFilename(path)
+    path = xbmcvfs.makeLegalFilename(path)
     if not xbmcvfs.exists(os.path.dirname(path)):
         try:
             try: xbmcvfs.mkdirs(os.path.dirname(path))
@@ -2919,6 +2924,7 @@ def show_pickable_list(slug, pick_label, pick_mode, section):
         show_list(section, slug)
 
 def make_dir_from_list(section, list_data, slug=None, query=None, page=None):
+    logger.log('Making directory from list: %s' % (list_data), log_utils.LOGDEBUG)
     section_params = utils2.get_section_params(section)
     watched = {}
     in_collection = {}
@@ -3028,7 +3034,7 @@ def make_dir_from_cal(mode, start_date, days):
             date_time = date
 
         menu_items = []
-        queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb']}
+        queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb'], 'tmdb_id': show['ids']['tmdb']}
         menu_items.append((i18n('browse_seasons'), 'Container.Update(%s)' % (kodi.get_plugin_url(queries))),)
 
         liz, liz_url = make_episode_item(show, episode, show_subs=False, menu_items=menu_items)
@@ -3044,10 +3050,13 @@ def make_dir_from_cal(mode, start_date, days):
     kodi.set_content(CONTENT_TYPES.EPISODES)
     kodi.end_of_directory()
 
-def make_season_item(season, info, trakt_id, title, year, tvdb_id):
-    logger.log('Make Season: Season: %s, Info: %s, Trakt ID: %s, Title: %s, Year: %s, TVDB ID: %s' % (season, info, trakt_id, title, year, tvdb_id), log_utils.LOGDEBUG)
+def make_season_item(season, info, trakt_id, title, year, tvdb_id, tmdb_id):
+    logger.log('Make Season: Season: %s, Info: %s, Trakt ID: %s, Title: %s, Year: %s, TVDB ID: %s, TMDB ID: %s' % (season, info, trakt_id, title, year, tvdb_id, tmdb_id), log_utils.LOGDEBUG)
     label = '%s %s' % (i18n('season'), season['number'])
-    ids = {'trakt': trakt_id, 'tvdb': tvdb_id}
+    ids = {'trakt': trakt_id, 'tvdb': tvdb_id, 'tmdb': tmdb_id}
+    # cached_ids = db_connection.cache_tmdb_trakt_mapping(tmdb_id, trakt_id)
+    # logger.log('Cached IDs: %s' % (cached_ids), log_utils.LOGDEBUG)
+
     art = image_scraper.get_images(VIDEO_TYPES.SEASON, ids, season['number'])
 
     liz = utils.make_list_item(label, season, art)
@@ -3055,7 +3064,7 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id):
     info['mediatype'] = 'season'
         # Replace direct setInfo with hybrid approach
     set_info_tag(liz, info, 'video', 
-                old_method_keys=('size', 'count', 'date', 'duration', 'genre', 'year', 'episode', 'season'))
+                old_method_keys=('size', 'count', 'date',))
         
     liz.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
 
@@ -3197,12 +3206,21 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
     return liz, liz_url
 
 def make_item(section_params, show, menu_items=None):
+    logger.log('make_item: %s' % show, log_utils.LOGDEBUG)
     if menu_items is None: menu_items = []
     if not isinstance(show['title'], str): show['title'] = ''
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
     tmdb_id = show['ids']['tmdb']
+    batchids = tmdb_api.get_tv_details_batch(tmdb_id, overview=False)
+    tvdb_map = {tid: (data.get('external_ids') or {}).get('tvdb_id') for tid, data in batchids.items()}
+    log_utils.log('make_item batch: batchids=%s, tvdb_map=%s' % (batchids, tvdb_map), log_utils.LOGDEBUG)
+    tvdb_id = tvdb_map.get(str(tmdb_id)) or tvdb_map.get(tmdb_id)
+    log_utils.log('make_item tvdb_id: %s' % tvdb_id, log_utils.LOGDEBUG)
+    if tvdb_id:
+        show['ids']['tvdb'] = tvdb_id
     label = '%s (%s)' % (show['title'], show['year'])
     trakt_id = show['ids']['trakt']
+
     art = image_scraper.get_images(section_params['video_type'], show['ids'])
 
     if kodi.get_setting('include_people') == 'true':
@@ -3223,14 +3241,14 @@ def make_item(section_params, show, menu_items=None):
         liz.setProperty('UnWatchedEpisodes', str(info['UnWatchedEpisodes']))
 
     if section_params['section'] == SECTIONS.TV:
-        queries = {'mode': section_params['next_mode'], 'trakt_id': trakt_id, 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb']}
+        queries = {'mode': section_params['next_mode'], 'trakt_id': trakt_id, 'title': show['title'], 'year': show['year'], 'tvdb_id': tvdb_id, 'tmdb_id': show['ids']['tmdb']}
         info['TVShowTitle'] = info['title']
     else:
         queries = {'mode': section_params['next_mode'], 'video_type': section_params['video_type'], 'title': show['title'], 'year': show['year'], 'trakt_id': trakt_id}
     queries['random'] = time.time()
 
         # Replace direct setInfo with hybrid approach
-    set_info_tag(liz, info, 'video', 
+    info_tag = set_info_tag(liz, info, 'video', 
                 old_method_keys=('size', 'count', 'date',))
         
     liz.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
@@ -3331,8 +3349,9 @@ def make_item(section_params, show, menu_items=None):
 
     liz.addContextMenuItems(menu_items, replaceItems=True)
 
-    liz.setProperty('resumetime', str(0))
-    liz.setProperty('totaltime', str(1))
+
+    liz.setProperty('resume', str(0))
+    liz.setProperty('total', str(1))
     return liz, liz_url
 
 def get_list(section, slug, username=None, cached=True):

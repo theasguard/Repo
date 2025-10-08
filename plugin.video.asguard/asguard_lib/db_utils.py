@@ -29,7 +29,7 @@ import json
 import hashlib
 import threading
 from threading import Semaphore
-
+from contextlib import contextmanager
 import requests
 import xbmc, xbmcaddon, xbmcvfs, xbmcgui, log_utils, kodi, cache, six
 from asguard_lib import control
@@ -53,8 +53,8 @@ MYSQL_URL_SIZE = 255
 MYSQL_MAX_BLOB_SIZE = 16777215
 
 INCREASED = False
-UP_THRESHOLD = 0
-DOWN_THRESHOLD = 4
+UP_THRESHOLD = 5
+DOWN_THRESHOLD = 5
 CHECK_THRESHOLD = 50
 WRITERS = [0, 1, 5, 25, 50, 100]
 try: SPEED = int(kodi.get_setting('machine_speed'))
@@ -71,6 +71,8 @@ class DB_Connection():
     locks = 0
     writes = 0
     worker_id = None
+    _connection_pool = {}  # Add connection pool
+    _pool_lock = threading.Lock() 
     
     def __init__(self):
         global OperationalError
@@ -81,6 +83,7 @@ class DB_Connection():
         self.address = kodi.get_setting('db_address')
         self.db = None
         self.progress = None
+        self._local = threading.local()
 
         if kodi.get_setting('use_remote_db') == 'true':
             if all((self.address, self.username, self.password, self.dbname)):
@@ -261,6 +264,7 @@ class DB_Connection():
             return False
 
 
+
     def get_cached_tmdb_trakt_mapping(self, tmdb_id):
         """Read a cached TMDB->Trakt mapping from MAIN DB (id_mapping)."""
         if not tmdb_id: return None
@@ -270,6 +274,7 @@ class DB_Connection():
             return rows[0][0] if rows else None
         except Exception:
             return None
+
 
     def get_trakt_id_by_tmdb_cached(self, tmdb_id):
         """Try anime mapping first, then fallback MAIN DB id_mapping table."""
@@ -1239,6 +1244,36 @@ class DB_Connection():
 
             kodi.set_setting('sema_value', str(MAX_WRITERS))
         
+    @contextmanager
+    def get_cursor(self):
+        """Context manager for thread-safe database operations"""
+        db_con = None
+        cursor = None
+        is_read = False
+        try:
+            # Get connection and format SQL
+            db_con = self.__get_db_connection()
+            cursor = db_con.cursor()
+            
+            # Yield cursor for use in with block
+            yield cursor
+            
+            # Commit if successful
+            db_con.commit()
+            
+        except Exception as e:
+            # Rollback on error
+            if db_con:
+                db_con.rollback()
+            raise e
+            
+        finally:
+            # Clean up resources
+            if cursor:
+                cursor.close()
+        
+
+
     def __is_read(self, sql):
         fragment = sql[:6].upper()
         return fragment[:6] == 'SELECT' or fragment[:4] == 'SHOW'
@@ -1278,10 +1313,42 @@ class DB_Connection():
             if self.db_type == DB_TYPES.MYSQL:
                 self.db = self.db_lib.connect(database=self.dbname, user=self.username, password=self.password, host=self.address, buffered=True)
             else:
-                self.db = self.db_lib.connect(self.db_path)
+                self.db = self.db_lib.connect(self.db_path, isolation_level=None)
                 self.db.text_factory = str
             self.worker_id = worker_id
         return self.db
+        
+    def close_all_connections(self):
+        """Clean up all connections in the pool"""
+        with self._pool_lock:
+            for self.worker_id, self.db in self._connection_pool.items():
+                try:
+                    self.close()
+                except:
+                    pass
+            self._connection_pool.clear()
+
+    def close(self):
+        worker_id = self.worker_id
+        self.close_all_connections()
+        if self.__get_db_connection().cursor():
+            self.__get_db_connection().cursor().close()
+        if worker_id is not None:
+            worker_id = None
+        if self.db:
+            self.db.close()
+            self.db = None
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        if exc_type:
+            import traceback
+            logger.log('database error', log_utils.LOGERROR)
+            logger.log(f"{''.join(traceback.format_exception(exc_type, exc_val, exc_tb))}", log_utils.LOGERROR)
+        if exc_type is OperationalError:
+            logger.log('OperationalError', log_utils.LOGERROR)
+            logger.log(f"{''.join(traceback.format_exception(exc_type, exc_val, exc_tb))}", log_utils.LOGERROR)
+            return True
 
     # apply formatting changes to make sql work with a particular db driver
     def __format(self, sql):
@@ -1294,16 +1361,6 @@ class DB_Connection():
 
         return sql
 
-
-
-    # def delete_cached_url(self, url, data=None):
-    #     """Delete specific cached URL from database"""
-    #     try:
-    #         data_str = json.dumps(data) if data else None
-    #         self.execute_sql('DELETE FROM url_cache WHERE url=? AND data=?', (url, data_str))
-    #         self.__get_db_connection().commit()
-    #     except Exception as e:
-    #         logger.log(f'Error deleting cached URL: {e}', log_utils.LOGERROR)
 
     @abstractmethod
     def set(self, cache_id, data, checksum=None, expiration=None):
@@ -1359,80 +1416,6 @@ def get_mapping(anilist_id='', mal_id='', kitsu_id='', tmdb_id='', trakt_id=''):
         conn.close()
     
     return mapping
-
-
-def get_tvdb_season(trakt_id):
-    control.mappingDB_lock.acquire()
-    try:
-        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
-        conn.row_factory = _dict_factory
-        conn.execute("PRAGMA FOREIGN_KEYS = 1")
-        cursor = conn.cursor()
-        mapping = None
-        if trakt_id:
-            db_query = 'SELECT thetvdb_season FROM anime WHERE trakt_id = ?'
-            cursor.execute(db_query, (trakt_id,))
-            mapping = cursor.fetchall()
-            cursor.close()
-    finally:
-        control.try_release_lock(control.mappingDB_lock)
-        conn.close()
-    return mapping if mapping else None
-
-def get_tvdb_part(trakt_id):
-    control.mappingDB_lock.acquire()
-    try:
-        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
-        conn.row_factory = _dict_factory
-        conn.execute("PRAGMA FOREIGN_KEYS = 1")
-        cursor = conn.cursor()
-        mapping = None
-        if trakt_id:
-            db_query = 'SELECT thetvdb_part FROM anime WHERE trakt_id = ?'
-            cursor.execute(db_query, (trakt_id,))
-            mapping = cursor.fetchone()
-            cursor.close()
-    finally:
-        control.try_release_lock(control.mappingDB_lock)
-        conn.close()
-    return mapping['thetvdb_part'] if mapping else None
-
-def get_anidb_id(trakt_id):
-    control.mappingDB_lock.acquire()
-    try:
-        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
-        conn.row_factory = _dict_factory
-        conn.execute("PRAGMA FOREIGN_KEYS = 1")
-        cursor = conn.cursor()
-        mapping = None
-        if trakt_id:
-            db_query = 'SELECT anidb_id FROM anime WHERE trakt_id = ?'
-            cursor.execute(db_query, (trakt_id,))
-            mapping = cursor.fetchone()
-            cursor.close()
-    finally:
-        control.try_release_lock(control.mappingDB_lock)
-        conn.close()
-    return mapping['anidb_id'] if mapping else None
-
-
-def get_thetvdb_id(trakt_id):
-    control.mappingDB_lock.acquire()
-    try:
-        conn = sqlite3.connect(control.mappingDB, timeout=60.0)
-        conn.row_factory = _dict_factory
-        conn.execute("PRAGMA FOREIGN_KEYS = 1")
-        cursor = conn.cursor()
-        mapping = None
-        if trakt_id:
-            db_query = 'SELECT thetvdb_id FROM anime WHERE trakt_id = ?'
-            cursor.execute(db_query, (trakt_id,))
-            mapping = cursor.fetchone()
-            cursor.close()
-    finally:
-        control.try_release_lock(control.mappingDB_lock)
-        conn.close()
-    return mapping['thetvdb_id'] if mapping else None
 
 def _dict_factory(cursor, row):
     d = {}

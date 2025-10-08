@@ -35,7 +35,7 @@ from asguard_lib.db_utils import DB_Connection
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
 
 logger = log_utils.Logger.get_logger(__name__)
-
+monitor = xbmc.Monitor()
 db_connection = DB_Connection()
 last_check = datetime.datetime.fromtimestamp(0)
 TOKEN = kodi.get_setting('trakt_oauth_token')
@@ -50,9 +50,7 @@ WATCHLIST_SLUG = 'watchlist_slug'
 def make_info(item, show=None, people=None):
     if people is None: people = {}
     if show is None: show = {}
-    logger.log('Making Info: Show: %s' % (show), log_utils.LOGDEBUG)
-    logger.log('Making Info: Item: %s' % (item), log_utils.LOGDEBUG)
-        # Ensure 'title' key is present in item
+
     if 'title' not in item:
         logger.log('Missing key "title" in item: {}'.format(item), log_utils.LOGERROR)
         return {}
@@ -116,10 +114,6 @@ def make_info(item, show=None, people=None):
                     if v and str(info.get('number', 0)) not in v and info.get('title') and str(info.get('number', 0)) not in info.get('title'):
                         info[k] = v
 
-    # # Fetch aliases
-    # aliases = trakt_api.get_show_aliases(show.get('ids', {}).get('trakt'))
-    # if aliases:
-    #     info['aliases'] = aliases
 
     logger.log('Final Info: %s' % (info), log_utils.LOGDEBUG)
     return info
@@ -259,12 +253,10 @@ def parallel_get_sources(scraper, video):
 # Run a task on startup. Settings and mode values must match task name
 def do_startup_task(task):
     run_on_startup = kodi.get_setting('auto-%s' % task) == 'true' and kodi.get_setting('%s-during-startup' % task) == 'true'
-    # Create monitor instance for Kodi 20+ compatibility
-    monitor = xbmc.Monitor()
    
     # Check abort status using appropriate method for version
     abort_requested = monitor.abortRequested() if monitor else xbmc.abortRequested
-    if run_on_startup and not abort_requested:
+    if run_on_startup and not monitor.abortRequested():
         logger.log('Service: Running startup task [%s]' % (task), log_utils.LOGNOTICE)
         now = datetime.datetime.now()
         xbmc.executebuiltin('RunPlugin(plugin://%s/?mode=%s)' % (kodi.get_id(), task))

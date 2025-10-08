@@ -332,6 +332,18 @@
 						<heading/>
 					</control>
 				</setting>
+				<setting id="sema_value1" type="integer" help="">
+					<level>0</level>
+					<default>1</default>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">false</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="integer">
+						<heading/>
+					</control>
+				</setting>
 				<setting id="addon_debug" type="boolean" label="30324" help="">
 					<level>0</level>
 					<default>false</default>
@@ -1190,7 +1202,7 @@
 				</setting>
 				<setting id="fanart_key" type="string" label="30711" help="">
 					<level>0</level>
-					<default>d2c98a4e6096e0b24b8560107c48dae2</default>
+					<default>2dd1c2a0df58e22b28ac59ae32263f13</default>
 					<dependencies>
 						<dependency type="visible">
 							<condition on="property" name="InfoBool">false</condition>
@@ -2387,7 +2399,7 @@
 					<default>false</default>
 					<dependencies>
 						<dependency type="visible">
-							<condition on="property" name="InfoBool">false</condition>
+							<condition on="property" name="InfoBool">true</condition>
 						</dependency>
 					</dependencies>
 					<control type="toggle"/>
@@ -2879,41 +2891,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="Dailymotion-enable" type="boolean" label="40612" help="">
-						<level>0</level>
-						<default>true</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition on="property" name="InfoBool">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="toggle"/>
-					</setting>
-					<setting id="Dailymotion-base_url" type="string" label="30175" help="">
-						<level>0</level>
-						<default>https://www.dailymotion.com</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition operator="is" setting="Dailymotion-enable">true</condition>
-							</dependency>
-						</dependencies>
-						<constraints>
-							<allowempty>true</allowempty>
-						</constraints>
-						<control type="edit" format="string">
-							<heading>Base Url</heading>
-						</control>
-					</setting>
-					<setting id="Dailymotion-sub_check" type="boolean" label="30176" help="">
-						<level>0</level>
-						<default>true</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition operator="is" setting="Dailymotion-enable">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="toggle"/>
-					</setting>
 					<setting id="EasyNews-enable" type="boolean" label="30402" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3012,10 +2989,6 @@
 							<popup>false</popup>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_3" label="30320" help="">
-			<group id="103">
 					<setting id="EZTV-enable" type="boolean" label="30423" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3051,6 +3024,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_3" label="30320" help="">
+			<group id="103">
 					<setting id="Furk.net-enable" type="boolean" label="30403" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3305,10 +3282,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_4" label="30321" help="">
-			<group id="104">
 					<setting id="Local-enable" type="boolean" label="30404" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3364,6 +3337,10 @@
 						</dependencies>
 						<control type="spinner" format="string"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_4" label="30321" help="">
+			<group id="104">
 					<setting id="M4UHD-enable" type="boolean" label="40818" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3624,7 +3601,7 @@
 							</dependency>
 						</dependencies>
 						<control type="edit" format="string">
-							<heading>movies_base_url</heading>
+							<heading></heading>
 						</control>
 					</setting>
 					<setting id="Premiumize.me-base_url3" type="string" label="40914" help="">
@@ -3636,7 +3613,7 @@
 							</dependency>
 						</dependencies>
 						<control type="edit" format="string">
-							<heading>tv_shows_base_url</heading>
+							<heading></heading>
 						</control>
 					</setting>
 					<setting id="Premiumize.me-include_trans" type="boolean" label="30281" help="">

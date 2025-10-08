@@ -63,7 +63,6 @@ class Scraper(scraper.Scraper):
 
         # Log a snippet of the HTML to see what we're working with
         html_snippet = html[:500] if html else ""
-        logger.log(f'[BSTSRS] HTML snippet: {html_snippet}', log_utils.LOGDEBUG)
 
         # Check if we have the correct show page by looking for IMDB link
         imdb_id = self.get_imdb_id(video)

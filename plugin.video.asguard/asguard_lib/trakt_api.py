@@ -31,18 +31,23 @@ import kodi
 import log_utils
 import utils
 from asguard_lib import utils2  # Use relative import
-import logging
-
+from urllib3.util.retry import Retry
 from asguard_lib.constants import SECTIONS, TEMP_ERRORS, TRAKT_SECTIONS  # Ensure relative import
 from asguard_lib.db_utils import DB_Connection
 import xbmc  # Ensure relative import
 
 logger = log_utils.Logger.get_logger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 def __enum(**enums):
     return type('Enum', (), enums)
-
+# Modern retry configuration
+retry_strategy = Retry(
+    total=None,  # Total number of retries
+    backoff_factor=1,  # Exponential backoff factor
+    status_forcelist=[429, 502, 503, 504],  # HTTP status codes to retry on
+    allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
+    raise_on_status=False  # Don't raise exception immediately on status codes
+)
 TEMP_ERRORS = [500, 502, 503, 504, 520, 521, 522, 524]
 SECTIONS = __enum(TV='TV', MOVIES='Movies')
 TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
@@ -50,9 +55,9 @@ session = requests.Session()
 logger.log(f"Trakt API Session: {session}", log_utils.LOGDEBUG)
 retry = requests.adapters.Retry(total=None, status=1, status_forcelist=(429, 502, 503, 504))
 if kodi.get_setting('use_https') == 'true':
-    session.mount('https://api.trakt.tv', requests.adapters.HTTPAdapter(pool_maxsize=100, max_retries=retry))
+    session.mount('https://api.trakt.tv', requests.adapters.HTTPAdapter(pool_maxsize=100, max_retries=retry_strategy))
 else:
-    session.mount('http://api.trakt.tv', requests.adapters.HTTPAdapter(pool_maxsize=100, max_retries=retry))
+    session.mount('http://api.trakt.tv', requests.adapters.HTTPAdapter(pool_maxsize=100, max_retries=retry_strategy))
 
 
 class TraktError(Exception):

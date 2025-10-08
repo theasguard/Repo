@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import logging
+
 import re
 import urllib.parse
 import urllib.request, urllib.error
@@ -222,37 +222,31 @@ class Scraper(scraper.Scraper):
 
     def _build_query(self, video):
         query = video.title
-        logging.debug("Initial query: %s", query)
 
         # Check for episode and season range in the title
         episode_range = re.search(r'[Ee]p?(\d+)(?:[-~](\d+))?', video.title)
         season_range = re.search(r'[Ss]eason\s?(\d+)|[Ss](\d+)', video.title)
-        logging.debug("torrentz2 Retrieved episode_range: %s", episode_range)
-        logging.debug("torrentz2 Retrieved season_range: %s", season_range)
+
 
         # Construct the query based on the video type
         if video.video_type == VIDEO_TYPES.EPISODE:
             if season_range:
                 start_season, end_season = map(int, season_range.groups(default=season_range.group(1)))
-                logging.debug("torrentz2 Retrieved start_season: %s", start_season)
-                logging.debug("torrentz2 Retrieved end_season: %s", end_season)
+
                 if episode_range:
                     start_ep, end_ep = map(int, episode_range.groups(default=episode_range.group(1)))
-                    logging.debug("torrentz2 Retrieved start_ep: %s", start_ep)
-                    logging.debug("torrentz2 Retrieved end_ep: %s", end_ep)
+
                     query += f' S{start_season:02d}E{start_ep:02d}-E{end_ep:02d}'
                 else:
                     # Handle full season queries
                     query = f'"Season {start_season:02d}"|"Complete"|"Batch"|"S{start_season:02d}"'
             else:
                 query += f' S{int(video.season):02d}E{int(video.episode):02d}'
-            logging.debug("Episode query: %s", query)
+
         elif video.video_type == VIDEO_TYPES.MOVIE:
             query += f' {video.year}'
-            logging.debug("Movie query: %s", query)
 
         query = query.replace(' ', '+').replace('+-', '-')
-        logging.debug("Final query: %s", query)
         return query
 
     def _build_season_query(self, video):

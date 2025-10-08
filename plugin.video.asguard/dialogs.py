@@ -28,7 +28,18 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
         self.setProperty('item.info.title', self.message)
         self.setProperty('settings.color', 'FF12A0C7')
         logger.log(f'Set properties - ShowTitle: {self.title} | Details: {self.message}', log_utils.LOGDEBUG)
-        Thread(target=self.update_progress).start()
+        self.run_in_background(self.update_progress)
+
+
+    def run_in_background(self, task_function, *args, **kwargs):
+        """Executes a function in a separate, non-blocking thread."""
+        thread = Thread(target=task_function, args=args, kwargs=kwargs)
+        thread.daemon = True  # Allows the main program to exit without waiting for this thread
+        try:
+            thread.start()
+        except Exception as e:
+            logger.log(f'Service: Failed to start background thread: {str(e)}', log_utils.LOGERROR)
+
 
     def update_progress(self):
         elapsed = time.time() - self.start_time

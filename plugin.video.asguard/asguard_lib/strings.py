@@ -377,4 +377,6 @@ STRINGS = {
     'search_anime': 40522,
     'simkl_auth': 40523,
     'trakt_reauth': 40524,
+    'tv_shows_base_url': 50525,
+    'movies_base_url': 50526,
 }

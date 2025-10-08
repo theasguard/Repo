@@ -386,7 +386,6 @@ class Scraper(object):
         name = cls.get_name()
         base_id = f"{name}-enable"
         label_id = kodi.Translations.get_scraper_label_id(name)
-        logger.log(f'Label ID: {label_id}', log_utils.LOGDEBUG)
         
         # Handle empty base_url (use single space to make it visible in Kodi)
         default_base_url = cls.base_url if cls.base_url else " "
@@ -504,7 +503,7 @@ class Scraper(object):
     
     def _cached_http_get(self, url, base_url, timeout, params=None, data=None, multipart_data=None, headers=None, cookies=None, allow_redirect=True,
                         method=None, require_debrid=False, read_error=False, cache_limit=8):
-        logger.log('_cached_http_get called with URL: %s' % url, log_utils.LOGDEBUG)
+
         if require_debrid:
             if Scraper.debrid_resolvers is None:
                 Scraper.debrid_resolvers = [resolver for resolver in resolveurl.relevant_resolvers() if resolver.isUniversal()]
@@ -780,14 +779,14 @@ class Scraper(object):
         # Build a requests session with retry/backoff
         session = requests.Session()
         retry = Retry(
-            total=3,
-            connect=3,
+            total=10,
+            connect=10,
             read=3,
             backoff_factor=0.5,
             status_forcelist=(429, 500, 502, 503, 504),
             allowed_methods=frozenset(['HEAD', 'GET', 'POST'])
         )
-        adapter = HTTPAdapter(max_retries=retry)
+        adapter = HTTPAdapter(pool_maxsize=100, max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
 

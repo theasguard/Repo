@@ -34,37 +34,17 @@ db_connection = local_lib.db_utils.DBCache(local_lib.DB_PATH)
 
 TMDB_API_KEY = kodi.get_setting('tmdb_key')
 
-def fetch_images_from_tmdb(tmdb_id, media_type):
-    # Convert tmdb_id and media_type to the format expected by image_scraper.get_images
-    video_ids = {'tmdb': tmdb_id}
-    video_type = 'movie' if media_type == 'movie' else 'tvshow'  
-    
-    # Call the function with proper parameters
-    return image_scraper.get_images(video_type, video_ids, cached=False)
-
 def get_movie_images(tmdb_id):
-    try:
-        images = fetch_images_from_tmdb(tmdb_id, 'movie')
-        db_connection.update_movie(tmdb_id, images)
-        return images
-    except Exception as e:
-        logger.log(f"Error fetching movie images: {e}", log_utils.LOGERROR)
-        return {}
+    return db_connection.get_movie(tmdb_id)
 
 def get_tv_images(tmdb_id):
-    try:
-        images = fetch_images_from_tmdb(tmdb_id, 'tv')
-        db_connection.update_tvshow(tmdb_id, images)
-        return images
-    except Exception as e:
-        logger.log(f"Error fetching TV show images: {e}", log_utils.LOGERROR)
-        return {}
+    return db_connection.get_tvshow(tmdb_id)
 
 def get_person_images(tmdb_id):
-    try:
-        images = fetch_images_from_tmdb(tmdb_id, 'person')
-        db_connection.update_person(tmdb_id, images)
-        return images
-    except Exception as e:
-        logger.log(f"Error fetching person images: {e}", log_utils.LOGERROR)
-        return {}
+    return db_connection.get_person(tmdb_id)
+
+def get_season_images(tmdb_id, season):
+    return db_connection.get_season(tmdb_id, season)
+    
+def get_episode_images(tmdb_id, season, episode):
+    return db_connection.get_episode(tmdb_id, season, episode)

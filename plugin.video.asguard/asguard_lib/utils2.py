@@ -107,7 +107,7 @@ def _released_key(item):
         return 0
 
 def sort_list(sort_key, sort_direction, list_data):
-
+    logger.log('sort_list: sort_key: %s, sort_direction: %s, list_data: %s' % (sort_key, sort_direction, list_data), log_utils.LOGDEBUG)
     # Defensive programming: ensure list_data is actually a list
     if not isinstance(list_data, list):
         logger.log('sort_list: Expected list, got %s. Returning original data.' % type(list_data), log_utils.LOGWARNING)
@@ -162,6 +162,7 @@ def sort_list(sort_key, sort_direction, list_data):
         TRAKT_LIST_SORT.POPULARITY: get_votes,
         TRAKT_LIST_SORT.PERCENTAGE: get_rating,
         TRAKT_LIST_SORT.VOTES: get_votes,
+        TRAKT_LIST_SORT.GET_TIME: lambda x: utils.iso_2_utc(x.get('last_watched_at', 0)),
         TRAKT_LIST_SORT.PLAYS: get_plays
     }
 
@@ -521,6 +522,23 @@ def format_sub_label(sub):
         label = label[:-4]
     label = '[COLOR %s]%s[/COLOR]' % (color, label)
     return label
+
+def get_params():
+    """
+    Parse parameters from Kodi plugin URL
+    Returns a dictionary of URL parameters
+    """
+    import sys
+    import urllib.parse
+    
+    param = {}
+    if len(sys.argv) > 2:
+        args = sys.argv[2]
+        if args.startswith('?'):
+            args = args[1:]
+        param = dict(urllib.parse.parse_qsl(args))
+    
+    return param
 
 def format_source_label(item):
     color = kodi.get_setting('debrid_color') or 'green'

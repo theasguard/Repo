@@ -25,9 +25,7 @@ import log_utils
 from asguard_lib import image_scraper
 from asguard_lib import worker_pool
 from http.server import SimpleHTTPRequestHandler, HTTPServer
-import logging
 
-logging.basicConfig(level=logging.DEBUG)
 logger = log_utils.Logger.get_logger(__name__)
 
 class ValidationError(Exception):
@@ -40,6 +38,12 @@ class ImageProxy(object):
         self.svr_thread = None
         self.httpd = None
     
+    def check_threads(self):
+        """Check if any threads are stuck"""
+        for thread in threading.enumerate():
+            if thread.is_alive() and thread != threading.current_thread():
+                logger.log('Thread %s still alive' % thread.name, log_utils.LOGDEBUG)
+
     @property
     def running(self):
         try: 
@@ -75,7 +79,7 @@ class ImageProxy(object):
         try:
             self.httpd = MyHTTPServer(server_address, MyRequestHandler)
             logger.log('Image Proxy started successfully', log_utils.LOGNOTICE)
-            self.httpd.serve_forever()
+            self.httpd.serve_forever(.5)
         except Exception as e:
             logger.log('Failed to start Image Proxy: %s' % str(e), log_utils.LOGERROR)
 
@@ -87,7 +91,7 @@ class ImageProxy(object):
 
 class MyHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
-        self._wp = worker_pool.WorkerPool(max_workers=100)
+        self._wp = worker_pool.WorkerPool(max_workers=50)
         HTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
         
     def process_request(self, request, client_address):

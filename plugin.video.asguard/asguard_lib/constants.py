@@ -51,7 +51,7 @@ TRAKT_SECTIONS = {SECTIONS.TV: 'shows', SECTIONS.MOVIES: 'movies'}
 TRAKT_SORT = __enum(TITLE='title', RECENT_ACTIVITY='recent-activity', MOST_COMPLETED='most-completed', LEAST_COMPLETED='least-completed', RECENTLY_AIRED='recently-aired',
                     PREVIOUSLY_AIRED='previously-aired', PAST_ACTIVITY='past-activity')
 TRAKT_LIST_SORT = __enum(RANK='rank', RECENTLY_ADDED='added', TITLE='title', RELEASE_DATE='released', RUNTIME='runtime', POPULARITY='popularity',
-                         PERCENTAGE='percentage', VOTES='votes', PLAYS='plays')
+                         PERCENTAGE='percentage', VOTES='votes', PLAYS='plays', GET_TIME='time')
 TRAKT_SORT_DIR = __enum(ASCENDING='asc', DESCENDING='desc')
 SORT_MAP = [TRAKT_SORT.RECENT_ACTIVITY, TRAKT_SORT.TITLE, TRAKT_SORT.MOST_COMPLETED, TRAKT_SORT.LEAST_COMPLETED, TRAKT_SORT.RECENTLY_AIRED,
             TRAKT_SORT.PREVIOUSLY_AIRED, TRAKT_SORT.PAST_ACTIVITY]
