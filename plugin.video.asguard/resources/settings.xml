@@ -403,7 +403,7 @@
 		</category>
 		<category id="consumet" label="40620" help="">
 			<group id="2">
-			<setting id="mod_domains" type="boolean" label="40626" help="">
+			<setting id="persist_tvdb_ids" type="boolean" label="40626" help="">
 				<level>0</level>
 				<default>true</default>
 				<control type="toggle" />

@@ -2592,7 +2592,7 @@ msgid "Vidsrc Enabled"
 msgstr ""
 
 msgctxt "#40626"
-msgid "Mod Domains"
+msgid "Persist TVDBID"
 msgstr ""
 
 msgctxt "#40627"

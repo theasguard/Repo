@@ -2423,3 +2423,8 @@ msgstr ""
 msgctxt "#40527"
 msgid "Custom Config"
 msgstr ""
+
+
+msgctxt "#40626"
+msgid "Persist TVDBID"
+msgstr ""

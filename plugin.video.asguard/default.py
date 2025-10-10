@@ -26,6 +26,7 @@ import log_utils
 import utils
 import kodi
 import six
+from asguard_lib import tvdb_persist
 from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
 from asguard_lib.srt_scraper import SRT_Scraper
@@ -3211,11 +3212,7 @@ def make_item(section_params, show, menu_items=None):
     if not isinstance(show['title'], str): show['title'] = ''
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
     tmdb_id = show['ids']['tmdb']
-    batchids = tmdb_api.get_tv_details_batch(tmdb_id, overview=False)
-    tvdb_map = {tid: (data.get('external_ids') or {}).get('tvdb_id') for tid, data in batchids.items()}
-    log_utils.log('make_item batch: batchids=%s, tvdb_map=%s' % (batchids, tvdb_map), log_utils.LOGDEBUG)
-    tvdb_id = tvdb_map.get(str(tmdb_id)) or tvdb_map.get(tmdb_id)
-    log_utils.log('make_item tvdb_id: %s' % tvdb_id, log_utils.LOGDEBUG)
+    tvdb_id = tvdb_persist.enrich_tvdb_id(show, tmdb_api, trakt_api=trakt_api)
     if tvdb_id:
         show['ids']['tvdb'] = tvdb_id
     label = '%s (%s)' % (show['title'], show['year'])
