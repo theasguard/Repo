@@ -54,12 +54,15 @@ Contributions are welcome! Please submit issues, feature requests, or pull reque
 
 ### From Zip File
 
-1. Download the zip file from the [[releases page](https://github.com/theasguard/Repo/releases/expanded_assets/release)]
+1. Download the zip file from the [[releases page](https://theasguard.github.io/)]
 2. Open Kodi and go to _Settings_ > _Add-ons_ > _Install from zip file_.
 3. Navigate to the downloaded zip file and select it.
 4. Wait for the installation to complete.
-5. Go to _Settings_ > _Add-ons_ > _My add-ons_ > _Video add-ons_ > **Asguard**.
-6. Open **Asguard** and configure it as needed.
+
+5. 2. Hosted option Add to file manager https://theasguard.github.io/ name it Blamo or any name.
+
+7. Go to _Settings_ > _Add-ons_ > _My add-ons_ > _Video add-ons_ > **Asguard**.
+8. Open **Asguard** and configure it as needed.
 
 ### From Source
 
