@@ -3212,9 +3212,12 @@ def make_item(section_params, show, menu_items=None):
     if not isinstance(show['title'], str): show['title'] = ''
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
     tmdb_id = show['ids']['tmdb']
-    tvdb_id = tvdb_persist.enrich_tvdb_id(show, tmdb_api, trakt_api=trakt_api)
-    if tvdb_id:
-        show['ids']['tvdb'] = tvdb_id
+    # Only try to get TVDB ID for TV shows, not movies
+    tvdb_id = None
+    if section_params['section'] == SECTIONS.TV:
+        tvdb_id = tvdb_persist.enrich_tvdb_id(show, tmdb_api, trakt_api=trakt_api)
+        if tvdb_id:
+            show['ids']['tvdb'] = tvdb_id
     label = '%s (%s)' % (show['title'], show['year'])
     trakt_id = show['ids']['trakt']
 
