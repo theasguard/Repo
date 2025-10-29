@@ -27,8 +27,8 @@ from resolveurl.resolver import ResolveUrl, ResolverError
 
 class VeevResolver(ResolveUrl):
     name = 'Veev'
-    domains = ['veev.to', 'kinoger.pw', 'poophq.com', 'doods.to']
-    pattern = r'(?://|\.)((?:veev|kinoger|poophq|doods)\.(?:to|pw|com))/(?:e|d)/([0-9a-zA-Z]+)'
+    domains = ['veev.to', 'poophq.com', 'doods.to']
+    pattern = r'(?://|\.)((?:veev|poophq|doods)\.(?:to|com))/(?:e|d)/([0-9a-zA-Z]+)'
 
     def get_media_url(self, host, media_id):
         web_url = self.get_url(host, media_id)
@@ -37,7 +37,7 @@ class VeevResolver(ResolveUrl):
         if r.get_url() != web_url:
             media_id = r.get_url().split('/')[-1]
         # Still dancing
-        items = re.findall(r'''[\.\s']fc(?:'])?\s*[:=]\s*['"]([^'"]+)''', r.content)
+        items = re.findall(r'''[\.\s'](?:fc|_vvto\[[^\]]*)(?:['\]]*)?\s*[:=]\s*['"]([^'"]+)''', r.content)
         if items:
             for f in items[::-1]:
                 ch = veev_decode(f)

@@ -26,17 +26,21 @@ from resolveurl.resolver import ResolveUrl, ResolverError
 class MoflixStreamResolver(ResolveUrl):
     name = 'MoflixStream'
     domains = [
-        'moflix-stream.fans', 'boosteradx.online', 'mov18plus.cloud',
-        'moviesapi.club', 'boosterx.stream', 'vidstreamnew.xyz',
-        'boltx.stream', 'chillx.top', 'watchx.top', 'bestx.stream',
-        'playerx.stream', 'vidstreaming.xyz'
+        'moflix-stream.fans', 'mov18plus.cloud', 'newer.stream',
+        'moviesapi.club', 'boosterx.stream', 'vidstreamnew.xyz', 'plyrxcdn.site',
+        'boltx.stream', 'chillx.top', 'watchx.top', 'bestx.stream', 'playerx.stream',
+        'vidstreaming.xyz', 'raretoonsindia.co', 'bestmovies4u.top'
     ]
-    pattern = r'(?://|\.)((?:moflix-stream|boostera?d?x|mov18plus|w1\.moviesapi|vidstream(?:new|ing)|(?:chill|watch|best|bolt|player)x)\.' \
-              r'(?:fans|online|cloud|club|stream|xyz|top))/' \
+    pattern = r'(?://|\.)((?:moflix-stream|boosterx|mov18plus|newer|plyrxcdn|bestmovies4u|' \
+              r'w1\.moviesapi|vidstream(?:new|ing)|(?:chill|watch|best|bolt|player)x)\.' \
+              r'(?:fans|cloud|club|stream|xyz|top|site|co))/' \
               r'(?:d|v)/([0-9a-zA-Z$:/.-_]+)'
 
     def get_media_url(self, host, media_id, subs=False):
-        headers = {'User-Agent': common.RAND_UA}
+        headers = {
+            'User-Agent': common.RAND_UA,
+            'Referer': 'https://{0}/'.format(host)
+        }
         if '$$' in media_id:
             media_id, referer = media_id.split('$$')
             referer = urllib_parse.urljoin(referer, '/')
@@ -45,10 +49,10 @@ class MoflixStreamResolver(ResolveUrl):
             headers.update({'Referer': 'https://moviesapi.club/'})
         web_url = self.get_url(host, media_id)
         html = self.net.http_GET(web_url, headers=headers).content
-        r = re.search(r'''(?:const|var|let|window\.)\s*\w*\s*=\s*'([^']+)''', html)
+        r = re.search(r'''(?:const|var|let|window\.)\s*\w*\s*=\s*'([^']+)';''', html)
         if r:
             html2 = self.mf_decrypt(r.group(1))
-            r = re.search(r'file"?\s*:\s*"([^"]+)', html2)
+            r = re.search(r'file"?:\s*"([^"]+)', html2)
             if r:
                 murl = r.group(1)
                 headers.update({
@@ -76,18 +80,19 @@ class MoflixStreamResolver(ResolveUrl):
     def get_url(self, host, media_id):
         return self._default_get_url(host, media_id, template='https://{host}/v/{media_id}')
 
-    @staticmethod
-    def mf_decrypt(data):
+    def mf_decrypt(self, data):
+        import base64
+        import binascii
+        from resolveurl.lib import pyaes
         """
         (c) 2025 yogesh-hacker
         """
-        # Func ID: YP32NeJ
-        import hashlib
-        from resolveurl.lib import pyaes
-        data = helpers.b64decode(data, binary=True)
-        password = helpers.b64decode("ZlpEaWRvcURMZkNBVihHJkM4", binary=True)
-        key = hashlib.sha256(password).digest()
-        decryptor = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key, data[32:48]))
-        ddata = decryptor.feed(data[48:])
+        # Func ID: weM5sb #
+        key = binascii.unhexlify('70736e63314a4c745836495465456a536967504e4855577947596f7856417a51')
+        data = base64.b64decode(data)
+        # Decrypt using AES-CBC
+        decryptor = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key, data[:16]))
+        ddata = decryptor.feed(data[16:])
         ddata += decryptor.feed()
+
         return ddata.decode('utf-8')
