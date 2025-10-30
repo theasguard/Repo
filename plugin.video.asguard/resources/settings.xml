@@ -408,6 +408,37 @@
 				<default>true</default>
 				<control type="toggle" />
 			</setting>
+			<setting id="tvdb_helper_enabled" type="boolean" label="40528" help="">
+				<level>0</level>
+				<default>true</default>
+				<control type="toggle" />
+			</setting>
+			<setting id="tvdb_helper_auto_update" type="boolean" label="40529" help="">
+				<level>0</level>
+				<default>true</default>
+				<control type="toggle" />
+			</setting>
+			<setting id="tvdb_helper_fallback_to_tmdb" type="boolean" label="40530" help="">
+				<level>0</level>
+				<default>true</default>
+				<control type="toggle" />
+			</setting>
+			<setting id="tvdb_helper_update_interval" type="integer" label="40531" help="">
+				<level>0</level>
+				<default>10</default>
+				<constraints>
+					<minimum>0</minimum>
+					<maximum>50</maximum>
+				</constraints>
+				<dependencies>
+					<dependency type="enable">
+						<condition operator="is" setting="tvdb_helper_enabled">true</condition>
+					</dependency>
+				</dependencies>
+				<control type="slider" format="integer">
+					<popup>false</popup>
+				</control>
+			</setting>
 			<setting id="consumet.hosting.bool" type="boolean" label="40620" help="">
 				<level>0</level>
 				<default>false</default>

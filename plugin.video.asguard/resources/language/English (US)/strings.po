@@ -2424,6 +2424,23 @@ msgctxt "#40527"
 msgid "Custom Config"
 msgstr ""
 
+msgctxt "#40528"
+msgid "TVDB Helper Enabled"
+msgstr ""
+
+msgctxt "#40529"
+msgid "TVDB Auto Update"
+msgstr ""
+
+msgctxt "#40530"
+msgid "TVDB Helper Fallbacks"
+msgstr ""
+
+
+msgctxt "#40531"
+msgid "TVDB Helper Update Interval (Days)"
+msgstr ""
+
 
 msgctxt "#40626"
 msgid "Persist TVDBID"

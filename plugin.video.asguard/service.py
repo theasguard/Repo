@@ -52,6 +52,7 @@ logger.log(f'Service: TOKEN: {TOKEN}', log_utils.LOGDEBUG)
 class Service(xbmc.Player):
     def __init__(self, *args, **kwargs):
         self.player = xbmc.Player()
+        self.monitor = xbmc.Monitor()
         logger.log('Service: starting...', log_utils.LOGNOTICE)
         self.db_connection = DB_Connection()
         xbmc.Player.__init__(self, *args, **kwargs)
@@ -76,6 +77,9 @@ class Service(xbmc.Player):
         self.episode = None
         self._lastPos = 0
         self._next_episode_shown = False
+        self._monitor_active = False
+        self._progress_check_enabled = False  # Add this line
+        self._last_progress_check = 0  # Add this line
 
     def show_next_episode_prompt(self):
         if not self.season or not self.episode:
@@ -176,11 +180,13 @@ class Service(xbmc.Player):
         except Exception as e:
             logger.log(f'Next episode prompt failed: {str(e)}', log_utils.LOGERROR)
         finally:
-            gc.collect()
+            xbmc.sleep(1000)
             
     def onPlayBackStarted(self):
         logger.log('Service: Playback started', log_utils.LOGNOTICE)
         self._next_episode_shown = False  # Add reset when new playback starts
+        self._progress_check_enabled = False  # Add this line
+        self._last_progress_check = 0  # Add this line
         playing = self.win.getProperty('asguard.playing') == 'True'
         self.trakt_id = self.win.getProperty('asguard.playing.trakt_id')
         self.season = self.win.getProperty('asguard.playing.season')
@@ -220,38 +226,35 @@ class Service(xbmc.Player):
             logger.log("Salts Trakt Resume: Percent: %s, Resume Time: %s Total Time: %s" % (trakt_resume, resume_time, self._totalTime), log_utils.LOGDEBUG)
             self.seekTime(resume_time)
 
+        # Set a flag to enable progress checking in the main loop
         if playing and self._totalTime > 0:
-            logger.log(f'Service: Starting monitoring thread - TotalTime: {self._totalTime}', log_utils.LOGDEBUG)
-            try:
-                self.run_in_background(self.monitor_playback_progress)
-            except Exception as e:
-                logger.log(f'Service: Failed to start monitoring thread: {str(e)}', log_utils.LOGERROR)
+            logger.log(f'Service: Enabling progress checking in main loop - TotalTime: {self._totalTime}', log_utils.LOGDEBUG)
+            self._progress_check_enabled = True
+            self._last_progress_check = time.time()
 
-    def monitor_playback_progress(self):
+    def _check_playback_progress(self):
+        """
+        Check playback progress and show next episode prompt if at 97%.
+        This method is called from the main loop instead of a dedicated thread.
+        """
         try:
-            logger.log('Service: Starting playback monitoring', log_utils.LOGDEBUG)
-            logger.log(f'Service: Initial State - Playing: {self.isPlaying()}, Tracked: {self.tracked}, Shown: {self._next_episode_shown}', log_utils.LOGDEBUG)
-            
-            while self.isPlaying() and self.tracked and not self._next_episode_shown:
-                if self._is_video_window_open():
-                    current_pos = float(self._lastPos)
-                    try: 
-                        progress = int((current_pos / self._totalTime) * 100)
-                    except: 
-                        progress = 0  # guard div by zero
-                    # pTime = utils.format_time(current_pos)
-                    # tTime = utils.format_time(self._totalTime)
-                    # logger.log('Service: Played %s of %s total = %s%%' % (pTime, tTime, progress), log_utils.LOGDEBUG)
-                    
-                    if progress >= 97 and not self._from_library:
-                        self.show_next_episode_prompt()
-                        break
-                    xbmc.sleep(1000)
-        except:
-            pass
-        finally:
-            gc.collect()
-            logger.log('Service: Monitoring thread exited', log_utils.LOGDEBUG)
+            if not self.isPlaying() or not self.tracked or self._next_episode_shown:
+                self._progress_check_enabled = False
+                return
+                
+            current_pos = float(self._lastPos)
+            try: 
+                progress = int((current_pos / self._totalTime) * 100)
+            except: 
+                progress = 0  # guard div by zero
+                
+            if progress >= 97 and not self._from_library:
+                logger.log('Service: Triggering next episode prompt at 97%', log_utils.LOGDEBUG)
+                self.show_next_episode_prompt()
+                self._progress_check_enabled = False
+        except Exception as e:
+            logger.log(f'Service: Error checking playback progress: {str(e)}', log_utils.LOGERROR)
+            self._progress_check_enabled = False
 
     def run_in_background(self, task_function, *args, **kwargs):
         """Executes a function in a separate, non-blocking thread."""
@@ -487,6 +490,14 @@ def main(argv=None):  # @UnusedVariable
             
             if kodi.get_setting('show_next_up') == 'true':
                 last_label, sf_begin = show_next_up(last_label, sf_begin)
+            # Check playback progress in the main loop instead of using a thread
+            current_time = time.time()
+            if service._progress_check_enabled and is_playing and not service._next_episode_shown:
+                # Check every 5 seconds to reduce CPU usage
+                if current_time - service._last_progress_check >= 1:
+                    service._last_progress_check = current_time
+                    service._check_playback_progress()
+                    
         except Exception as e:
             errors += 1
             if errors >= MAX_ERRORS:

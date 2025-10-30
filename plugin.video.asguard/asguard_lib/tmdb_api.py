@@ -107,8 +107,8 @@ def _cache_response(cache_key, data):
         _cache[cache_key] = (data, time.time())
         logger.log(f'Cached response for key: {cache_key[:8]}...', log_utils.LOGDEBUG)
         
-        # Clean up old cache entries (keep max 5000 entries)
-        if len(_cache) > 5000:
+        # Clean up old cache entries (keep max 50000 entries)
+        if len(_cache) > 50000:
             oldest_key = min(_cache.keys(), key=lambda k: _cache[k][1])
             del _cache[oldest_key]
 
@@ -405,7 +405,7 @@ def get_cache_stats():
     with _cache_lock:
         return {
             'entries': len(_cache),
-            'max_entries': 5000,
+            'max_entries': 50000,
             'cache_duration': CACHE_DURATION
         }
 
@@ -426,7 +426,7 @@ def get_tv_details_batch(tmdb_ids, overview=True):
     
     if not tmdb_ids:
         return results
-        
+    
     # Check cache for each ID first
     for tmdb_id in tmdb_ids:
         params = {

@@ -28,7 +28,7 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
         self.setProperty('item.info.title', self.message)
         self.setProperty('settings.color', 'FF12A0C7')
         logger.log(f'Set properties - ShowTitle: {self.title} | Details: {self.message}', log_utils.LOGDEBUG)
-        self.run_in_background(self.update_progress)
+        self.background_tasks()
 
 
     def run_in_background(self, task_function, *args, **kwargs):
@@ -41,14 +41,14 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
             logger.log(f'Service: Failed to start background thread: {str(e)}', log_utils.LOGERROR)
 
 
-    def update_progress(self):
+    def background_tasks(self):
         elapsed = time.time() - self.start_time
         progress = (elapsed / self.duration) * 100
         self.getControl(3014).setPercent(progress)
         
         if elapsed < self.duration and not self.result:
             xbmc.sleep(100)
-            self.update_progress()
+            self.background_tasks()
         else:
             self.close()
 
