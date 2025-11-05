@@ -228,7 +228,7 @@ This is a Non-profit resource, organized solely for educational purposes which i
 	</extension>
 </addon>
 
-<addon id="script.asguard.themepak" version="1.0.5" name="Asguards Themepak" provider-name="MrBlamo">
+<addon id="script.asguard.themepak" version="1.0.6" name="Asguards Themepak" provider-name="MrBlamo">
     <requires>
         <import addon="kodi.resource" version="1.0.0"/>
     </requires>
