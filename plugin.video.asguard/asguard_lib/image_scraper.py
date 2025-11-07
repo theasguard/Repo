@@ -550,7 +550,9 @@ class TVDBScraper(Scraper):
         any_art = any((BANNER_ENABLED, POSTER_ENABLED))
         logger.log('get_tvdb_season_images: %s' % (ids), log_utils.LOGDEBUG)
         if 'tvdb' in ids and ids['tvdb'] and self.API_KEY and any_art:
-            images = self.__get_images(self.__get_xml(ids['tvdb'], 'banners.xml'))
+            xml = self.__get_xml(ids['tvdb'], 'banners.xml')
+            logger.log('TVDB banners.xml: %s' % (xml), log_utils.LOGDEBUG)
+            images = self.__get_images(xml)
             logger.log('TVDB images: %s' % (images), log_utils.LOGDEBUG)
             seasons = set([image['subKey'] for image in images.get('season', [])])
             seasons |= set([image['subKey'] for image in images.get('seasonwide', [])])
@@ -667,27 +669,41 @@ class TVDBScraper(Scraper):
         for image_ele in ET.fromstring(xml).findall('.//Banner'):
             language = image_ele.findtext('Language')
             if language == 'en' or not language:
-                image_type = image_ele.findtext('BannerType')
-                if image_type == 'season':
-                    image_type = image_ele.findtext('BannerType2')
-                    resolution = 0
+                base_type = image_ele.findtext('BannerType')
+                subKey = image_ele.findtext('Season')
+                file_name = image_ele.findtext('BannerPath')
+                # Default resolution value can be BannerType2 (often resolution) or 0
+                resolution = image_ele.findtext('BannerType2')
+
+                if base_type == 'season':
+                    # TVDB sometimes places resolution (e.g., '680x1000') in BannerType2 for season posters
+                    # Use BannerPath to differentiate posters vs seasonwide banners
+                    if file_name and 'seasonswide' in file_name:
+                        image_type = 'seasonwide'
+                    else:
+                        image_type = 'season'
+                    if resolution is None:
+                        resolution = 0
                 else:
-                    resolution = image_ele.findtext('BannerType2')
-                    
+                    image_type = base_type
+
                 if image_type:
-                    subKey = image_ele.findtext('Season')
-                    file_name = image_ele.findtext('BannerPath')
-                    try: 
+                    try:
                         average = float(image_ele.findtext('Rating'))
-                    except: 
+                    except:
                         average = 0.0
-                    try: 
+                    try:
                         count = int(image_ele.findtext('RatingCount'))
-                    except: 
+                    except:
                         count = 0
-                    image = {'subKey': subKey, 'resolution': resolution, 'ratingsInfo': {'average': average, 'count': count}, 'fileName': file_name}
+                    image = {
+                        'subKey': subKey,
+                        'resolution': resolution,
+                        'ratingsInfo': {'average': average, 'count': count},
+                        'fileName': file_name
+                    }
                     images.setdefault(image_type, []).append(image)
-        
+
         return images
         
     def __get_best_image(self, images, season=None):
