@@ -166,7 +166,7 @@ class FanartTVScraper(Scraper):
         video_id = ids.get('tmdb') or ids.get('imdb')
         any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and any_art and video_id:
-            url = f'/movies/{video_id}/?api_key={self.API_KEY}'
+            url = f'/movies/{video_id}?api_key={self.API_KEY}'
             images = self._get_url(url, headers=self.headers)
             if BG_ENABLED:
                 art_dict['fanart'] = self.__get_best_image(images.get('moviebackground', []))
@@ -192,7 +192,7 @@ class FanartTVScraper(Scraper):
         video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
         any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED, THUMB_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
-            url = f'/tv/{video_id}/?api_key={self.API_KEY}'
+            url = f'/tv/{video_id}?api_key={self.API_KEY}'
             images = self._get_url(url, headers=self.headers)
             if BG_ENABLED:
                 art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
@@ -219,11 +219,11 @@ class FanartTVScraper(Scraper):
         video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt') or ids.get('tmdb') or ids.get('code')
         any_art = any((BANNER_ENABLED, POSTER_ENABLED, THUMB_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
-            url = f'/tv/{video_id}/?api_key={self.API_KEY}'
+            url = f'/tv/{video_id}?api_key={self.API_KEY}'
             images = self._get_url(url, headers=self.headers)
             seasons = set()
             for name in ['seasonposter', 'seasonthumb', 'seasonbanner']:
-                seasons |= set([i['season'] for i in images.get(name, [])])
+                seasons |= {str(i.get('season')) for i in images.get(name, []) if 'season' in i and i.get('season') is not None}
 
             for season in seasons:
                 art_dict = {}
@@ -258,7 +258,7 @@ class FanartTVScraper(Scraper):
         season_art = {}
         seasons = set()
         for name in ['seasonposter', 'seasonthumb', 'seasonbanner']:
-            seasons |= set([i['season'] for i in images.get(name, [])])
+            seasons |= {str(i.get('season')) for i in images.get(name, []) if 'season' in i and i.get('season') is not None}
         
         for season in seasons:
             art_dict = {}
@@ -276,11 +276,11 @@ class FanartTVScraper(Scraper):
         best = None
         images = [image for image in images if image.get('lang') in ('en', '00', '', 'ja')]
         if season is not None:
-            images = [image for image in images if image.get('season') == season]
+            images = [image for image in images if str(image.get('season')) == str(season)]
         if not images and fallback_key:
             images = [image for image in images if image.get('lang') in ('en', '00', '')]
         
-        images.sort(key=lambda x: (self.LANGS.get(x.get('lang'), 0), int(x['likes'])), reverse=True)
+        images.sort(key=lambda x: (self.LANGS.get(x.get('lang'), 0), int(x.get('likes', 0))), reverse=True)
         if images:
             best = images[0]['url']
         return best
