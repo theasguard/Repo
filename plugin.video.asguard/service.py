@@ -331,16 +331,21 @@ class Service(xbmc.Player):
                 logger.log(f'Skip to end failed: {str(e)}', log_utils.LOGERROR)
 
     def check_threads(self):
-        """Check and properly terminate any stuck threads with enhanced termination methods"""
+        """Enhanced thread tracking with file origin"""
         active_threads = []
         main_thread = threading.current_thread()
         
-        # First pass: Identify all non-main threads
         for thread in threading.enumerate():
             if thread.is_alive() and thread != main_thread:
-                active_threads.append(thread)
-                logger.log('Thread %s (ID: %s) still alive - will attempt termination' % (thread.name, thread.ident), log_utils.LOGDEBUG)
-        
+                # Get file origin from thread's frame
+                import sys
+                frame = sys._current_frames().get(thread.ident)
+                if frame:
+                    filename = frame.f_code.co_filename
+                    lineno = frame.f_lineno
+                    func_name = frame.f_code.co_name
+                    logger.log(f'Thread {thread.name} (ID: {thread.ident}) from {filename}:{lineno} in {func_name}', log_utils.LOGDEBUG)
+
         # Second pass: Try different termination strategies
         for thread in active_threads:
             try:
@@ -514,6 +519,14 @@ def main(argv=None):  # @UnusedVariable
 
     proxy.stop_proxy()
     logger.log('Service: shutting down...', log_utils.LOGNOTICE)
+
+    # Clean up database connections
+    if service.db_connection is not None:
+        try:
+            service.db_connection.close()
+            logger.log('Service: Database connections closed', log_utils.LOGNOTICE)
+        except Exception as e:
+            logger.log('Service: Error closing database connections: %s' % e, log_utils.LOGERROR)
 
 if __name__ == '__main__':
     sys.exit(main())

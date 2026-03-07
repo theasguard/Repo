@@ -28,7 +28,10 @@ import utils
 import log_utils
 import kodi
 from asguard_lib import utils2, client
-
+import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from asguard_lib.db_utils import DB_Connection
 from asguard_lib.constants import VIDEO_TYPES
 import xml.etree.ElementTree as ET
@@ -62,17 +65,12 @@ PROXY_TEMPLATE = 'http://127.0.0.1:{port}{action}'
 
 class Scraper(object):
     protocol = 'http://'
-    session = requests.Session()
-    retry_strategy = Retry(total=None, backoff_factor=1, status_forcelist=[429, 502, 503, 504], allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"], raise_on_status=False)
-
-    # Set timeout and retry strategy
-    adapter = requests.adapters.HTTPAdapter(
-        pool_connections=50,  # Number of connection pools to cache
-        pool_maxsize=50,     # Maximum number of connections to save in the pool
-        max_retries=retry_strategy        # Maximum number of retries for each connection
-    )
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
+    def __init__(self):
+        # Initialize session with connection pooling and retry logic
+        self.session = self._create_session()
+        self.protocol = 'http://'
+        self.executor = ThreadPoolExecutor(max_workers=5)  # Limit concurrent requests
+    
     
     
     def _clean_art(self, art_dict):
@@ -83,21 +81,57 @@ class Scraper(object):
                 new_dict[key] = urllib.parse.urlunparse((scheme, netloc, urllib.parse.quote(path), params, query, fragment))
         return new_dict
     
-    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=1):
-        if headers is None: headers = {}
+    def _create_session(self):
+        """Create a requests session with connection pooling and retry logic"""
+        session = requests.Session()
+        
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=3,  # Number of retries
+            backoff_factor=1,  # Exponential backoff
+            status_forcelist=[429, 500, 502, 503, 504],  # Retry on these status codes
+        )
+        
+        # Mount adapter with connection pooling
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,  # Number of connection pools to cache
+            pool_maxsize=10,  # Maximum number of connections in the various pools
+            pool_block=False
+        )
+        
+        # Mount for both http and https
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        
+        return session
+    
+    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=1, is_binary=False):
+        """Get URL with improved performance using requests library"""
+        if headers is None: 
+            headers = {}
+        
+        # Prepare data if needed
         if data is not None:
             if isinstance(data, six.string_types):
-                data = data
                 logger.log('String image Data: %s' % (data), log_utils.LOGDEBUG)
             else:
                 data = urllib.parse.urlencode(data, True)
                 logger.log('Urlencode image Data: %s' % (data), log_utils.LOGDEBUG)
+        
+        # Build full URL if needed
         if not url.startswith('http'):
             url = '%s%s%s' % (self.protocol, self.BASE_URL, url)
             logger.log('Image Scrape URL: %s' % (url), log_utils.LOGDEBUG)
+        
+        # Add query parameters
         if params: 
             url += '?' + urllib.parse.urlencode(params)
-        _created, cached_headers, html = db_connection.get_cached_url(url, data, cache_limit=cache_limit)
+        # Check if this is a binary file request (ZIP, images, etc.)
+        if url.lower().endswith('.zip') or any(ext in url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+            is_binary = True
+        # Check cache first
+        _created, cached_headers, html = db_connection.get_cached_url(url, data, cache_limit=cache_limit, is_binary=is_binary)
         if html:
             logger.log('Using Cached result for: %s' % (url))
             result = html
@@ -105,49 +139,96 @@ class Scraper(object):
             logger.log('Result: %s' % (result), log_utils.LOGDEBUG)
         else:
             try:
-                headers['Accept-Encoding'] = 'gzip'
-                headers['Connection'] = 'keep-alive'  # For connection reuse
-                headers['User-Agent'] = 'Kodi/21.0'  # Identify as Kodi 21
+                # Set default headers
+                headers.setdefault('Accept-Encoding', 'gzip')
+                headers.setdefault('Connection', 'keep-alive')
+                headers.setdefault('User-Agent', 'Kodi/21.0')
                 
                 logger.log('+++Image Scraper Call: %s, header: %s, data: %s cache_limit: %s' % 
-                        (url, headers, data, cache_limit), log_utils.LOGDEBUG)
+                          (url, headers, data, cache_limit), log_utils.LOGDEBUG)
                 
-                request = urllib.request.Request(url, data=data, headers=headers)
-                logger.log('Request: %s' % (request), log_utils.LOGDEBUG)
-                response = urllib.request.urlopen(request)
-                result = b''
-                while True:
-                    data = response.read()
-                    if not data: break
-                    result += data
-                res_headers = dict(response.info().items())
-                if res_headers.get('content-encoding') == 'gzip':
-                    result = utils2.ungz(result)
+                # Use requests session with timeout
+                response = self.session.get(
+                    url, 
+                    data=data, 
+                    headers=headers, 
+                    timeout=(3.05, 27)  # (connect timeout, read timeout)
+                )
+                response.raise_for_status()  # Raise exception for 4XX/5XX status codes
+                
+                # Get response content and headers
+                result = response.content
+                res_headers = dict(response.headers)
+                
+                # Cache the result
                 db_connection.cache_url(url, result, data, res_header=res_headers)
-            except (ssl.SSLError, socket.timeout) as e:
+                
+            except requests.exceptions.Timeout:
                 logger.log('Image Scraper Timeout: %s' % (url))
                 return {}
-            except urllib.error.HTTPError as e:
-                if e.code != 404:
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code != 404:
                     logger.log('HTTP Error (%s) during image scraper http get: %s' % (e, url), log_utils.LOGWARNING)
                 return {}
             except Exception as e:
                 logger.log('Error (%s) during image scraper http get: %s' % (str(e), url), log_utils.LOGWARNING)
                 return {}
-
+        
         try:
-            if 'application/json' in res_headers.get('content-type', ''):
+            # Process response based on content type
+            content_type = res_headers.get('content-type', '').lower()
+            if 'application/json' in content_type:
                 return_data = utils.json_loads_as_str(result)
             else:
-                # try/except to handle older responses that might be missing headers
-                try: return_data = utils.json_loads_as_str(result)
-                except ValueError: return_data = result
+                # Try to parse as JSON, fallback to raw result
+                try:
+                    return_data = utils.json_loads_as_str(result)
+                except ValueError:
+                    return_data = result
         except ValueError:
             return_data = ''
             if result:
                 logger.log('Invalid JSON API Response: %s - |%s|' % (url, return_data), log_utils.LOGERROR)
-
+        
         return return_data
+    
+    def get_multiple_urls(self, url_list, params=None, headers=None, cache_limit=1):
+        """
+        Fetch multiple URLs concurrently using ThreadPoolExecutor
+        
+        Args:
+            url_list: List of URLs to fetch
+            params: Optional query parameters for all URLs
+            headers: Optional headers for all URLs
+            cache_limit: Cache duration in hours
+            
+        Returns:
+            Dictionary mapping URLs to their responses
+        """
+        results = {}
+        
+        # Create a list of futures for each URL
+        futures = {
+            self.executor.submit(
+                self._get_url, 
+                url, 
+                params, 
+                None,  # No data for GET requests
+                headers, 
+                cache_limit
+            ): url for url in url_list
+        }
+        
+        # Process completed futures as they complete
+        for future in as_completed(futures):
+            url = futures[future]
+            try:
+                results[url] = future.result()
+            except Exception as e:
+                logger.log('Error fetching %s: %s' % (url, str(e)), log_utils.LOGWARNING)
+                results[url] = {}
+        
+        return results
         
 class FanartTVScraper(Scraper):
     API_KEY = kodi.get_setting('fanart_key')
@@ -156,6 +237,9 @@ class FanartTVScraper(Scraper):
     LANGS = {'en': 3, '00': 1, '': 2}
 
     def __init__(self):
+        self.session = self._create_session()
+        self.executor = ThreadPoolExecutor(max_workers=5)  # Limit concurrent requests
+    
         self.headers = {'api-key': self.API_KEY}
         if self.CLIENT_KEY:
             self.headers.update({'client-key': self.CLIENT_KEY})
@@ -285,36 +369,7 @@ class FanartTVScraper(Scraper):
             best = images[0]['url']
         return best
 
-    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=1):
-        # Call parent class's _get_url with appropriate parameters
-        result = super()._get_url(url, params=params, data=data, headers=headers, cache_limit=cache_limit)
-    
-        logger.log(f'Fanart URL: {url} | Result: {result}', log_utils.LOGDEBUG)
-        # If result is already a dict (from successful JSON parsing), return it
-        if isinstance(result, dict):
-            return result
 
-    # Ensure result is properly decoded if it's bytes
-        if isinstance(result, (bytes, bytearray)):
-            try:
-                # gzip magic header
-                if result[:2] == b'\x1f\x8b':
-                    result = utils.json_loads_as_str(utils2.ungz(result))
-                else:
-                    result = utils.json_loads_as_str(result)
-            except Exception as e:
-                logger.log('FANARTTV decode error: %s' % (e), log_utils.LOGDEBUG)
-                result = {}
-        
-        # Parse JSON if result is a string
-        if isinstance(result, str):
-            try:
-                return utils.json_loads_as_str(result)
-            except ValueError as e:
-                logger.log(f'Failed to parse JSON: {e}', log_utils.LOGERROR)
-                return {}
-        
-        return result or {}
 
     @staticmethod
     def _get_image_size(art):
@@ -439,11 +494,40 @@ class TMDBScraper(Scraper):
                 params = {'api_key': self.API_KEY, 'include_image_language': 'en,null'}
                 images = self._get_url(url, params, headers=self.headers)
                 
-            if BG_ENABLED and 'fanart' in need:
-                art_dict['fanart'] = self.__get_best_image(images.get('backdrops', []))
+
+                # Cache the response for future use
+                if images and CACHE_INSTALLED:
+                    from asguard_lib.image_cache import local_lib
+                    cache_db = local_lib.db_utils.DBCache()
+                    unique_key = f"{season}_{episode}"
+                    # Use the public execute method instead of private __execute
+                    cache_db.execute('REPLACE INTO api_cache (tmdb_id, object_type, data) values (?, ?, ?)',
+                                  (ids['tmdb'], f"E_{unique_key}", json.dumps(images)))
+                    cache_db.close()
+
             
-            if POSTER_ENABLED and 'poster' in need:
-                art_dict['poster'] = self.__get_best_image(images.get('stills', []))
+            # Process stills (episode images)
+            if images and 'stills' in images and images['stills']:
+                # Sort by vote_average and vote_count to get the best image
+                best_still = sorted(images['stills'], 
+                                 key=lambda x: (x.get('vote_average', 0), x.get('vote_count', 0)), 
+                                 reverse=True)[0]
+                
+                # Build the full image URL
+                image_path = best_still.get('file_path', '')
+                if image_path:
+                    full_url = f"{self.image_base}{image_path}"
+                    
+                    # Use the same image for poster, thumb and fanart for episodes
+                    if POSTER_ENABLED and 'poster' in need:
+                        art_dict['poster'] = full_url
+                    if BG_ENABLED and 'fanart' in need:
+                        art_dict['fanart'] = full_url
+                    
+                    # Also set thumb if needed
+                    art_dict['thumb'] = full_url
+                    
+                    logger.log(f"TMDB Episode Images - Selected image: {full_url}", log_utils.LOGDEBUG)
 
         return self._clean_art(art_dict)
 
@@ -473,8 +557,11 @@ class TMDBScraper(Scraper):
 
 class TVDBScraper(Scraper):
     API_KEY = kodi.get_setting('tvdb_key')  # Ensure this setting name matches the one used in settings.xml for the new API key
+    V4_APIKEY = {'apikey': 'b64a2c35-ba29-4353-b46c-1e306874afb6'}
     protocol = 'https://'
     BASE_URL = 'api.thetvdb.com'
+    BASE_URL_V4 = 'api4.thetvdb.com/v4'
+    ART_URL_V4 = 'artworks.thetvdb.com'
     ZIP_URL = 'thetvdb.com'
     EP_CACHE = {}
     CAST_CACHE = {}
@@ -483,10 +570,10 @@ class TVDBScraper(Scraper):
     token = None
     
     def __get_token(self):
-        if self.API_KEY:
+        if self.V4_APIKEY:
             if self.token is None:
-                url = self.protocol + self.BASE_URL + '/login'
-                data = {'apikey': self.API_KEY}
+                url = self.protocol + self.BASE_URL_V4 + '/login'
+                data = {'apikey': self.V4_APIKEY}
                 res = client.request(
                     url,
                     headers=self.headers,
@@ -653,7 +740,7 @@ class TVDBScraper(Scraper):
         xml = '<xml/>'
         if self.API_KEY:
             url = 'http://thetvdb.com/api/%s/series/%s/all/en.zip' % (self.API_KEY, tvdb)
-            zip_data = self._get_url(url, cache_limit=ZIP_CACHE)
+            zip_data = self._get_url(url, cache_limit=ZIP_CACHE, is_binary=True)
             if zip_data:
                 try:
                     with zipfile.ZipFile(io.BytesIO(zip_data), 'r') as zip_file:
@@ -722,7 +809,7 @@ class TVDBScraper(Scraper):
 
 class TVDBAPI(Scraper):
     def __init__(self):
-        self.apiKey = {'apikey': '83914568-d055-4943-a789-4175d6466b05'}
+        self.apiKey = {'apikey': 'b64a2c35-ba29-4353-b46c-1e306874afb6'}
         self.headers = {'User-Agent': 'Asguard'}
         self.baseUrl = 'https://api4.thetvdb.com/v4/'
         self.art = {}
@@ -1148,7 +1235,7 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
             if art_dict['poster'] == PLACE_POSTER: need.append('poster')
             if not art_dict['banner']: need.append('banner')
             if need:
-                art_dict.update(tmdb_scraper.get_tmdbshow_images(video_ids, need))
+                art_dict.update(tvdb_scraper.get_tvshow_images(video_ids, need))
                 
             
             if art_dict['poster'] == PLACE_POSTER:

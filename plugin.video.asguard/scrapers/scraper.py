@@ -779,7 +779,7 @@ class Scraper(object):
         # Build a requests session with retry/backoff
         session = requests.Session()
         retry = Retry(
-            total=10,
+            total=5,
             connect=10,
             read=3,
             backoff_factor=0.5,

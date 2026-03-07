@@ -18,7 +18,6 @@
 from abc import abstractmethod
 import datetime
 import functools
-import logging
 import pickle
 import os
 import re
@@ -36,7 +35,7 @@ from asguard_lib import control
 from .utils2 import i18n
 
 logger = log_utils.Logger.get_logger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -317,7 +316,7 @@ class DB_Connection():
         sql = 'DELETE FROM url_cache WHERE url = ? and data= ?'
         self.__execute(sql, (url, data))
 
-    def get_cached_url(self, url, data='', cache_limit=8):
+    def get_cached_url(self, url, data='', cache_limit=8, is_binary=False):
         if data is None: data = ''
         # truncate data if running mysql and greater than col size
         if self.db_type == DB_TYPES.MYSQL and len(data) > MYSQL_DATA_SIZE:
@@ -338,9 +337,15 @@ class DB_Connection():
             if age < limit:
                 html = rows[0][1]
                 if isinstance(html, (memoryview, bytes)):
-                    html = html.tobytes().decode('utf-8') if isinstance(html, memoryview) else html.decode('utf-8')
+                    if is_binary:
+                        # For binary data, keep it as bytes
+                        html = html.tobytes() if isinstance(html, memoryview) else html
+                    else:
+                        # For text data, decode as UTF-8
+                        html = html.tobytes().decode('utf-8') if isinstance(html, memoryview) else html.decode('utf-8')
                 else:
                     html = str(html)
+        logger.log('is_binary=%s, url=%s' % (is_binary, url), log_utils.LOGDEBUG)
         logger.log('DB Cache: Url: %s, Data: %s, Cache Hit: %s, created: %s, age: %.2fs (%.2fh), limit: %.2fs (%.2fh)' % (url, data, bool(html), created, age, age / (60 * 60), limit, limit / (60 * 60)), log_utils.LOGDEBUG)
         return created, res_header, html
 
@@ -1329,15 +1334,27 @@ class DB_Connection():
             self._connection_pool.clear()
 
     def close(self):
-        worker_id = self.worker_id
-        self.close_all_connections()
-        if self.__get_db_connection().cursor():
-            self.__get_db_connection().cursor().close()
-        if worker_id is not None:
-            worker_id = None
-        if self.db:
-            self.db.close()
+        """Close database connection with WAL checkpointing (no pooling)"""
+        try:
+            # Perform WAL checkpoint before closing (SQLite only)
+            if self.db_type == DB_TYPES.SQLITE and self.db is not None:
+                try:
+                    self.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                    logger.log('WAL checkpoint completed', log_utils.LOGDEBUG)
+                except Exception as e:
+                    logger.log('WAL checkpoint failed: %s' % str(e), log_utils.LOGWARNING)
+            
+            # Close the connection
+            if self.db is not None:
+                self.db.close()
+                logger.log('Database connection closed', log_utils.LOGDEBUG)
+                self.db = None
+        except Exception as e:
+            logger.log('Error closing database connection: %s' % str(e), log_utils.LOGERROR)
+        finally:
+            # Always reset instance variables
             self.db = None
+            self.worker_id = None
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()

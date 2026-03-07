@@ -65,11 +65,14 @@ class ImageProxy(object):
     def stop_proxy(self):
         if self.httpd is not None:
             self.httpd.shutdown()
+            self.httpd.server_close()  # Add this line
             logger.log('HTTP server shutdown initiated.', log_utils.LOGNOTICE)
         
         if self.svr_thread is not None:
             logger.log('Reaping proxy thread: %s' % (self.svr_thread))
-            self.svr_thread.join()
+            self.svr_thread.join()  # Add 5-second timeout
+            if self.svr_thread.is_alive():
+                logger.log('Proxy thread did not terminate gracefully', log_utils.LOGWARNING)
             self.svr_thread = None
             logger.log('Proxy thread reaped.', log_utils.LOGNOTICE)
 
@@ -105,9 +108,10 @@ class MyHTTPServer(HTTPServer):
         try:
             HTTPServer.process_request(self, request, client_address)
         except IOError as e:
-            logger.log('Image Proxy Error: (%s) %s - %s' % (threading.current_thread().getName(), type(e), e), log_utils.LOGDEBUG)
+            logger.log('Image Proxy Error: (%s) %s - %s' % (threading.current_thread().name, type(e), e), log_utils.LOGDEBUG)
     
     def server_close(self):
+        workers = self._wp.close()
         try:
             workers = self._wp.close()
         except:
@@ -154,7 +158,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
         
     def log_message(self, format, *args):
         if self.log_fd is not None:
-            self.log_fd.write('[%s] (%s) %s\n' % (self.log_date_time_string(), threading.current_thread().getName(), format % (args)))
+            self.log_fd.write('[%s] (%s) %s\n' % (self.log_date_time_string(), threading.current_thread().name, format % (args)))
         
     def do_HEAD(self):
         return self.do_GET()

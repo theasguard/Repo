@@ -26,6 +26,7 @@ import log_utils
 import utils
 import kodi
 import six
+from asguard_lib import tvdb_helper
 from asguard_lib import tvdb_persist
 from url_dispatcher import URL_Dispatcher
 from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
@@ -990,7 +991,7 @@ def get_progress(cached=True):
         use_exclusion = kodi.get_setting('use_cached_exclusion') == 'true'
         progress_size = len(progress_list)
         try:
-            wp = worker_pool.WorkerPool(max_workers=40)
+            wp = worker_pool.WorkerPool(max_workers=25)
             for i, show in enumerate(progress_list):
                 trakt_id = show['show']['ids']['trakt']
                 # skip hidden shows
@@ -3211,13 +3212,13 @@ def make_item(section_params, show, menu_items=None):
     if menu_items is None: menu_items = []
     if not isinstance(show['title'], str): show['title'] = ''
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
-    tmdb_id = show['ids']['tmdb']
+    # tmdb_id = show['ids']['tmdb']
     # Only try to get TVDB ID for TV shows, not movies
-    tvdb_id = None
     if section_params['section'] == SECTIONS.TV:
         tvdb_id = tvdb_persist.enrich_tvdb_id(show, tmdb_api, trakt_api=trakt_api)
         if tvdb_id:
             show['ids']['tvdb'] = tvdb_id
+    if 'year' not in show: show['year'] = None
     label = '%s (%s)' % (show['title'], show['year'])
     trakt_id = show['ids']['trakt']
 
@@ -3241,7 +3242,11 @@ def make_item(section_params, show, menu_items=None):
         liz.setProperty('UnWatchedEpisodes', str(info['UnWatchedEpisodes']))
 
     if section_params['section'] == SECTIONS.TV:
-        queries = {'mode': section_params['next_mode'], 'trakt_id': trakt_id, 'title': show['title'], 'year': show['year'], 'tvdb_id': tvdb_id, 'tmdb_id': show['ids']['tmdb']}
+        # Check if tmdb_id exists before adding to queries
+        tmdb_id = show['ids'].get('tmdb', '')
+        queries = {'mode': section_params['next_mode'], 'trakt_id': trakt_id, 'title': show['title'], 'year': show['year'], 'tvdb_id': tvdb_id}
+        if tmdb_id:
+            queries['tmdb_id'] = tmdb_id
         info['TVShowTitle'] = info['title']
     else:
         queries = {'mode': section_params['next_mode'], 'video_type': section_params['video_type'], 'title': show['title'], 'year': show['year'], 'trakt_id': trakt_id}

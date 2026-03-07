@@ -110,16 +110,20 @@ class DBCache(object):
         return self.__get_object(tmdb_id, 'T')
 
     def get_season(self, tmdb_id, season):
-        return self.__get_object(tmdb_id, 'S')
+        unique_key = f"{season}"
+        return self.__get_object(tmdb_id, f"S_{unique_key}")
         
     def get_episode(self, tmdb_id, season, episode):
-        return self.__get_object(tmdb_id, 'E')
+        # Create unique key combining season and episode
+        unique_key = f"{season}_{episode}"
+        return self.__get_object(tmdb_id, f"E_{unique_key}")
 
     def update_season(self, tmdb_id, season, js_data):
-        self.__update_object(tmdb_id, 'S', js_data)
+        self.__update_object(tmdb_id, f"S_{season}", js_data)
 
-    def update_episode(self, tmdb_id, js_data):
-        self.__update_object(tmdb_id, 'E', js_data)
+    def update_episode(self, tmdb_id, season, episode, js_data):
+        unique_key = f"{season}_{episode}"
+        self.__update_object(tmdb_id, f"E_{unique_key}", js_data)
 
     def get_person(self, tmdb_id):
         return self.__get_object(tmdb_id, 'P')
@@ -310,7 +314,7 @@ class DBCache(object):
         url = f'https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={self.TMDB_API_KEY}'
         response = requests.get(url)
         if response.status_code == 200:
-            self.update_movie(tmdb_id, response.json())
+            self.update_movie(tmdb_id, js_data=response.json())
         else:
             raise Exception(f"Failed to fetch movie data: {response.status_code}")
 
@@ -318,7 +322,7 @@ class DBCache(object):
         url = f'https://api.themoviedb.org/3/tv/{tmdb_id}?api_key={self.TMDB_API_KEY}'
         response = requests.get(url)
         if response.status_code == 200:
-            self.update_tvshow(tmdb_id, response.json())
+            self.update_tvshow(tmdb_id, js_data=response.json())
         else:
             raise Exception(f"Failed to fetch TV show data: {response.status_code}")
 
@@ -326,22 +330,22 @@ class DBCache(object):
         url = f'https://api.themoviedb.org/3/person/{tmdb_id}?api_key={self.TMDB_API_KEY}'
         response = requests.get(url)
         if response.status_code == 200:
-            self.update_person(tmdb_id, response.json())
+            self.update_person(tmdb_id, js_data=response.json())
         else:
             raise Exception(f"Failed to fetch person data: {response.status_code}")
 
-    def fetch_and_store_episode(self, tmdb_id, season_number):
-        url = f'https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season_number}?api_key={self.TMDB_API_KEY}'
+    def fetch_and_store_season(self, tmdb_id, season):
+        url = f'https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season}?api_key={self.TMDB_API_KEY}'
         response = requests.get(url)
         if response.status_code == 200:
-            self.update_episode(tmdb_id, response.json())
+            self.update_season(tmdb_id, season, js_data=response.json())
         else:
-            raise Exception(f"Failed to fetch person data: {response.status_code}")
+            raise Exception(f"Failed to fetch season data: {response.status_code}")
 
-    def fetch_and_store_episode(self, tmdb_id, season_number, episode_number):
-        url = f'https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season_number}/episode/{episode_number}?api_key={self.TMDB_API_KEY}'
+    def fetch_and_store_episode(self, tmdb_id, season, episode):
+        url = f'https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season}/episode/{episode}?api_key={self.TMDB_API_KEY}'
         response = requests.get(url)
         if response.status_code == 200:
-            self.update_episode(tmdb_id, response.json())
+            self.update_episode(tmdb_id, season, episode, js_data=response.json())
         else:
-            raise Exception(f"Failed to fetch person data: {response.status_code}")
+            raise Exception(f"Failed to fetch season data: {response.status_code}")

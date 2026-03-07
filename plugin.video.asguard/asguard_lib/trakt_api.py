@@ -753,6 +753,7 @@ class Trakt_API():
                                 kodi.set_setting('trakt_oauth_token', result['access_token'])
                                 kodi.set_setting('trakt_refresh_token', result['refresh_token'])
                                 auth_retry = True
+                                continue
                         elif e.code == 404:
                             raise TraktNotFoundError('Object Not Found (%s): %s' % (e.code, url))
                         else:

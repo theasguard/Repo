@@ -2814,3 +2814,16 @@ msgstr ""
 msgctxt "#40529"
 msgid "TVDB Auto Update"
 msgstr ""
+
+msgctxt "#40535"
+msgid "Auto-start FlareSolverr"
+msgstr ""
+
+
+msgctxt "#40536"
+msgid "Auto-select FlareSolverr port"
+msgstr ""
+
+msgctxt "#40537"
+msgid "FlareSolverr port"
+msgstr ""

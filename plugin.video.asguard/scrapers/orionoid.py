@@ -209,9 +209,6 @@ class Scraper(scraper.Scraper):
 
 			# Use centralized IMDB ID retrieval from base class
 			imdb_id = self.get_imdb_id(video)
-			if not imdb_id:
-				logger.log('Orion: No IMDB ID found for trakt_id: %s' % video.trakt_id, log_utils.LOGWARNING)
-				return sources
 
 			# Get all IDs for comprehensive Orion search
 			all_ids = self.get_all_ids(video)

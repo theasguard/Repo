@@ -549,6 +549,21 @@
 						<heading/>
 					</control>
 				</setting>
+				<setting id="flaresolverr_auto_start" type="boolean" label="40535" default="true">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="flaresolverr_auto_port" type="boolean" label="40536" default="true">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="flaresolverr_port" type="number" label="40537" default="8191">
+					<level>0</level>
+					<default>8191</default>
+					<control type="edit" format="number"/>
+				</setting>
 				<setting id="tvdbtokenov" type="string" label="40641" help="">
 					<level>0</level>
 					<default></default>
@@ -3438,6 +3453,41 @@
 						<dependencies>
 							<dependency type="visible">
 								<condition operator="is" setting="Mediafusion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Meteor-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Meteor-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://meteorfortheweebs.midnightignite.me</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Meteor-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Meteor-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Meteor-enable">true</condition>
 							</dependency>
 						</dependencies>
 						<control type="toggle"/>
