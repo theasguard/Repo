@@ -261,7 +261,7 @@ def do_startup_task(task):
    
     # Check abort status using appropriate method for version
     abort_requested = monitor.abortRequested() if monitor else xbmc.abortRequested
-    if run_on_startup and not (monitor.abortRequested() if monitor else xbmc.abortRequested()):
+    if run_on_startup and not monitor.abortRequested():
         logger.log('Service: Running startup task [%s]' % (task), log_utils.LOGNOTICE)
         now = datetime.datetime.now()
         xbmc.executebuiltin('RunPlugin(plugin://%s/?mode=%s)' % (kodi.get_id(), task))

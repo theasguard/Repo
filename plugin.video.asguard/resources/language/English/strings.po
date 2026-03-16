@@ -2827,3 +2827,12 @@ msgstr ""
 msgctxt "#40537"
 msgid "FlareSolverr port"
 msgstr ""
+
+msgctxt "#40538"
+msgid "Use Enhanced Progress Dialog"
+msgstr ""
+
+msgctxt "#40539"
+msgid "Enable POV-style progress dialog with quality counts and detailed information"
+msgstr ""
+msgstr ""

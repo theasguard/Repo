@@ -70,7 +70,7 @@ class ImageProxy(object):
         
         if self.svr_thread is not None:
             logger.log('Reaping proxy thread: %s' % (self.svr_thread))
-            self.svr_thread.join()  # Add 5-second timeout
+            self.svr_thread.join(timeout=5.0)  # Add 5-second timeout
             if self.svr_thread.is_alive():
                 logger.log('Proxy thread did not terminate gracefully', log_utils.LOGWARNING)
             self.svr_thread = None

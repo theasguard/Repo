@@ -63,13 +63,80 @@ ZIP_CACHE = 24
 OBJ_PERSON = 'person'
 PROXY_TEMPLATE = 'http://127.0.0.1:{port}{action}'
 
+class SessionManager:
+    _instance = None
+    _session = None
+    _executor = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialize()
+            cls._initialized = True
+        return cls._instance
+    
+    def _initialize(self):
+        """Initialize shared session and thread pool"""
+        cls = SessionManager
+        
+        # Create shared session with connection pooling
+        cls._session = requests.Session()
+        
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        
+        # Mount adapter with connection pooling
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=20,
+            pool_maxsize=20,
+            pool_block=False
+        )
+        
+        cls._session.mount('http://', adapter)
+        cls._session.mount('https://', adapter)
+        
+        # Create shared thread pool with reduced workers
+        cls._executor = ThreadPoolExecutor(max_workers=10)
+    
+    @classmethod
+    def get_session(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance._session
+    
+    @classmethod
+    def get_executor(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance._executor
+    
+    @classmethod
+    def close(cls):
+        """Clean up resources"""
+        if cls._instance:
+            if cls._instance._executor:
+                cls._instance._executor.shutdown(wait=False)
+            if cls._instance._session:
+                cls._instance._session.close()
+            cls._instance = None
+            cls._initialized = False
+
 class Scraper(object):
     protocol = 'http://'
     def __init__(self):
-        # Initialize session with connection pooling and retry logic
-        self.session = self._create_session()
+        self.session = SessionManager.get_session()
+        self.executor = SessionManager.get_executor()
         self.protocol = 'http://'
-        self.executor = ThreadPoolExecutor(max_workers=5)  # Limit concurrent requests
+    
+    def _create_session(self):
+        """No longer needed - using shared session"""
+        return SessionManager.get_session()
     
     
     
@@ -81,30 +148,7 @@ class Scraper(object):
                 new_dict[key] = urllib.parse.urlunparse((scheme, netloc, urllib.parse.quote(path), params, query, fragment))
         return new_dict
     
-    def _create_session(self):
-        """Create a requests session with connection pooling and retry logic"""
-        session = requests.Session()
-        
-        # Configure retry strategy
-        retry_strategy = Retry(
-            total=3,  # Number of retries
-            backoff_factor=1,  # Exponential backoff
-            status_forcelist=[429, 500, 502, 503, 504],  # Retry on these status codes
-        )
-        
-        # Mount adapter with connection pooling
-        adapter = HTTPAdapter(
-            max_retries=retry_strategy,
-            pool_connections=10,  # Number of connection pools to cache
-            pool_maxsize=10,  # Maximum number of connections in the various pools
-            pool_block=False
-        )
-        
-        # Mount for both http and https
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
-        
-        return session
+
     
     def _get_url(self, url, params=None, data=None, headers=None, cache_limit=1, is_binary=False):
         """Get URL with improved performance using requests library"""
@@ -127,6 +171,7 @@ class Scraper(object):
         # Add query parameters
         if params: 
             url += '?' + urllib.parse.urlencode(params)
+            logger.log('Image Scrape URL with params: %s' % (url), log_utils.LOGDEBUG)
         # Check if this is a binary file request (ZIP, images, etc.)
         if url.lower().endswith('.zip') or any(ext in url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             is_binary = True
@@ -277,6 +322,7 @@ class FanartTVScraper(Scraper):
         any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED, THUMB_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
             url = f'/tv/{video_id}?api_key={self.API_KEY}'
+            logger.log('FanartTVScraper.get_tvshow_images: %s' % (url), log_utils.LOGDEBUG)
             images = self._get_url(url, headers=self.headers)
             if BG_ENABLED:
                 art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
@@ -1240,6 +1286,8 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
             
             if art_dict['poster'] == PLACE_POSTER:
                 art_dict.update(omdb_scraper.get_images(video_ids))
+            if art_dict['poster'] == PLACE_POSTER:
+                art_dict.update(tmdb_scraper.get_tmdbshow_images(video_ids))
 
         elif video_type == VIDEO_TYPES.SEASON:
             art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)

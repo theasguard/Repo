@@ -16,9 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import threading
 import random, sys, os, re, datetime, time, json, gzip
 import requests
 import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
 import urllib.request, urllib.parse
 from scrapers import local_scraper
@@ -1151,8 +1153,9 @@ def search(section, search_text=None):  # @UnusedVariable
         salts_utils.keep_search(section, search_text)
         queries = {'mode': MODES.SEARCH_RESULTS, 'section': section, 'query': search_text}
         plugin_url = kodi.get_plugin_url(queries)
-        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        logger.log('Redirecting to %s' % (plugin_url), log_utils.LOGERROR)
         xbmc.executebuiltin('Container.Update(%s)' % plugin_url)
+        search_results(section, search_text)
 
 @url_dispatcher.register(MODES.RECENT_SEARCH, ['section'])
 def recent_searches(section):
@@ -1244,39 +1247,70 @@ def search_results(section, query, page=1):
 
 @url_dispatcher.register(MODES.SEASONS, ['trakt_id', 'title', 'year'], ['tvdb_id', 'tmdb_id'])
 def browse_seasons(trakt_id, title, year, tvdb_id=None, tmdb_id=None):
+    # Step 1: Get tvdb_id (must be sequential as it's needed for caching)
     if tvdb_id is None:
-        show_meta = trakt_api.get_show_details(trakt_id) or {} 
-        tvdb_id = show_meta.get('ids', {}).get('tvdb') 
-    logger.log('browse_seasons: resolved tvdb from Trakt: %s' % tvdb_id, log_utils.LOGDEBUG) 
+        show_meta = trakt_api.get_show_details(trakt_id) or {}
+        tvdb_id = show_meta.get('ids', {}).get('tvdb')
+    logger.log('browse_seasons: resolved tvdb from Trakt: %s' % tvdb_id, log_utils.LOGDEBUG)
 
     logger.log('Entering browse_seasons: trakt_id=%s, title=%s, year=%s, tvdb_id=%s, tmdb_id=%s' % (trakt_id, title, year, tvdb_id, tmdb_id), log_utils.LOGDEBUG)
-    seasons = sorted(trakt_api.get_seasons(trakt_id), key=lambda x: x['number'])
-    logger.log('TRAKT Seasons: %s' % seasons, log_utils.LOGDEBUG)
-
-    # Check for TMDB episode groups
-    results = tmdb_api.search_tmdb_tv(title)
-    logger.log('TMDB Search Results: %s' % results, log_utils.LOGDEBUG)
-    shows = results.get('results', [])
-    if shows:
-        tmdb_id = shows[0]['id']
-        tmdb_seasons = tmdb_api.get_tv_episode_groups(tmdb_id)
-        logger.log('TMDB Group Seasons: %s' % tmdb_seasons, log_utils.LOGDEBUG)
-        
-        # Add a single Episode Groups item if groups exist
-        if tmdb_seasons:
-            liz = utils.make_list_item('[B]Episode Groups[/B]', {'type': 'groups'})
-            liz.setArt({'icon': os.path.join(kodi.get_path(), 'resources', 'groups.png'),
-                        'thumb': os.path.join(kodi.get_path(), 'resources', 'groups.png')})
-            liz_url = kodi.get_plugin_url({'mode': MODES.TRAKT_EPISODE_GROUPS, 'tmdb_id': tmdb_id, 'trakt_id': trakt_id, 'title': title, 'tvdb_id': tvdb_id})
-            xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True)
-
+    
+    # Step 2: Parallel execution of independent API calls
+    seasons = None
+    tmdb_seasons = None
     info = {}
-    if TOKEN:
-        progress = trakt_api.get_show_progress(trakt_id, hidden=True, specials=True)
-        info = utils2.make_seasons_info(progress)
-        logger.log('Season info: %s' % info, log_utils.LOGDEBUG)
-
-    total_items = len(seasons)
+    
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        # Submit independent tasks
+        futures = {}
+        
+        # Task 1: Get seasons from Trakt
+        futures['seasons'] = executor.submit(trakt_api.get_seasons, trakt_id)
+        
+        # Task 2: Search TMDB for show
+        futures['tmdb_search'] = executor.submit(tmdb_api.search_tmdb_tv, title)
+        
+        # Task 3: Get show progress from Trakt (if logged in)
+        if TOKEN:
+            futures['progress'] = executor.submit(trakt_api.get_show_progress, trakt_id, hidden=True, specials=True)
+        
+        # Wait for all tasks to complete
+        for future in as_completed(futures.values()):
+            try:
+                result = future.result()
+            except Exception as e:
+                logger.log('Error in parallel API call: %s' % str(e), log_utils.LOGWARNING)
+        
+        # Get results from completed futures
+        seasons = sorted(futures['seasons'].result(), key=lambda x: x['number'])
+        logger.log('TRAKT Seasons: %s' % seasons, log_utils.LOGDEBUG)
+        
+        # Handle TMDB episode groups
+        tmdb_results = futures['tmdb_search'].result()
+        logger.log('TMDB Search Results: %s' % tmdb_results, log_utils.LOGDEBUG)
+        shows = tmdb_results.get('results', [])
+        if shows:
+            tmdb_id = shows[0]['id']
+            # This call is still sequential as it depends on tmdb_id
+            tmdb_seasons = tmdb_api.get_tv_episode_groups(tmdb_id)
+            logger.log('TMDB Group Seasons: %s' % tmdb_seasons, log_utils.LOGDEBUG)
+            
+            # Add a single Episode Groups item if groups exist
+            if tmdb_seasons:
+                liz = utils.make_list_item('[B]Episode Groups[/B]', {'type': 'groups'})
+                liz.setArt({'icon': os.path.join(kodi.get_path(), 'resources', 'groups.png'),
+                            'thumb': os.path.join(kodi.get_path(), 'resources', 'groups.png')})
+                liz_url = kodi.get_plugin_url({'mode': MODES.TRAKT_EPISODE_GROUPS, 'tmdb_id': tmdb_id, 'trakt_id': trakt_id, 'title': title, 'tvdb_id': tvdb_id})
+                xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True)
+        
+        # Handle progress info
+        if TOKEN and 'progress' in futures:
+            progress = futures['progress'].result()
+            info = utils2.make_seasons_info(progress)
+            logger.log('Season info: %s' % info, log_utils.LOGDEBUG)
+    
+    # Step 3: Display seasons
+    total_items = len(seasons) if seasons else 0
     for season in seasons:
         if kodi.get_setting('show_season0') == 'true' or season['number'] != 0:
             season_info = info.get(str(season['number']), {'season': season['number']})
@@ -1596,10 +1630,7 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
     fails = set()
     counts = {}
     video = ScraperVideo(video_type, title, year, trakt_id, season, episode, ep_title, ep_airdate)
-    # video2 = ScraperVideoExtended(video, video_type, title, year, trakt_id)
-    from asguard_lib.windows.sources_progress import make_progress_title
-    title_test = make_progress_title(video_type, video)
-    logger.log('Title Test: %s' % title_test, log_utils.LOGDEBUG)
+
     # Flag this request as coming from Episode Groups if applicable
     try:
         if str(group_context).lower() in ('1', 'true', 'yes'):
@@ -1607,25 +1638,81 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
     except Exception:
         pass
 
+    # Check if we should use the enhanced progress dialog
+    use_enhanced = kodi.get_setting('use_enhanced_progress') == 'true'
     active = False if kodi.get_setting('pd_force_disable') == 'true' else True
     cancelled = False
-    with kodi.ProgressDialog(i18n('getting_sources'), utils2.make_progress_msg(video), active=active) as pd:
+
+    # Initialize timeout_msg to prevent UnboundLocalError
+    timeout_msg = ''
+
+    # Initialize quality counts
+    quality_counts = {'4K': 0, '1080p': 0, '720p': 0, 'SD': 0}
+
+    # Use enhanced progress dialog if enabled
+    if use_enhanced and active:
+        from asguard_lib.windows.sources_progress import SourcesProgressDialog, make_progress_title
+
+        # Get the video artwork
+        art = image_scraper.get_images(video_type, {'trakt': trakt_id}, season, episode)
+        logger.log('Video Enhanced Dialog artwork: %s' % art, log_utils.LOGDEBUG)
+        fanart_url = art.get('fanart', '')
+
+        title_hdr = make_progress_title(video_type, video)
+        logger.log('Using Enhanced Progress Dialog with title: %s' % title_hdr, log_utils.LOGDEBUG)
+
+        # Get the addon base path correctly
+        addon_path = xbmcaddon.Addon().getAddonInfo('path')
+
+        dlg = SourcesProgressDialog(
+            'sources_progress.xml',
+            kodi.get_path(),
+            'Default',
+            '1080p',
+            header=title_hdr,
+            line1='', line2='', line3='', line4=''
+        )
+
+        dlg.set_fanart(fanart_url)
+        dlg.set_header(title_hdr)  # Explicitly set header to ensure it displays
+
+        # Show dialog in a separate thread like POV does
+
+        dialog_thread = threading.Thread(target=dlg.doModal)
+        dialog_thread.daemon = True
+        dialog_thread.start()
+
+        # Small delay to ensure dialog is ready
+        time.sleep(0.1)
+
         try:
             wp = worker_pool.WorkerPool()
             scrapers = salts_utils.relevant_scrapers(video_type)
             total_scrapers = len(scrapers)
+
+            # Request sources from scrapers
             for i, cls in enumerate(scrapers):
-                if pd.is_canceled(): return False
+                if dlg.is_canceled():
+                    cancelled = True
+                    break
+
                 scraper = cls(max_timeout)
                 wp.request(salts_utils.parallel_get_sources, [scraper, video])
+
+                # Update progress (0-25% during requests)
                 progress = i * 25 / total_scrapers
-                pd.update(progress, line2=i18n('requested_sources_from') % (cls.get_name()))
+                dlg.set_progress(progress)
+                dlg.set_line1('Requesting sources…')
+                dlg.set_current_scraper(cls.get_name())
+
                 fails.add(cls.get_name())
                 counts[cls.get_name()] = 0
-    
+
             hosters = []
             result_count = 0
-            while result_count < total_scrapers:
+
+            # Receive results from scrapers
+            while result_count < total_scrapers and not cancelled:
                 try:
                     logger.log('Waiting on sources - Timeout: %s' % (timeout), log_utils.LOGDEBUG)
                     result = wp.receive(timeout)
@@ -1633,36 +1720,55 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
                     hoster_count = len(result['hosters'])
                     counts[result['name']] = hoster_count
                     logger.log('Got %s Source Results from %s' % (hoster_count, result['name']), log_utils.LOGDEBUG)
+
+                    # Update quality counts
+                    new_hosters = result['hosters']
+                    for hoster in new_hosters:
+                        quality = hoster.get('quality', '')
+                        if quality == 'HD4K':
+                            quality_counts['4K'] += 1
+                        elif quality == 'HD1080':
+                            quality_counts['1080p'] += 1
+                        elif quality == 'HD720':
+                            quality_counts['720p'] += 1
+                        elif quality in [QUALITIES.HIGH, QUALITIES.MEDIUM, QUALITIES.LOW]:
+                            quality_counts['SD'] += 1
+
+                    # Calculate progress (25-100% during receives)
                     progress = (result_count * 75 / total_scrapers) + 25
                     hosters += result['hosters']
                     fails.remove(result['name'])
-                    if pd.is_canceled():
+
+                    # Update dialog
+                    dlg.set_progress(progress)
+                    dlg.set_line1('Received %d results' % hoster_count)
+                    dlg.set_current_scraper(result['name'])
+                    dlg.set_counts(found=len(hosters), total=sum(counts.values()), remaining_names=list(fails))
+                    dlg.set_quality_counts(best='', counts=quality_counts)
+
+                    # Check for cancellation
+                    if dlg.is_canceled():
                         cancelled = True
                         break
-                    
-                    if len(fails) > 5:
-                        line3 = i18n('remaining_over') % (len(fails), total_scrapers)
-                    else:
-                        line3 = i18n('remaining_under') % (', '.join([name for name in fails]))
-                    pd.update(progress, line2=i18n('received_sources_from') % (hoster_count, len(hosters), result['name']), line3=line3)
-    
                     if max_results > 0 and len(hosters) >= max_results:
                         logger.log('Exceeded max results: %s/%s' % (max_results, len(hosters)), log_utils.LOGDEBUG)
                         fails = {}
                         break
-    
                     if max_timeout > 0:
                         timeout = max_timeout - (time.time() - begin)
                         if timeout < 0: timeout = 0
+
                 except worker_pool.Empty:
                     logger.log('Get Sources Scraper Timeouts: %s' % (', '.join(fails)), log_utils.LOGWARNING)
                     break
-    
-            else:
+
+            if not cancelled:
                 logger.log('All source results received', log_utils.LOGDEBUG)
+
         finally:
             workers = wp.close()
-            
+
+        # Now apply filters and sorting with dialog still open
         try:
             timeout_msg = ''
             if not cancelled:
@@ -1672,22 +1778,27 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
                     timeout_msg = i18n('scraper_timeout') % (timeouts, total_scrapers)
                 elif timeouts > 0:
                     timeout_msg = i18n('scraper_timeout_list') % ('/'.join([name for name in fails]))
-            
+
             if not hosters:
                 logger.log('No Sources found for: |%s|' % (video), log_utils.LOGWARNING)
                 msg = i18n('no_sources')
                 msg += ' (%s)' % timeout_msg if timeout_msg else ''
                 kodi.notify(msg=msg, duration=5000)
+                dlg.close()
                 return False
-        
+
             if timeout_msg:
                 kodi.notify(msg=timeout_msg, duration=7500)
-            
+
             if not fails: line3 = ' '
-            pd.update(100, line2=i18n('applying_source_filters'), line3=line3)
+            dlg.set_progress(100)
+            dlg.set_line1(i18n('applying_source_filters'))
+            dlg.set_line2(line3 if 'line3' in locals() else '')
+            
             hosters = utils2.filter_exclusions(hosters)
             hosters = utils2.filter_quality(video_type, hosters)
             hosters = apply_urlresolver(hosters)
+            
             if kodi.get_setting('enable_sort') == 'true':
                 SORT_KEYS['source'] = salts_utils.make_source_sort_key()
                 hosters.sort(key=utils2.get_sort_key)
@@ -1699,17 +1810,134 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
                         local_hosters.append(item)
                         hosters[i] = None
                 hosters = local_hosters + [item for item in hosters if item is not None]
-                
+
         finally:
+            dlg.close()
             workers = worker_pool.reap_workers(workers)
-    
+    else:
+        # Use standard progress dialog
+        with kodi.ProgressDialog(i18n('getting_sources'), utils2.make_progress_msg(video), active=active) as pd:
+            try:
+                wp = worker_pool.WorkerPool()
+                scrapers = salts_utils.relevant_scrapers(video_type)
+                total_scrapers = len(scrapers)
+
+                for i, cls in enumerate(scrapers):
+                    if pd.is_canceled(): return False
+                    scraper = cls(max_timeout)
+                    wp.request(salts_utils.parallel_get_sources, [scraper, video])
+                    progress = i * 25 / total_scrapers
+                    pd.update(progress, line2=i18n('requested_sources_from') % (cls.get_name()))
+                    fails.add(cls.get_name())
+                    counts[cls.get_name()] = 0
+
+                hosters = []
+                result_count = 0
+
+                while result_count < total_scrapers:
+                    try:
+                        logger.log('Waiting on sources - Timeout: %s' % (timeout), log_utils.LOGDEBUG)
+                        result = wp.receive(timeout)
+                        result_count += 1
+                        hoster_count = len(result['hosters'])
+                        counts[result['name']] = hoster_count
+                        logger.log('Got %s Source Results from %s' % (hoster_count, result['name']), log_utils.LOGDEBUG)
+
+                        # Update quality counts
+                        new_hosters = result['hosters']
+                        for hoster in new_hosters:
+                            quality = hoster.get('quality', '')
+                            if quality == 'HD4K':
+                                quality_counts['4K'] += 1
+                            elif quality == 'HD1080':
+                                quality_counts['1080p'] += 1
+                            elif quality == 'HD720':
+                                quality_counts['720p'] += 1
+                            elif quality in [QUALITIES.HIGH, QUALITIES.MEDIUM, QUALITIES.LOW]:
+                                quality_counts['SD'] += 1
+
+                        progress = (result_count * 75 / total_scrapers) + 25
+                        hosters += result['hosters']
+                        fails.remove(result['name'])
+
+                        if pd.is_canceled():
+                            cancelled = True
+                            break
+                        if len(fails) > 5:
+                            line3 = i18n('remaining_over') % (len(fails), total_scrapers)
+                        else:
+                            line3 = i18n('remaining_under') % (', '.join([name for name in fails]))
+
+                        pd.update(progress,
+                                line2=i18n('received_sources_from') % (hoster_count, len(hosters), result['name']),
+                                line3=line3,
+                                line1=utils2.make_progress_msg(video, quality_counts))
+                        if max_results > 0 and len(hosters) >= max_results:
+                            logger.log('Exceeded max results: %s/%s' % (max_results, len(hosters)), log_utils.LOGDEBUG)
+                            fails = {}
+                            break
+                        if max_timeout > 0:
+                            timeout = max_timeout - (time.time() - begin)
+                            if timeout < 0: timeout = 0
+
+                    except worker_pool.Empty:
+                        logger.log('Get Sources Scraper Timeouts: %s' % (', '.join(fails)), log_utils.LOGWARNING)
+                        break
+                else:
+                    logger.log('All source results received', log_utils.LOGDEBUG)
+
+            finally:
+                workers = wp.close()
+
+            try:
+                timeout_msg = ''
+                if not cancelled:
+                    utils2.record_failures(fails, counts)
+                    timeouts = len(fails)
+                    if timeouts > 4:
+                        timeout_msg = i18n('scraper_timeout') % (timeouts, total_scrapers)
+                    elif timeouts > 0:
+                        timeout_msg = i18n('scraper_timeout_list') % ('/'.join([name for name in fails]))
+
+                if not hosters:
+                    logger.log('No Sources found for: |%s|' % (video), log_utils.LOGWARNING)
+                    msg = i18n('no_sources')
+                    msg += ' (%s)' % timeout_msg if timeout_msg else ''
+                    kodi.close_all_dialog()
+                    kodi.notify(msg=msg, duration=5000)
+                    return False
+
+                if timeout_msg:
+                    kodi.notify(msg=timeout_msg, duration=7500)
+
+                if not fails: line3 = ' '
+                pd.update(100, line2=i18n('applying_source_filters'), line3=line3)
+                hosters = utils2.filter_exclusions(hosters)
+                hosters = hosters = utils2.filter_quality(video_type, hosters)
+                hosters = apply_urlresolver(hosters)
+                if kodi.get_setting('enable_sort') == 'true':
+                    SORT_KEYS['source'] = salts_utils.make_source_sort_key()
+                    hosters.sort(key=utils2.get_sort_key)
+                else:
+                    random.shuffle(hosters)
+                    local_hosters = []
+                    for i, item in enumerate(hosters):
+                        if isinstance(item['class'], local_scraper.Scraper):
+                            local_hosters.append(item)
+                            hosters[i] = None
+                    hosters = local_hosters + [item for item in hosters if item is not None]
+
+            finally:
+                workers = worker_pool.reap_workers(workers)
+
     try:
         if not hosters:
             logger.log('No Usable Sources found for: |%s|' % (video), log_utils.LOGDEBUG)
             msg = ' (%s)' % timeout_msg if timeout_msg else ''
             kodi.notify(msg=i18n('no_useable_sources') % (msg), duration=5000)
+            is_cancelled = False
             return False
-        
+
         pseudo_tv = xbmcgui.Window(10000).getProperty('PseudoTVRunning').lower()
         if pseudo_tv == 'true' or (mode == MODES.GET_SOURCES and kodi.get_setting('auto-play') == 'true') or mode == MODES.AUTOPLAY:
             auto_play_sources(hosters, video_type, trakt_id, season, episode)

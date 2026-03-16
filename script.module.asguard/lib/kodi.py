@@ -142,6 +142,7 @@ def get_plugin_url(queries):
     """
     try:
         query = urlencode(queries)
+        _log(f'Plugin URL: {sys.argv[0]}?{query}', xbmc.LOGDEBUG)
     except UnicodeEncodeError:
         for k, v in queries.items():
             if isinstance(v, str):
@@ -508,16 +509,20 @@ class Translations(object):
 
 class WorkingDialog(object):
     def __init__(self):
-        xbmc.executebuiltin('ActivateWindow(busydialog)')
+        self.pd = xbmcgui.DialogProgressBG()
+        self.pd.create('', 'Loading...')
+        self.pd.update(0)
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
-        xbmc.executebuiltin('Dialog.Close(busydialog)')
+        if self.pd:
+            self.pd.close()
 
     def update_progress(self, percent):
-        xbmc.executebuiltin(f'Notification(Progress Update, {percent}%, 2000)')
+        if self.pd:
+            self.pd.update(int(percent))
 
 def has_addon(addon_id):
     return xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id) == 1

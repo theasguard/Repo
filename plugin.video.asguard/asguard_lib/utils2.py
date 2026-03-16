@@ -649,13 +649,71 @@ def sort_progress(episodes, sort_order):
     else:  # default sort set to activity
         return sorted(episodes, key=lambda x: x['last_watched_at'], reverse=True)
 
-def make_progress_msg(video):
+def make_progress_msg(video, quality_counts=None):
+    """
+    Creates a progress message for source scraping.
+    Optionally includes quality counts.
+    
+    Args:
+        video: The video object containing title, year, season, episode, etc.
+        quality_counts (dict, optional): Dictionary with quality counts.
+                                        Format: {'4K': X, '1080p': Y, '720p': Z, 'SD': W}
+    
+    Returns:
+        str: Formatted progress message
+    """
     progress_msg = '%s: %s' % (video.video_type, video.title)
-    if video.year: progress_msg += ' (%s)' % (video.year)
+    if video.year: 
+        progress_msg += ' (%s)' % (video.year)
     if video.video_type == VIDEO_TYPES.EPISODE:
         progress_msg += ' - S%02dE%02d' % (int(video.season), int(video.episode))
+    
+    # Add quality counts if provided
+    if quality_counts:
+        quality_parts = []
+        for quality in ['4K', '1080p', '720p', 'SD']:
+            count = quality_counts.get(quality, 0)
+            if count > 0:
+                quality_parts.append('%s: %s' % (quality, count))
+        
+        if quality_parts:
+            progress_msg += ' | %s' % (' | '.join(quality_parts))
+    
     return progress_msg
 
+
+def get_quality_counts(hosters):
+    """
+    Counts hosters by quality.
+    
+    Args:
+        hosters: List of hoster dictionaries with 'quality' key
+    
+    Returns:
+        dict: Quality counts in format {'4K': X, '1080p': Y, '720p': Z, 'SD': W}
+    """
+    quality_counts = {
+        '4K': 0,
+        '1080p': 0,
+        '720p': 0,
+        'SD': 0
+    }
+    
+    for item in hosters:
+        if item.get('multi-part'):
+            continue
+            
+        quality = item.get('quality', '')
+        if quality == 'HD4K':
+            quality_counts['4K'] += 1
+        elif quality == 'HD1080':
+            quality_counts['1080p'] += 1
+        elif quality == 'HD720':
+            quality_counts['720p'] += 1
+        elif quality in ['HIGH', 'MEDIUM', 'LOW']:
+            quality_counts['SD'] += 1
+    
+    return quality_counts
 
 def from_playlist():
     pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)

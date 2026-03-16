@@ -1334,27 +1334,14 @@ class DB_Connection():
             self._connection_pool.clear()
 
     def close(self):
-        """Close database connection with WAL checkpointing (no pooling)"""
-        try:
-            # Perform WAL checkpoint before closing (SQLite only)
-            if self.db_type == DB_TYPES.SQLITE and self.db is not None:
-                try:
-                    self.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
-                    logger.log('WAL checkpoint completed', log_utils.LOGDEBUG)
-                except Exception as e:
-                    logger.log('WAL checkpoint failed: %s' % str(e), log_utils.LOGWARNING)
-            
-            # Close the connection
-            if self.db is not None:
-                self.db.close()
-                logger.log('Database connection closed', log_utils.LOGDEBUG)
-                self.db = None
-        except Exception as e:
-            logger.log('Error closing database connection: %s' % str(e), log_utils.LOGERROR)
-        finally:
-            # Always reset instance variables
-            self.db = None
-            self.worker_id = None
+        worker_id = self.worker_id
+        self.close_all_connections()
+        if self.__get_db_connection().cursor():
+            self.__get_db_connection().cursor().close()
+        if worker_id is not None:
+            worker_id = None
+        if self.db:
+            self.db.close()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()

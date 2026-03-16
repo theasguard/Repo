@@ -478,7 +478,11 @@
 						<heading>Simkl User</heading>
 					</control>
 				</setting>
-
+				<setting id="use_enhanced_progress" type="boolean" label="40538" help="40539">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
 				<setting id="realdebrid.apikey" type="string" label="40618" help="">
 					<level>0</level>
 					<default></default>
@@ -2640,16 +2644,6 @@
 							<heading>Custom Configuration URL</heading>
 						</control>
 					</setting>
-					<setting id="AioStreams-process_p2p_hashes" type="boolean" label="40482" help="Enable processing of P2P torrent hashes using your debrid service. This can provide more streams but may be slower.">
-						<level>0</level>
-						<default>false</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition operator="is" setting="AioStreams-enable">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="toggle"/>
-					</setting>
 					<setting id="Anidex-enable" type="boolean" label="30421" help="">
 						<level>0</level>
 						<default>true</default>
@@ -2937,6 +2931,41 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+					<setting id="Dailymotion-enable" type="boolean" label="40612" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Dailymotion-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.dailymotion.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Dailymotion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Dailymotion-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Dailymotion-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
 					<setting id="EasyNews-enable" type="boolean" label="30402" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3035,6 +3064,10 @@
 							<popup>false</popup>
 						</control>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_3" label="30320" help="">
+			<group id="103">
 					<setting id="EZTV-enable" type="boolean" label="30423" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3070,10 +3103,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_3" label="30320" help="">
-			<group id="103">
 					<setting id="Furk.net-enable" type="boolean" label="30403" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3328,6 +3357,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_4" label="30321" help="">
+			<group id="104">
 					<setting id="Local-enable" type="boolean" label="30404" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3383,10 +3416,6 @@
 						</dependencies>
 						<control type="spinner" format="string"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_4" label="30321" help="">
-			<group id="104">
 					<setting id="M4UHD-enable" type="boolean" label="40818" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3597,6 +3626,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_5" label="30322" help="">
+			<group id="105">
 					<setting id="Premiumize.me-enable" type="boolean" label="30406" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3707,10 +3740,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_5" label="30322" help="">
-			<group id="105">
 					<setting id="Premiumize.V2-enable" type="boolean" label="30407" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3871,6 +3900,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_6" label="30323" help="">
+			<group id="106">
 					<setting id="Torlock-enable" type="boolean" label="40656" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3982,10 +4015,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_6" label="30323" help="">
-			<group id="106">
 					<setting id="TorrentGalaxy-enable" type="boolean" label="30410" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4148,6 +4177,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_7" label="40710" help="">
+			<group id="107">
 					<setting id="WebStreamr-enable" type="boolean" label="40915" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4243,10 +4276,6 @@
 							<heading>MediaFlow Proxy Password</heading>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_7" label="40710" help="">
-			<group id="107">
 					<setting id="YourBittorrent-enable" type="boolean" label="40615" help="">
 						<level>0</level>
 						<default>true</default>

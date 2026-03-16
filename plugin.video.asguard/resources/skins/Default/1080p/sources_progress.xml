@@ -1,123 +1,198 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <window>
-    <defaultcontrol always="true">300</defaultcontrol>
-    <allowoverlay>no</allowoverlay>
+    <defaultcontrol>300</defaultcontrol>
     <controls>
-        <!-- Background -->
+        <!-- Background with fanart -->
         <control type="group">
-            <posx>210</posx>
-            <posy>210</posy>
-            <width>1500</width>
-            <height>660</height>
+            <animation effect="zoom" start="0" end="100" time="200" center="auto" tween="quadratic" easing="out">WindowOpen</animation>
+            <!-- Fanart background -->
             <control type="image">
-                <width>1500</width>
-                <height>660</height>
-                <texture border="20">dialog-bg.png</texture>
+                <left>0</left>
+                <top>0</top>
+                <width>1920</width>
+                <height>1080</height>
+                <texture fallback="special://home/addons/plugin.video.asguard/fanart.jpg">$INFO[Window.Property(asguard.source_progress.fanart)]</texture>
+                <aspectratio>scale</aspectratio>
+                <colordiffuse>FFFFFFFF</colordiffuse>
+                <fadetime>200</fadetime>
+            </control>
+            <!-- Dark overlay -->
+            <control type="image">
+                <left>0</left>
+                <top>0</top>
+                <width>1920</width>
+                <height>1080</height>
+                <texture colordiffuse="CC000000">black.png</texture>
             </control>
         </control>
 
-        <!-- Header -->
-        <control type="label" id="100">
-            <posx>260</posx>
-            <posy>250</posy>
-            <width>1400</width>
-            <height>40</height>
-            <font>font13_title</font>
-            <textcolor>white</textcolor>
-            <label>Getting sources…</label>
-        </control>
+        <!-- Main content group - centered like POV -->
+        <control type="group">
+            <centerleft>50%</centerleft>
+            <centertop>50%</centertop>
+            <width>1152</width>
+            <height>868</height>
 
-        <!-- Status lines -->
-        <control type="label" id="110">
-            <posx>260</posx>
-            <posy>300</posy>
-            <width>1400</width>
-            <height>35</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-            <label></label>
-        </control>
-        <control type="label" id="120">
-            <posx>260</posx>
-            <posy>340</posy>
-            <width>1400</width>
-            <height>35</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-            <label></label>
-        </control>
-        <control type="label" id="130">
-            <posx>260</posx>
-            <posy>380</posy>
-            <width>1400</width>
-            <height>35</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-            <label></label>
-        </control>
-        <control type="label" id="140">
-            <posx>260</posx>
-            <posy>420</posy>
-            <width>1400</width>
-            <height>35</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-            <label></label>
-        </control>
+            <!-- Background panel -->
+            <control type="image">
+                <texture colordiffuse="80343434">white.png</texture>
+            </control>
 
-        <!-- Progress + counts -->
-        <control type="progress" id="200">
-            <posx>260</posx>
-            <posy>470</posy>
-            <width>1400</width>
-            <height>16</height>
-            <info>Container.Progress</info>
-        </control>
-        <control type="label" id="210">
-            <posx>260</posx>
-            <posy>500</posy>
-            <width>800</width>
-            <height>30</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-            <label>Found: 0 | Total: 0</label>
-        </control>
-        <control type="label" id="220">
-            <posx>1060</posx>
-            <posy>500</posy>
-            <width>600</width>
-            <height>30</height>
-            <font>font12</font>
-            <align>right</align>
-            <textcolor>white</textcolor>
-            <label>Scraper:</label>
-        </control>
-        <control type="label" id="230">
-            <posx>260</posx>
-            <posy>540</posy>
-            <width>1400</width>
-            <height>30</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-            <label>Elapsed: 0m 00s</label>
-        </control>
-        <control type="label" id="240">
-            <posx>260</posx>
-            <posy>570</posy>
-            <width>1400</width>
-            <height>30</height>
-            <font>font12</font>
-            <textcolor>white</textcolor>
-        </control>
+            <!-- Header -->
+            <control type="label">
+                <left>0</left>
+                <top>60</top>
+                <width>1152</width>
+                <height>60</height>
+                <font>font45</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <shadowcolor>FF000000</shadowcolor>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$INFO[Window.Property(asguard.source_progress.header)]</label>
+            </control>
 
-        <!-- Cancel Button -->
-        <control type="button" id="300">
-            <posx>1160</posx>
-            <posy>590</posy>
-            <width>500</width>
-            <height>54</height>
-            <label>Cancel</label>
-            <font>font12_title</font>
+            <!-- Status lines -->
+            <control type="label">
+                <left>0</left>
+                <top>100</top>
+                <width>1152</width>
+                <height>50</height>
+                <font>font30</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <shadowcolor>FF000000</shadowcolor>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$INFO[Window.Property(asguard.source_progress.line1)]</label>
+            </control>
+            <control type="label">
+                <left>0</left>
+                <top>155</top>
+                <width>1152</width>
+                <height>50</height>
+                <font>font30</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <shadowcolor>FF000000</shadowcolor>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$INFO[Window.Property(asguard.source_progress.line2)]</label>
+            </control>
+            <control type="label">
+                <left>0</left>
+                <top>210</top>
+                <width>1152</width>
+                <height>50</height>
+                <font>font30</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <shadowcolor>FF000000</shadowcolor>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$INFO[Window.Property(asguard.source_progress.line3)]</label>
+            </control>
+            <control type="label">
+                <left>0</left>
+                <top>265</top>
+                <width>1152</width>
+                <height>50</height>
+                <font>font30</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <shadowcolor>FF000000</shadowcolor>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$INFO[Window.Property(asguard.source_progress.line4)]</label>
+            </control>
+
+            <!-- Progress section -->
+            <control type="group">
+                <left>0</left>
+                <top>330</top>
+                <width>1152</width>
+                <height>200</height>
+
+                <!-- Elapsed time label -->
+                <control type="label">
+                    <left>0</left>
+                    <top>0</top>
+                    <width>1152</width>
+                    <height>40</height>
+                    <font>font30</font>
+                    <textcolor>FF00A8E8</textcolor>
+                    <shadowcolor>FF000000</shadowcolor>
+                    <align>center</align>
+                    <aligny>center</aligny>
+                    <label>$INFO[Window.Property(asguard.source_progress.elapsed)]</label>
+                </control>
+
+                <!-- Progress bar -->
+                <control type="progress" id="200">
+                    <left>226</left>
+                    <top>50</top>
+                    <width>700</width>
+                    <height>20</height>
+                    
+                    <lefttexture>-</lefttexture>
+                    <righttexture>-</righttexture>
+                    <overlaytexture>-</overlaytexture>
+                </control>
+
+                <!-- Current scraper label -->
+                <control type="label">
+                    <left>0</left>
+                    <top>85</top>
+                    <width>1152</width>
+                    <height>40</height>
+                    <font>font30</font>
+                    <textcolor>FF00A8E8</textcolor>
+                    <shadowcolor>FF000000</shadowcolor>
+                    <align>center</align>
+                    <aligny>center</aligny>
+                    <label>$INFO[Window.Property(asguard.source_progress.scraper)]</label>
+                </control>
+
+                <!-- Quality label -->
+                <control type="label">
+                    <left>0</left>
+                    <top>130</top>
+                    <width>1152</width>
+                    <height>40</height>
+                    <font>font30</font>
+                    <textcolor>FF00A8E8</textcolor>
+                    <shadowcolor>FF000000</shadowcolor>
+                    <align>center</align>
+                    <aligny>center</aligny>
+                    <label>$INFO[Window.Property(asguard.source_progress.quality)]</label>
+                </control>
+            </control>
+
+            <!-- Counts label -->
+            <control type="label">
+                <left>0</left>
+                <top>540</top>
+                <width>1152</width>
+                <height>40</height>
+                <font>font30</font>
+                <textcolor>FF00A8E8</textcolor>
+                <shadowcolor>FF000000</shadowcolor>
+                <align>center</align>
+                <aligny>center</aligny>
+                <label>$INFO[Window.Property(asguard.source_progress.counts)]</label>
+            </control>
+
+            <!-- Cancel Button -->
+            <control type="button" id="300">
+                <centerleft>50%</centerleft>
+                <top>600</top>
+                <width>200</width>
+                <height>60</height>
+                <label>Cancel</label>
+                <font>font30</font>
+                <textcolor>FFB7B4BB</textcolor>
+                <focusedcolor>FF00A8E8</focusedcolor>
+                <texturefocus colordiffuse="FFCCCCCC">white.png</texturefocus>
+                <texturenofocus colordiffuse="FF302F2F">white.png</texturenofocus>
+                <align>center</align>
+                <aligny>center</aligny>
+            </control>
         </control>
     </controls>
 </window>

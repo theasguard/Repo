@@ -28,7 +28,7 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
         self.setProperty('item.info.title', self.message)
         self.setProperty('settings.color', 'FF12A0C7')
         logger.log(f'Set properties - ShowTitle: {self.title} | Details: {self.message}', log_utils.LOGDEBUG)
-        self.background_tasks()
+        self.run_in_background(self.background_tasks)
 
 
     def run_in_background(self, task_function, *args, **kwargs):
@@ -90,8 +90,13 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
 
 
     def close(self):
-        self.closed = True
-        # Clear properties when closing
-        self.clearProperty('item.info.tvshowtitle')
-        self.clearProperty('item.info.title')
-        super(NextEpisodeDialog, self).close() 
+        """Close the dialog safely."""
+        if not self.closed:
+            self.closed = True
+            try:
+                # Clear properties when closing
+                self.clearProperty('item.info.tvshowtitle')
+                self.clearProperty('item.info.title')
+                super(NextEpisodeDialog, self).close()
+            except Exception as e:
+                logger.log(f'NextEpisodeDialog: Error closing dialog: {e}', log_utils.LOGERROR)
