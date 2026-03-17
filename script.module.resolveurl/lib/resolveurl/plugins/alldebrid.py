@@ -68,9 +68,8 @@ class AllDebridResolver(ResolveUrl):
                     else:
                         sources = []
                         for link in transfer_info.get('files'):
-                            for e in link.get('e') or [link]:
-                                if any(e.get('n').lower().endswith(x) for x in FORMATS):
-                                    sources.append((e.get('s'), e.get('l'), e.get('n')))
+                            # Similar structure but for tuple format
+                            sources.extend(self._extract_files(link))
                     # Prompt user to select a source if there are multiple options
                     if len(sources) > 1:
                         source_labels = [f"{source[2]}" for source in sources]
@@ -118,6 +117,25 @@ class AllDebridResolver(ResolveUrl):
                         return js_data.get('data').get('link')
 
         raise ResolverError('AllDebrid: {0}'.format(i18n('no_stream')))
+
+    def _extract_files(self, link):
+        """Recursively extract video files from nested AllDebrid structure"""
+        sources = []
+        
+        # Check if this is a video file
+        if link.get('n') and link.get('l') and any(link.get('n', '').lower().endswith(x) for x in FORMATS):
+            sources.append((link.get('s'), link.get('l'), link.get('n')))
+            return sources
+        
+        # If not a video file, check for nested entries
+        entries = link.get('e')
+        if entries and isinstance(entries, list):
+            for entry in entries:
+                sources.extend(self._extract_files(entry))
+        
+        return sources
+
+
 
     def __list_transfer(self, transfer_id):
         url = api_url + '.1/magnet/status'
