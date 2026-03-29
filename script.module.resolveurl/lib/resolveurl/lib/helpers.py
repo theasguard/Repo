@@ -70,6 +70,7 @@ def pick_source(sources, auto_pick=None):
             return sources[0][1]
         else:
             result = xbmcgui.Dialog().select(common.i18n('choose_the_link'), [str(source[0]) if source[0] else 'Unknown' for source in sources])
+            common.logger.log_debug('User selected link: %s' % (result))
             if result == -1:
                 raise ResolverError(common.i18n('no_link_selected'))
             else:

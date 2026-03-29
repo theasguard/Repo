@@ -123,6 +123,7 @@
 		<setting id="TorBoxResolver_torrents" type="bool" label="Torrent Support" default="true"/>
 		<setting id="TorBoxResolver_cached_only" enable="eq(-1,true)" type="bool" label="Cached torrents only" default="false" />
 		<setting id="TorBoxResolver_web_downloads" type="bool" label="Web Download Support" default="true"/>
+		<setting id="TorBoxResolver_usenet" type="bool" label="Usenet Support" default="true"/>
 		<setting id="TorBoxResolver_clear_finished" type="bool" label="Clear Finished downloads from account" default="true"/>
 		<setting id="TorBoxResolver_apikey" enable="eq(-5,true)" type="text" label="API Key" default=""/>
 	</category>
