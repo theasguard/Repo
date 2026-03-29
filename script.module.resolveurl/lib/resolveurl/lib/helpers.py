@@ -70,7 +70,6 @@ def pick_source(sources, auto_pick=None):
             return sources[0][1]
         else:
             result = xbmcgui.Dialog().select(common.i18n('choose_the_link'), [str(source[0]) if source[0] else 'Unknown' for source in sources])
-            common.logger.log_debug('User selected link: %s' % (result))
             if result == -1:
                 raise ResolverError(common.i18n('no_link_selected'))
             else:
@@ -161,7 +160,7 @@ def scrape_sources(html, result_blacklist=None, scheme='http', patterns=None, ge
         patterns = []
 
     def __parse_to_list(_html, regex):
-        _blacklist = ['.jpg', '.jpeg', '.gif', '.png', '.js', '.css', '.htm', '.html', '.php', '.srt', '.sub', '.xml', '.swf', '.vtt', '.mpd']
+        _blacklist = ['.jpg', '.jpeg', '.gif', '.png', '.js', '.css', '.htm', '.html', '.php', '.srt', '.sub', '.xml', '.swf', '.vtt']
         _blacklist = set(_blacklist + result_blacklist)
         streams = []
         labels = []
@@ -289,8 +288,7 @@ def get_media_url(
     elif referer:
         headers.update({'Referer': rurl})
     response = net.http_GET(url, headers=headers, redirect=redirect)
-    response_headers = response.get_headers(as_dict=True)
-    cookie = response_headers.get('Set-Cookie', None)
+    cookie = response.get_cookies()
     if cookie:
         headers.update({'Cookie': cookie})
     html = response.content
@@ -821,6 +819,8 @@ def Tdecode(vidurl):
 
 
 def b64decode(t, binary=False):
+    if len(t) % 4 != 0:
+        t += '=' * (-len(t) % 4)
     r = base64.b64decode(t)
     return r if binary else six.ensure_str(r)
 
