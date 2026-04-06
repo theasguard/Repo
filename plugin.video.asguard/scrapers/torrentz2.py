@@ -215,7 +215,7 @@ class Scraper(scraper.Scraper):
 
         # Fetch and parse all queries
         for url, mark_pack in queries:
-            html = self._http_get_alt(url, require_debrid=True, cache_limit=.5)
+            html = self._http_get(url, require_debrid=True, cache_limit=.5)
             parse_page(html, mark_as_pack_default=mark_pack)
 
         return sources

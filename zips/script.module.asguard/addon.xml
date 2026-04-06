@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.module.asguard" name="Asguards Libraries" version="0.0.2" provider-name="Thor">
+<addon id="script.module.asguard" name="Asguards Libraries" version="0.0.3" provider-name="Thor">
 	<requires>
 <!-- 		<import addon="xbmc.python" version="2.19.0" /> -->
 	</requires>

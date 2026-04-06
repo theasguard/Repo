@@ -471,7 +471,7 @@ class Translations(object):
             'Gogoanime': 30605,
             'Gogoanime alt': 40606,
             'NunFlix': 40607,
-            'Limetorrents': 40608,
+            'LimeTorrents': 40608,
             'SolarMovie': 40609,
             'Kickass2': 40611,
             'Dailymotion': 40612,
@@ -503,6 +503,11 @@ class Translations(object):
             'TVMovieFlix': 40816,
             'SFlixWatch': 40817,
             'M4UHD': 40818,
+            'StreamThru': 40819,
+            'TorrentsDB': 40820,
+            'Meteor': 40821,
+            'Noxx': 40822,
+            'NZBIndex': 40824,
             # Add more mappings as needed
         }
         return SCRAPER_IDS.get(scraper_name, 30000)  # Fallback to default

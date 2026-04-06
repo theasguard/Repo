@@ -86,9 +86,26 @@ def make_tv_show_item(show):
 
     # Provide both a stable cache key ('trakt') and the real TMDB id for image lookups
     tmdb_id = show.get('id')
-    trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+    # Try to get trakt_id from multiple sources with fallback
+    trakt_id = None
+
+    # First try: Use TMDB ID to get Trakt ID from Trakt API
+    if not trakt_id:
+        try:
+            trakt_id = trakt_api.get_trakt_id_by_external('tmdb', tmdb_id, SECTIONS.TV)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from TMDB ID: {e}', log_utils.LOGWARNING)
+
+    # Second try: Use local cache as fallback
+    if not trakt_id and tmdb_id:
+        try:
+            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
+
+
     ids = {
-        'trakt': int(trakt_id) if trakt_id else tmdb_id,  # cache key; prefer real trakt id if available
+        'trakt': int(trakt_id) if trakt_id else None,  # cache key; prefer real trakt id if available
         'tmdb': tmdb_id
     }
     tvdb_id = (show.get('external_ids') or {}).get('tvdb_id')
@@ -130,6 +147,136 @@ def make_tv_show_item(show):
     return liz, liz_url
 
 
+def make_tmdb_movie_item(movie):
+    """Create a list item for a movie from TMDB data, including context menus for source selection and downloading."""
+    logger.log('make_tmdb_movie_item: {}'.format(movie), log_utils.LOGNOTICE)
+
+    # Get the title and year
+    title = movie.get('title') or movie.get('original_title') or ''
+    release_date = movie.get('release_date') or ''
+    year = release_date[:4] if release_date else ''
+    label = f"{title} ({year})" if year else title
+
+    # Create a copy to avoid modifying the original movie dict
+    movie_copy = movie.copy()
+    logger.log('make_tmdb_movie_item movie_copy: {}'.format(movie_copy), log_utils.LOGNOTICE)
+
+    # Add required fields for salts_utils.make_info()
+    movie_copy['title'] = title
+    if movie.get('original_title') and movie.get('original_title') != title:
+        movie_copy['originaltitle'] = movie.get('original_title')
+
+    # Add year from release_date
+    if year:
+        movie_copy['year'] = int(year)
+
+    # Add overview if present
+    if movie.get('overview'):
+        movie_copy['overview'] = movie.get('overview')
+
+    # Get IDs for image lookups
+    tmdb_id = movie.get('id')
+    imdb_id = movie.get('imdb_id')
+
+    # Try to get trakt_id from multiple sources with fallback
+    trakt_id = None
+
+    # First try: Use TMDB ID to get Trakt ID from Trakt API
+    if not trakt_id:
+        try:
+            trakt_id = trakt_api.get_trakt_id_by_external('tmdb', tmdb_id, SECTIONS.MOVIES)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from TMDB ID: {e}', log_utils.LOGWARNING)
+
+    # Second try: Use local cache as fallback
+    if not trakt_id and tmdb_id:
+        try:
+            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
+
+
+    ids = {
+        'trakt': int(trakt_id) if trakt_id else None,
+        'tmdb': tmdb_id
+    }
+    if imdb_id:
+        ids['imdb'] = imdb_id
+
+    # Get artwork
+    art = image_scraper.get_images(VIDEO_TYPES.MOVIE, ids)
+    logger.log('make_tmdb_movie_item art: {}'.format(art), log_utils.LOGNOTICE)
+
+    # Add IDs to movie_copy for make_info
+    movie_copy['ids'] = {'tmdb': tmdb_id}
+    if trakt_id:
+        movie_copy['ids']['trakt'] = int(trakt_id)
+    if imdb_id:
+        movie_copy['ids']['imdb'] = imdb_id
+
+    # Create the list item
+    liz = utils.make_list_item(label, movie_copy, art)
+
+    liz.setInfo('video', salts_utils.make_info(movie_copy))
+
+    # Fallbacks using TMDB image paths
+    poster_path = movie.get('poster_path')
+    backdrop_path = movie.get('backdrop_path')
+    fallback_art = {}
+    if poster_path:
+        fallback_art['poster'] = f'https://image.tmdb.org/t/p/w500{poster_path}'
+        # If no thumb provided, use poster as thumb
+        fallback_art['thumb'] = fallback_art['poster']
+    if backdrop_path:
+        fallback_art['fanart'] = f'https://image.tmdb.org/t/p/w780{backdrop_path}'
+
+    if fallback_art:
+        liz.setArt({
+            'poster': fallback_art.get('poster') or art.get('poster') or '',
+            'fanart': fallback_art.get('fanart') or art.get('fanart') or '',
+            'thumb': fallback_art.get('thumb') or art.get('thumb') or '',
+            'banner': art.get('banner', '')
+        })
+
+    # Create URL for getting sources
+    queries = {
+        'mode': MODES.GET_SOURCES,
+        'video_type': VIDEO_TYPES.MOVIE,
+        'title': title,
+        'year': year,
+        'trakt_id': int(trakt_id) if trakt_id else tmdb_id
+    }
+    if tmdb_id:
+        queries['tmdb_id'] = tmdb_id
+    if imdb_id:
+        queries['imdb_id'] = imdb_id
+    queries['random'] = time.time()
+
+    liz_url = kodi.get_plugin_url(queries)
+
+    # Context menu items
+    menu_items = []
+
+    # Auto-play setting
+    if kodi.get_setting('auto-play') == 'true':
+        runstring = 'RunPlugin(%s)' % liz_url
+        menu_items.append((i18n('auto-play'), runstring))
+    else:
+        runstring = 'Container.Update(%s)' % liz_url
+        menu_items.append((i18n('select_source'), runstring))
+
+    # Download option
+    if kodi.get_setting('show_download') == 'true':
+        download_queries = queries.copy()
+        download_queries['mode'] = MODES.DOWNLOAD_SOURCE
+        download_url = kodi.get_plugin_url(download_queries)
+        menu_items.append((i18n('download_source'), 'RunPlugin(%s)' % download_url))
+
+    liz.addContextMenuItems(menu_items, replaceItems=True)
+
+    return liz, liz_url
+
+
 def make_tmdb_season_item(season, show, tmdb_id):
     logger.log('make_tmdb_season_item: {}'.format(season), log_utils.LOGNOTICE)
     logger.log('make_tmdb_season_item: {}'.format(show), log_utils.LOGNOTICE)
@@ -137,9 +284,26 @@ def make_tmdb_season_item(season, show, tmdb_id):
     label = '{} {}'.format(i18n('season'), season['season_number'])
     # Provide ids including tmdb (and tvdb if available) so season art can be fetched by scrapers
     tmdb_show_id = int(show.get('id'))
-    trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+    # Try to get trakt_id from multiple sources with fallback
+    trakt_id = None
+
+    # First try: Use TMDB ID to get Trakt ID from Trakt API
+    if not trakt_id:
+        try:
+            trakt_id = trakt_api.get_trakt_id_by_external('tmdb', tmdb_id, SECTIONS.TV)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from TMDB ID: {e}', log_utils.LOGWARNING)
+
+    # Second try: Use local cache as fallback
+    if not trakt_id and tmdb_id:
+        try:
+            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
+
+
     ids = {
-        'trakt': int(trakt_id) if trakt_id else tmdb_id,
+        'trakt': int(trakt_id) if trakt_id else None,
         'tmdb': tmdb_id
     }
     tvdb_id = (show.get('external_ids') or {}).get('tvdb_id')
@@ -208,9 +372,26 @@ def make_tmdb_episode_item(show, episode, tmdb_id):
     logger.log('make_tmdb_episode_item_show: {}'.format(show), log_utils.LOGNOTICE)
     logger.log('make_tmdb_episode_item: {}'.format(episode), log_utils.LOGNOTICE)
     logger.log('make_tmdb_episode_item_tmdb_id: {}'.format(tmdb_id), log_utils.LOGNOTICE)
-    trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+    # Try to get trakt_id from multiple sources with fallback
+    trakt_id = None
+
+    # First try: Use TMDB ID to get Trakt ID from Trakt API
+    if not trakt_id:
+        try:
+            trakt_id = trakt_api.get_trakt_id_by_external('tmdb', tmdb_id, SECTIONS.TV)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from TMDB ID: {e}', log_utils.LOGWARNING)
+
+    # Second try: Use local cache as fallback
+    if not trakt_id and tmdb_id:
+        try:
+            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+        except Exception as e:
+            logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
+
+
     ids = {
-        'trakt': trakt_id if trakt_id else tmdb_id,
+        'trakt': trakt_id if trakt_id else None,
         'tmdb': tmdb_id
     }
     tvdb_id = (show.get('external_ids') or {}).get('tvdb_id') if isinstance(show, dict) else None

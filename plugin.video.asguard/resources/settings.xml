@@ -169,7 +169,9 @@
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
-				<setting id="TV_search_head" type="integer" help="">
+				</group>
+				<group id="25" label="40638">
+				<setting id="TV_search_head" type="integer" label="40552" help="">
 					<level>0</level>
 					<default>0</default>
 					<dependencies>
@@ -181,7 +183,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="Movies_search_head" type="integer" help="">
+				<setting id="Movies_search_head" type="integer" label="40553" help="">
 					<level>0</level>
 					<default>0</default>
 					<dependencies>
@@ -193,7 +195,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="TV_main" type="string" help="">
+				<setting id="TV_main" type="string" label="40554" help="">
 					<level>0</level>
 					<default>imdb-highest-rated-tv-series@hulkhorgen</default>
 					<dependencies>
@@ -205,7 +207,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="Movies_main" type="string" help="">
+				<setting id="Movies_main" type="string" label="40555" help="">
 					<level>0</level>
 					<default>top-rated@movistapp</default>
 					<dependencies>
@@ -217,7 +219,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="source_sort_order" type="string" label="Source Sort Order" help="">
+				<setting id="source_sort_order" type="string" label="40556" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -235,7 +237,7 @@
 						<heading>Source Sort Order</heading>
 					</control>
 				</setting>
-				<setting id="prev_responses" type="string" label="30326" help="">
+				<setting id="prev_responses" type="string" label="40557" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -253,7 +255,7 @@
 						<heading>Previous Auto-Conf Responses</heading>
 					</control>
 				</setting>
-				<setting id="pd_force_disable" type="boolean" help="">
+				<setting id="pd_force_disable" type="boolean" label="40558" help="">
 					<level>0</level>
 					<default>false</default>
 					<dependencies>
@@ -263,7 +265,7 @@
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
-				<setting id="current_ua" type="string" help="">
+				<setting id="current_ua" type="string" label="40559" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -278,7 +280,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="rewatch_min_list" type="string" help="">
+				<setting id="rewatch_min_list" type="string" label="40560" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -293,7 +295,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="rewatch_max_list" type="string" help="">
+				<setting id="rewatch_max_list" type="string" label="40561" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -308,7 +310,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="last_ua_create" type="integer" help="">
+				<setting id="last_ua_create" type="integer" label="40562" help="">
 					<level>0</level>
 					<default>0</default>
 					<dependencies>
@@ -320,7 +322,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="sema_value" type="integer" help="">
+				<setting id="sema_value" type="integer" label="40563" help="">
 					<level>0</level>
 					<default>1</default>
 					<dependencies>
@@ -332,7 +334,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="sema_value1" type="integer" help="">
+				<setting id="sema_value1" type="integer" label="40564" help="">
 					<level>0</level>
 					<default>1</default>
 					<dependencies>
@@ -364,7 +366,7 @@
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
-				<setting id="cookie_debug" type="boolean" label="30325" help="">
+				<setting id="cookie_debug" type="boolean" label="40565" help="">
 					<level>0</level>
 					<default>false</default>
 					<dependencies>
@@ -374,7 +376,7 @@
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
-				<setting id="enabled_comp" type="string" help="">
+				<setting id="enabled_comp" type="string" label="40566" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -389,7 +391,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="cool_down" type="boolean" help="">
+				<setting id="cool_down" type="boolean" label="40567" help="">
 					<level>0</level>
 					<default>false</default>
 					<dependencies>
@@ -401,43 +403,113 @@
 				</setting>
 			</group>
 		</category>
-		<category id="consumet" label="40620" help="">
-			<group id="2">
-			<setting id="persist_tvdb_ids" type="boolean" label="40626" help="">
+		<category id="misc" label="40550" help="">
+			<group id="2" label="40736">
+			<setting id="mdblist_token" type="string" label="40739" help="">
 				<level>0</level>
-				<default>true</default>
-				<control type="toggle" />
-			</setting>
-			<setting id="tvdb_helper_enabled" type="boolean" label="40528" help="">
-				<level>0</level>
-				<default>true</default>
-				<control type="toggle" />
-			</setting>
-			<setting id="tvdb_helper_auto_update" type="boolean" label="40529" help="">
-				<level>0</level>
-				<default>true</default>
-				<control type="toggle" />
-			</setting>
-			<setting id="tvdb_helper_fallback_to_tmdb" type="boolean" label="40530" help="">
-				<level>0</level>
-				<default>true</default>
-				<control type="toggle" />
-			</setting>
-			<setting id="tvdb_helper_update_interval" type="integer" label="40531" help="">
-				<level>0</level>
-				<default>10</default>
+				<default></default>
 				<constraints>
-					<minimum>0</minimum>
-					<maximum>50</maximum>
+					<allowempty>true</allowempty>
 				</constraints>
 				<dependencies>
-					<dependency type="enable">
-						<condition operator="is" setting="tvdb_helper_enabled">true</condition>
+					<dependency type="visible">
+						<condition on="property" name="InfoBool">true</condition>
 					</dependency>
 				</dependencies>
-				<control type="slider" format="integer">
-					<popup>false</popup>
-				</control>
+				<control type="edit" format="string">
+					<heading/>
+					</control>
+				</setting>
+				<setting id="general_manual_select" type="boolean" label="40481" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				</group>
+				<group id="23" label="40737">
+				<setting id="persist_tvdb_ids" type="boolean" label="40626" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="tvdb_helper_enabled" type="boolean" label="40528" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="tvdb_helper_auto_update" type="boolean" label="40529" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="tvdb_helper_fallback_to_tmdb" type="boolean" label="40530" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="tvdb_helper_update_interval" type="integer" label="40531" help="">
+					<level>0</level>
+					<default>10</default>
+					<constraints>
+						<minimum>0</minimum>
+						<maximum>50</maximum>
+					</constraints>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="tvdb_helper_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="slider" format="integer">
+						<popup>false</popup>
+					</control>
+				</setting>
+				<setting id="tvdb_api_key" type="string" label="40640" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
+				<setting id="tvdbtokenov" type="string" label="40641" help="">
+					<level>0</level>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
+
+			</group>
+			<group id="20" label="40738">
+			<setting id="flaresolverr_auto_start" type="boolean" label="40535" default="true">
+				<level>0</level>
+				<default>true</default>
+				<control type="toggle"/>
+			</setting>
+			<setting id="flaresolverr_auto_port" type="boolean" label="40536" default="true">
+				<level>0</level>
+				<default>true</default>
+				<control type="toggle"/>
+			</setting>
+			<setting id="flaresolverr_port" type="number" label="40537" default="8191">
+				<level>0</level>
+				<default>8191</default>
+				<control type="edit" format="number"/>
 			</setting>
 			<setting id="consumet.hosting.bool" type="boolean" label="40620" help="">
 				<level>0</level>
@@ -461,28 +533,16 @@
 				</setting>
 			</group>
 		</category>
-		<category id="accounts" label="30310" help="">
+		<category id="debrid" label="40551" help="">
 			<group id="3">
-				<setting id="general_manual_select" type="boolean" label="40481" help="">
-					<level>0</level>
-					<default>true</default>
-					<control type="toggle"/>
-				</setting>
-				<setting id="simkl_user" type="string" label="40649" help="">
-					<level>0</level>
-					<default></default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<control type="edit" format="string">
-						<heading>Simkl User</heading>
-					</control>
-				</setting>
+
 				<setting id="use_enhanced_progress" type="boolean" label="40538" help="40539">
 					<level>0</level>
 					<default>false</default>
 					<control type="toggle"/>
 				</setting>
+				</group>
+				<group id="17" label="40735">
 				<setting id="realdebrid.apikey" type="string" label="40618" help="">
 					<level>0</level>
 					<default></default>
@@ -538,71 +598,7 @@
 						<hidden>true</hidden>
 					</control>
 				</setting>
-				<setting id="tvdb_api_key" type="string" label="40640" help="">
-					<level>0</level>
-					<default></default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading/>
-					</control>
-				</setting>
-				<setting id="flaresolverr_auto_start" type="boolean" label="40535" default="true">
-					<level>0</level>
-					<default>true</default>
-					<control type="toggle"/>
-				</setting>
-				<setting id="flaresolverr_auto_port" type="boolean" label="40536" default="true">
-					<level>0</level>
-					<default>true</default>
-					<control type="toggle"/>
-				</setting>
-				<setting id="flaresolverr_port" type="number" label="40537" default="8191">
-					<level>0</level>
-					<default>8191</default>
-					<control type="edit" format="number"/>
-				</setting>
-				<setting id="tvdbtokenov" type="string" label="40641" help="">
-					<level>0</level>
-					<default></default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="edit" format="string">
-						<heading/>
-					</control>
-				</setting>
-				<setting id="trakt.expires" type="string" label="40911" help="">
-					<level>0</level>
-					<default/>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<control type="edit" format="string">
-						<heading>Trakt Expires</heading>
-					</control>
-				</setting>
-				<setting id="trakt_use_optimized" type="boolean" label="40912" help="">
-					<level>0</level>
-					<default>false</default>
-					<dependencies>
-						<dependency type="visible">
-							<condition on="property" name="InfoBool">true</condition>
-						</dependency>
-					</dependencies>
-					<control type="toggle"/>
-				</setting>
+
 			</group>
 		</category>
 		<category id="my next episodes" label="30022" help="">
@@ -1040,7 +1036,17 @@
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
-				<setting id="TV_sub_slug" type="string" help="">
+				<setting id="trakt.expires" type="string" label="40911" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>Trakt Expires</heading>
+					</control>
+				</setting>
+				<setting id="TV_sub_slug" type="string" label="40574" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1055,7 +1061,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="Movies_sub_slug" type="string" help="">
+				<setting id="Movies_sub_slug" type="string" label="40575" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1070,7 +1076,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="TV_fav_slug" type="string" help="">
+				<setting id="TV_fav_slug" type="string" label="40576" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1085,7 +1091,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="rewatch_slug" type="string" help="">
+				<setting id="rewatch_slug" type="string" label="40578" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1100,7 +1106,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="Movies_fav_slug" type="string" help="">
+				<setting id="Movies_fav_slug" type="string" label="40577" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1115,7 +1121,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="trakt_oauth_token" type="string" help="">
+				<setting id="trakt_oauth_token" type="string" label="40579" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1130,7 +1136,7 @@
 						<heading>Trakt OAuth Token</heading>
 					</control>
 				</setting>
-				<setting id="trakt_refresh_token" type="string" help="">
+				<setting id="trakt_refresh_token" type="string" label="40580" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -1145,7 +1151,7 @@
 						<heading/>
 					</control>
 				</setting>
-				<setting id="last_reminder" type="integer" help="">
+				<setting id="last_reminder" type="integer" label="40581" help="">
 					<level>0</level>
 					<default>0</default>
 					<dependencies>
@@ -1168,9 +1174,9 @@
 						<heading>30732</heading>
 					</control>
 				</setting>
-				<setting id="restart_proxy" type="action" label="Restart Image Proxy" help="">
+				<setting id="restart_proxy" type="action" label="40572" help="">
 					<level>0</level>
-					<data/>
+					<data>RunPlugin(plugin://plugin.video.asguard/?mode=restart_image_proxy)</data>
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
@@ -1232,12 +1238,12 @@
 					<default>true</default>
 					<control type="toggle"/>
 				</setting>
-				<setting id="omdb_api" type="string" label="omdd api" help="">
+				<setting id="omdb_api" type="string" label="30714" help="">
 					<level>0</level>
 					<default>d994e738</default>
 					<visible>false</visible>
 					<control type="edit" format="string">
-						<heading>omdd api</heading>
+						<heading>omdb api</heading>
 					</control>
 				</setting>
 				<setting id="tvmaze_enable" type="boolean" label="30715" help="">
@@ -1565,7 +1571,7 @@
 				</setting>
 				<setting id="filter_unusable" type="boolean" label="30580" help="">
 					<level>0</level>
-					<default>true</default>
+					<default>false</default>
 					<control type="toggle"/>
 				</setting>
 				<setting id="show_debrid" type="boolean" label="30652" help="">
@@ -1702,7 +1708,7 @@
 						<popup>false</popup>
 					</control>
 				</setting>
-				<setting id="scraper_download" type="boolean" help="">
+				<setting id="scraper_download" type="boolean" label="30211" help="">
 					<level>0</level>
 					<default>false</default>
 					<dependencies>
@@ -2077,7 +2083,7 @@
 					</dependencies>
 					<control type="spinner" format="string"/>
 				</setting>
-				<setting id="force_title_match" type="string" label="Shows forced to match only on title" help="">
+				<setting id="force_title_match" type="string" label="40568" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -2095,7 +2101,7 @@
 						<heading>Shows forced to match only on title</heading>
 					</control>
 				</setting>
-				<setting id="progress_skip_cache" type="string" label="Shows to skip in get_progress" help="">
+				<setting id="progress_skip_cache" type="string" label="40569" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -2113,7 +2119,7 @@
 						<heading>Shows to skip in get_progress</heading>
 					</control>
 				</setting>
-				<setting id="force_include_progress" type="string" label="Ended shows forced into get_progress" help="">
+				<setting id="force_include_progress" type="string" label="40570" help="">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -2131,7 +2137,7 @@
 						<heading>Ended shows forced into get_progress</heading>
 					</control>
 				</setting>
-				<setting id="toggle_enable" type="boolean" label="Enable/Disable Check" help="">
+				<setting id="toggle_enable" type="boolean" label="40571" help="">
 					<level>0</level>
 					<default>false</default>
 					<dependencies>
@@ -2529,6 +2535,17 @@
 					</dependencies>
 					<control type="button" format="action"/>
 				</setting>
+				<setting id="repair_resolveurl" type="action" label="30304" help="">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.asguard/?mode=repair_urlresolver)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+
+					<control type="button" format="action">
+						<close>true</close>
+					</control>
+				</setting>
 			</group>
 		</category>
 		<category id="scrapers_1" label="30318" help="">
@@ -2895,6 +2912,44 @@
 							</dependency>
 						</dependencies>
 						<control type="toggle"/>
+					</setting>
+					<setting id="ClubNZB-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="ClubNZB-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.clubnzb.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="ClubNZB-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="ClubNZB-min_size" type="integer" label="Minimum Size (MB)" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>10000</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="ClubNZB-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
 					</setting>
 					<setting id="Comet-enable" type="boolean" label="40632" help="">
 						<level>0</level>
@@ -3322,7 +3377,7 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="LimeTorrents-enable" type="boolean" label="30000" help="">
+					<setting id="LimeTorrents-enable" type="boolean" label="40608" help="">
 						<level>0</level>
 						<default>true</default>
 						<dependencies>
@@ -3486,7 +3541,7 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="Meteor-enable" type="boolean" label="30000" help="">
+					<setting id="Meteor-enable" type="boolean" label="40821" help="">
 						<level>0</level>
 						<default>true</default>
 						<dependencies>
@@ -3521,7 +3576,7 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="Noxx-enable" type="boolean" label="30000" help="">
+					<setting id="Noxx-enable" type="boolean" label="40822" help="">
 						<level>0</level>
 						<default>true</default>
 						<dependencies>
@@ -3591,6 +3646,48 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+					<setting id="NZBIndex-enable" type="boolean" label="40824" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="NZBIndex-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://www.nzbindex.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="NZBIndex-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="NZBIndex-min_size" type="integer" label="Minimum Size (MB)" help="">
+						<level>0</level>
+						<default>0</default>
+						<constraints>
+							<minimum>0</minimum>
+							<maximum>10000</maximum>
+						</constraints>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="NZBIndex-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="slider" format="integer">
+							<popup>false</popup>
+						</control>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_5" label="30322" help="">
+			<group id="105">
 					<setting id="Orion-enable" type="boolean" label="30405" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3626,10 +3723,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_5" label="30322" help="">
-			<group id="105">
 					<setting id="Premiumize.me-enable" type="boolean" label="30406" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3708,7 +3801,7 @@
 					</setting>
 					<setting id="Premiumize.me-base_url2" type="string" label="40913" help="">
 						<level>0</level>
-						<default>https://yts.am</default>
+						<default>https://yts.bz</default>
 						<dependencies>
 							<dependency type="visible">
 								<condition operator="is" setting="Premiumize.me-enable">true</condition>
@@ -3830,7 +3923,7 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="StreamThru-enable" type="boolean" label="30000" help="">
+					<setting id="StreamThru-enable" type="boolean" label="40819" help="">
 						<level>0</level>
 						<default>true</default>
 						<dependencies>
@@ -3865,6 +3958,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_6" label="30323" help="">
+			<group id="106">
 					<setting id="Thepiratebay-enable" type="boolean" label="40628" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3900,10 +3997,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_6" label="30323" help="">
-			<group id="106">
 					<setting id="Torlock-enable" type="boolean" label="40656" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4085,7 +4178,7 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="TorrentsDB-enable" type="boolean" label="30000" help="">
+					<setting id="TorrentsDB-enable" type="boolean" label="40820" help="">
 						<level>0</level>
 						<default>true</default>
 						<dependencies>
@@ -4120,6 +4213,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_7" label="40710" help="">
+			<group id="107">
 					<setting id="Torrentz2-enable" type="boolean" label="30430" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4177,10 +4274,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_7" label="40710" help="">
-			<group id="107">
 					<setting id="WebStreamr-enable" type="boolean" label="40915" help="">
 						<level>0</level>
 						<default>true</default>

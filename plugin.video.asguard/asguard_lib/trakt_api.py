@@ -79,6 +79,17 @@ REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 RESULTS_LIMIT = 100
 HIDDEN_SIZE = 100
 
+def trakt_expires(func):
+    def wrapper(*args, **kwargs):
+        if kodi.get_setting('trakt_refresh_token'):
+            expires_str = kodi.get_setting('trakt.expires')
+            expires = float(expires_str) if expires_str else 0
+            refresh = (expires - time.time()) // 3600 < 8
+            logger.log('Trakt refresh token exists. Checking expiration...', log_utils.LOGDEBUG)
+            if refresh and args[0].trakt_refresh(): xbmc.sleep(1000)
+        return func(*args, **kwargs)
+    return wrapper
+
 class Trakt_API():
     def __init__(self, token=None, use_https=False, list_size=RESULTS_LIMIT, timeout=100, offline=False):
         self.token = token
@@ -465,6 +476,7 @@ class Trakt_API():
             params['page'] += 1
         return result
     
+    
     def get_user_profile(self, username=None, cached=True):
         if username is None: username = 'me'
         url = '/users/%s' % (utils.to_slug(username))
@@ -626,6 +638,8 @@ class Trakt_API():
             self.__worker_id = worker_id
         return self.__db_connection
 
+
+
     def __call_trakt(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True, cache_limit: float = .25, cached: bool = True) -> Union[str, list, dict, Any]:
         res_headers = {}
         if not cached: cache_limit = 0
@@ -728,36 +742,10 @@ class Trakt_API():
                     else:
                         raise TransientTraktError('Temporary Trakt Error: ' + str(e))
                 except urllib_error.URLError as e:
+                    # CHANGED: Simplified URL error handling - delegate to main logic
                     if isinstance(e, urllib_error.HTTPError):
-                        if e.code in TEMP_ERRORS:
-                            if cached_result:
-                                result = cached_result
-                                logger.log('Temporary Trakt Error (%s). Using Cached Page Instead.' % (str(e)), log_utils.LOGWARNING)
-                                break
-                            else:
-                                raise TransientTraktError('Temporary Trakt Error: ' + str(e))
-                        elif e.code == 401 or e.code == 405:
-                            # token is fine, profile is private
-                            if 'X-Private-User' in e.headers and e.headers.get('X-Private-User') == 'true':
-                                raise TraktAuthError('Object is No Longer Available (%s)' % (e.code))
-                            # auth failure retry or a token request
-                            elif auth_retry or url.endswith('/oauth/token'):
-                                self.token = None
-                                kodi.set_setting('trakt_oauth_token', '')
-                                kodi.set_setting('trakt_refresh_token', '')
-                                raise TraktAuthError('Trakt Call Authentication Failed (%s)' % (e.code))
-                            # first try token fail, try to refresh token
-                            else:
-                                result = self.refresh_token(kodi.get_setting('trakt_refresh_token'))
-                                self.token = result['access_token']
-                                kodi.set_setting('trakt_oauth_token', result['access_token'])
-                                kodi.set_setting('trakt_refresh_token', result['refresh_token'])
-                                auth_retry = True
-                                continue
-                        elif e.code == 404:
-                            raise TraktNotFoundError('Object Not Found (%s): %s' % (e.code, url))
-                        else:
-                            raise
+                        # Re-raise to be handled by the main status code logic above
+                        raise
                     elif isinstance(e.reason, socket.timeout) or isinstance(e.reason, ssl.SSLError):
                         if cached_result:
                             result = cached_result
@@ -837,24 +825,20 @@ class Trakt_API():
         try:
             url = '/oauth/token'
             data = {'redirect_uri': REDIRECT_URI, 'client_secret': CLIENT_SECRET, 'client_id': V2_API_KEY}
-            data.update({'refresh_token': kodi.get_setting('trakt_refresh_token'), 'grant_type': 'refresh_token'})
+            refresh_token = kodi.get_setting('trakt_refresh_token')
+            if not refresh_token:
+                logger.log('No refresh token available', log_utils.LOGERROR)
+                return False
+            data.update({'refresh_token': refresh_token, 'grant_type': 'refresh_token'})
             response = self.__call_trakt(url, data=data, auth=False)
             expires = int(response['created_at']) + int(response['expires_in'])
             refresh, token = response['refresh_token'], response['access_token']
             kodi.set_setting('trakt_oauth_token', token)
             kodi.set_setting('trakt_refresh_token', refresh)
             kodi.set_setting('trakt.expires', str(expires))
-        except Exception as e: logger.log('trakt_refresh error', str(e), log_utils.LOGERROR)
-        else: return True
+        except Exception as e: 
+            logger.log('trakt_refresh error: %s' % str(e), log_utils.LOGERROR)
+        else: 
+            return True
         return False
 
-    def trakt_expires(self, func):
-        def wrapper(*args, **kwargs):
-            logger.log('Trakt expires wrapper: %s - |%s|' % (*args, *kwargs), log_utils.LOGDEBUG)
-            if kodi.get_setting('trakt_refresh_token'):
-                expires = float(kodi.get_setting('trakt.expires', '0'))
-                refresh = (expires - time.time()) // 3600 < 8
-                logger.log('Trakt refresh token exists. Checking expiration...', log_utils.LOGDEBUG)
-                if refresh and self.trakt_refresh(): xbmc.sleep(1000)
-            return func(*args, **kwargs)
-        return wrapper

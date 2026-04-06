@@ -36,7 +36,7 @@ ADD_URL = '/api/transfer/create?type=torrent'
 BROWSE_URL = '/api/folder/list?hash=%s'
 LIST_URL = '/api/transfer/list'
 
-BASE_UR2 = 'https://yts.am'
+BASE_UR2 = 'https://yts.bz'
 MOVIE_SEARCH_URL = '/api/v2/list_movies.json'
 MOVIE_DETAILS_URL = '/api/v2/movie_details.json'
 

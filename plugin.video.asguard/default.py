@@ -80,8 +80,7 @@ def main_menu():
 
     kodi.create_item({'mode': MODES.BROWSE, 'section': SECTIONS.MOVIES}, i18n('movies'), thumb=utils2.art('movies.png'), fanart=utils2.art('fanart.jpg'))
     kodi.create_item({'mode': MODES.BROWSE, 'section': SECTIONS.TV}, i18n('tv_shows'), thumb=utils2.art('television.png'), fanart=utils2.art('fanart.jpg'))
-    kodi.create_item({'mode': MODES.TMDB_SEARCH}, i18n('tmdb_search'), thumb=utils2.art('movies.png'), fanart=utils2.art('fanart.jpg'))
-    kodi.create_item({'mode': MODES.TMDB_TV_SEARCH}, i18n('tmdb_tv_search'), thumb=utils2.art('television.png'), fanart=utils2.art('fanart.jpg'))
+
     if utils2.menu_on('settings'):
         kodi.create_item({'mode': MODES.SETTINGS}, i18n('settings'), thumb=utils2.art('settings.png'), fanart=utils2.art('fanart.jpg'))
     if TOKEN:
@@ -142,6 +141,25 @@ def settings_menu():
     kodi.set_content(CONTENT_TYPES.ADDONS)
     kodi.end_of_directory()
 
+@url_dispatcher.register(MODES.RESTART_IMAGE_PROXY)
+def restart_image_proxy():
+    try:
+        # Stop the proxy if it's running
+        if proxy.running:
+            proxy.stop_proxy()
+            logger.log('Image Proxy stopped for restart', log_utils.LOGNOTICE)
+        
+        # Start the proxy
+        proxy.start_proxy()
+        logger.log('Image Proxy restarted successfully', log_utils.LOGNOTICE)
+        
+        # Notify the user
+        kodi.notify(msg='Image Proxy restarted successfully', duration=3000)
+    except Exception as e:
+        logger.log('Failed to restart Image Proxy: %s' % str(e), log_utils.LOGERROR)
+        kodi.notify(msg='Failed to restart Image Proxy: %s' % str(e), duration=5000)
+
+
 @url_dispatcher.register(MODES.BROWSE, ['section'])
 def browse_menu(section):
     section_params = utils2.get_section_params(section)
@@ -159,6 +177,10 @@ def browse_menu(section):
         kodi.create_item({'mode': MODES.MOSTS, 'section': section}, i18n('mosts').format(section_label2), thumb=utils2.art('mosts.png'), fanart=utils2.art('fanart.jpg'))
     if utils2.menu_on('genres'):
         kodi.create_item({'mode': MODES.GENRES, 'section': section}, i18n('genres'), thumb=utils2.art('genres.png'), fanart=utils2.art('fanart.jpg'))
+    if section == SECTIONS.MOVIES:
+        if utils2.menu_on('search'):
+            kodi.create_item({'mode': MODES.TMDB_SEARCH, 'section': section}, i18n('tmdb_search'), thumb=utils2.art(section_params['search_img']), fanart=utils2.art('fanart.jpg'))
+
     add_section_lists(section)
     if TOKEN:
         if utils2.menu_on('on_deck'):
@@ -193,6 +215,8 @@ def browse_menu(section):
             add_refresh_item({'mode': MODES.CAL}, i18n('general_calendar'), utils2.art('calendar.png'), utils2.art('fanart.jpg'))
         if utils2.menu_on('premiere_cal'):
             add_refresh_item({'mode': MODES.PREMIERES}, i18n('premiere_calendar'), utils2.art('premiere_calendar.png'), utils2.art('fanart.jpg'))
+        if utils2.menu_on('search'):
+            kodi.create_item({'mode': MODES.TMDB_TV_SEARCH, 'section': section}, i18n('tmdb_tv_search'), thumb=utils2.art('television_search.png'), fanart=utils2.art('fanart.jpg'))
     if utils2.menu_on('search'):
         kodi.create_item({'mode': MODES.SEARCH, 'section': section}, i18n('search'), thumb=utils2.art(section_params['search_img']), fanart=utils2.art('fanart.jpg'))
     if utils2.menu_on('search'):
@@ -2123,7 +2147,7 @@ def download_subtitles(language, title, year, season, episode):
     if subs and index > -1:
         return srt_scraper.download_subtitle(subs[index]['url'])
 
-def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episode=''):
+def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episode='', return_all=False):
 
     if hoster_url is None:
         if direct is not None:
@@ -2138,6 +2162,44 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
         else:
             wd.update_progress(25)
 
+        if return_all:
+            hmf = resolveurl.HostedMediaFile(url=hoster_url, return_all=True)
+            if not hmf:
+                stream_url = hoster_url
+            else:
+                try:
+                    all_files = hmf.resolve()
+                    logger.log('all_files: %s' % (all_files), log_utils.LOGDEBUG)
+                    if not all_files or not isinstance(all_files, list):
+                        try: msg = all_files.msg
+                        except: msg = hoster_url
+                        raise Exception(msg)
+                    
+                    # Create a selection list for the user
+                    selection_list = []
+                    for file_info in all_files:
+                        name = file_info.get('name', 'Unknown')
+                        size = file_info.get('size', 0)
+                        size_str = salts_utils.format_size(size, 'B') if size else 'Unknown size'
+                        selection_list.append([f"{name} ({size_str})", file_info.get('link')])
+                    
+                    # Show selection dialog
+                    if len(selection_list) > 1:
+                        result = xbmcgui.Dialog().select(i18n('choose_stream'), [item[0] for item in selection_list])
+                        if result == -1:
+                            kodi.notify(msg=i18n('no_link_selected'), duration=7500)
+                            return False
+                        stream_url = selection_list[result][1]
+                    elif selection_list:
+                        stream_url = selection_list[0][1]
+                    else:
+                        raise Exception(i18n('no_stream_found'))
+                except Exception as e:
+                    try: msg = str(e)
+                    except: msg = hoster_url
+                    kodi.notify(msg=i18n('resolve_failed') % (msg), duration=7500)
+                    return False
+        else:
             hmf = resolveurl.HostedMediaFile(url=hoster_url)
             if not hmf:
                 stream_url = hoster_url
@@ -3601,8 +3663,8 @@ def get_list(section, slug, username=None, cached=True):
     
     return items
 
-@url_dispatcher.register(MODES.TMDB_SEARCH)
-def tmdb_search(query=None):
+@url_dispatcher.register(MODES.TMDB_SEARCH, ['section'])
+def tmdb_search(section=None, query=None):
     if query is None:
         heading = i18n('tmdb_search')
         keyboard = xbmc.Keyboard('', heading)
@@ -3619,34 +3681,27 @@ def tmdb_search(query=None):
 
     # Assuming you have a function in your TMDB API wrapper to search for movies or TV shows
     search_results = tmdb_api.get_all_results(query)
+    logger.log(f"Search results: {search_results}")
     if not search_results:
         kodi.notify(msg=i18n('no_results_found'), duration=5000)
         return
 
     for result in search_results:
-        label = result['title'] or result['name']
-        meta = {
-            'ids': {
-                'imdb': result.get('imdb_id'),
-                'tvdb': result.get('tvdb_id'),
-                'trakt': result.get('trakt_id')
-            }
-        }
-        art = image_scraper.get_images(VIDEO_TYPES.TVSHOW, {'trakt': result['id']})
+        tmdb_id = result.get('id')
         
         # Construct the URL using the TMDB ID
         tmdb_id = result.get('id')
         if tmdb_id:
             url = f"https://www.themoviedb.org/movie/{tmdb_id}"
-            list_item = utils.make_list_item(label, meta, art)
-            xbmcplugin.addDirectoryItem(int(sys.argv[1]), url, list_item, isFolder=False)
+            liz, liz_url = makeitem.make_tmdb_movie_item(result)
+            xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=False)
         else:
             logger.warning(f"TMDB ID not found in result: {result}")
     kodi.set_view(CONTENT_TYPES.MOVIES, True)
     kodi.end_of_directory()
 
-@url_dispatcher.register(MODES.TMDB_TV_SEARCH)
-def tmdb_tv_search():
+@url_dispatcher.register(MODES.TMDB_TV_SEARCH, ['section'])
+def tmdb_tv_search(section=None):
     dialog = xbmcgui.Dialog()
     query = dialog.input("Enter the TV show name to search", type=xbmcgui.INPUT_ALPHANUM)
     if not query:

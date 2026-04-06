@@ -46,11 +46,14 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
         progress = (elapsed / self.duration) * 100
         self.getControl(3014).setPercent(progress)
         
-        if elapsed < self.duration and not self.result:
-            xbmc.sleep(100)
-            self.background_tasks()
-        else:
-            self.close()
+        while not self.closed and self.player.isPlaying():
+            if elapsed < self.duration and not self.result:
+                xbmc.sleep(100)
+                self.background_tasks()
+            if progress < 1:  # Close if less than 1% remaining
+                break
+            else:
+                self.close()
 
     def onClick(self, controlId):
         self.handle_action(7, controlId)
@@ -90,13 +93,11 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
 
 
     def close(self):
-        """Close the dialog safely."""
-        if not self.closed:
-            self.closed = True
-            try:
-                # Clear properties when closing
-                self.clearProperty('item.info.tvshowtitle')
-                self.clearProperty('item.info.title')
-                super(NextEpisodeDialog, self).close()
-            except Exception as e:
-                logger.log(f'NextEpisodeDialog: Error closing dialog: {e}', log_utils.LOGERROR)
+        self.closed = True
+        try:
+            # Clear properties when closing
+            self.clearProperty('item.info.tvshowtitle')
+            self.clearProperty('item.info.title')
+            super(NextEpisodeDialog, self).close()
+        except Exception as e:
+            logger.log(f'NextEpisodeDialog: Error closing dialog: {e}', log_utils.LOGERROR)

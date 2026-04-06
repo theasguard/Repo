@@ -133,6 +133,13 @@ def get_genres():
         GENRES.update(dict((genre['slug'], genre['name']) for genre in trakt_api.get_genres(SECTIONS.MOVIES)))
     return GENRES
 
+def format_size(num, suffix='B'):
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Y', suffix)
+
 def make_cast(ids, people, cached=True):
     cast = []
     cast_enable = kodi.get_setting('cast_enable') == 'true'

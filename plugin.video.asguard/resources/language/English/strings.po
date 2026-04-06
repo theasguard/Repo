@@ -62,23 +62,23 @@ msgid "Remove Cached Url(s)"
 msgstr ""
 
 msgctxt "#30012"
-msgid "Trending %s"
+msgid "Trending"
 msgstr ""
 
 msgctxt "#30013"
-msgid "Popular %s"
+msgid "Popular"
 msgstr ""
 
 msgctxt "#30014"
-msgid "Recently Updated %s"
+msgid "Recently Updated"
 msgstr ""
 
 msgctxt "#30015"
-msgid "Recommended %s"
+msgid "Recommended"
 msgstr ""
 
 msgctxt "#30016"
-msgid "My %s Collection"
+msgid "My Collection"
 msgstr ""
 
 msgctxt "#30017"
@@ -767,7 +767,7 @@ msgid "Liked Lists"
 msgstr ""
 
 msgctxt "#30199"
-msgid "%s Mosts"
+msgid "Mosts"
 msgstr ""
 
 msgctxt "#30200"
@@ -1019,7 +1019,7 @@ msgid "Related Urls Cleared: %s"
 msgstr ""
 
 msgctxt "#30262"
-msgid "Anticipated %s"
+msgid "Anticipated"
 msgstr ""
 
 msgctxt "#30263"
@@ -2367,6 +2367,26 @@ msgctxt "#30433"
 msgid "TorrentDownload Enabled"
 msgstr ""
 
+msgctxt "#40819"
+msgid "StreamThru Enabled"
+msgstr ""
+
+msgctxt "#40820"
+msgid "TorrentsDB Enabled"
+msgstr ""
+
+msgctxt "#40821"
+msgid "Meteor Enabled"
+msgstr ""
+
+msgctxt "#40822"
+msgid "Noxx Enabled"
+msgstr ""
+
+msgctxt "#40824"
+msgid "NZBIndex Enabled"
+msgstr ""
+
 msgctxt "#40334"
 msgid "Accounts"
 msgstr ""
@@ -2520,7 +2540,7 @@ msgid "NunFlix Enabled"
 msgstr ""
 
 msgctxt "#40608"
-msgid "Limetorrents Enabled"
+msgid "LimeTorrents Enabled"
 msgstr ""
 
 msgctxt "#40609"
@@ -2833,6 +2853,167 @@ msgid "Use Enhanced Progress Dialog"
 msgstr ""
 
 msgctxt "#40539"
-msgid "Enable POV-style progress dialog with quality counts and detailed information"
+msgid "Enable POV-style GET_SOURCES progress dialog with quality counts and detailed information"
 msgstr ""
+
+
+msgctxt "#40550"
+msgid "Misc"
 msgstr ""
+
+msgctxt "#40551"
+msgid "Debrid/Other"
+msgstr ""
+
+msgctxt "#40552"
+msgid "TV Search Head"
+msgstr ""
+
+msgctxt "#40553"
+msgid "Movie Search Head"
+msgstr ""
+
+msgctxt "#40554"
+msgid "TV Main"
+msgstr ""
+
+msgctxt "#40555"
+msgid "Movie Main"
+msgstr ""
+
+msgctxt "#40556"
+msgid "Source Sort Order"
+msgstr ""
+
+msgctxt "#40557"
+msgid "Previous Response"
+msgstr ""
+
+msgctxt "#40558"
+msgid "PD Force Disable"
+msgstr ""
+
+msgctxt "#40559"
+msgid "Current UA"
+msgstr ""
+
+msgctxt "#40560"
+msgid "Rewatch Min List"
+msgstr ""
+
+msgctxt "#40561"
+msgid "Rewatch Max List"
+msgstr ""
+
+msgctxt "#40562"
+msgid "Last UA Create"
+msgstr ""
+
+msgctxt "#40563"
+msgid "Sema Value"
+msgstr ""
+
+msgctxt "#40564"
+msgid "Sema Value1"
+msgstr ""
+
+msgctxt "#40565"
+msgid "Cookie Debug"
+msgstr ""
+
+msgctxt "#40566"
+msgid "Enabled Comp"
+msgstr ""
+
+msgctxt "#40567"
+msgid "Cool Down"
+msgstr ""
+
+msgctxt "#40568"
+msgid "Shows forced to match only on title"
+msgstr ""
+
+msgctxt "#40569"
+msgid "Shows to skip in get_progress"
+msgstr ""
+
+msgctxt "#40570"
+msgid "Ended shows forced into get_progress"
+msgstr ""
+
+msgctxt "#40571"
+msgid "Enable/Disable Check"
+msgstr ""
+
+msgctxt "#40572"
+msgid "Restart Image Proxy"
+msgstr ""
+
+msgctxt "#40573"
+msgid "OMDB API"
+msgstr ""
+
+msgctxt "#40574"
+msgid "TV Sub Slug"
+msgstr ""
+
+msgctxt "#40575"
+msgid "Movie Sub Slug"
+msgstr ""
+
+msgctxt "#40576"
+msgid "TV Fav Slug"
+msgstr ""
+
+msgctxt "#40577"
+msgid "Movie Fav Slug"
+msgstr ""
+
+msgctxt "#40578"
+msgid "Rewatch Slug"
+msgstr ""
+
+msgctxt "#40579"
+msgid "TRAKT Oauth Token"
+msgstr ""
+
+msgctxt "#40580"
+msgid "TRAKT Refresh Token"
+msgstr ""
+
+msgctxt "#40581"
+msgid "Last Reminder"
+msgstr ""
+
+msgctxt "#40636"
+msgid "TVDB Token"
+msgstr ""
+
+msgctxt "#40637"
+msgid "Merge TVDB Seasons"
+msgstr ""
+
+msgctxt "#40638"
+msgid "Developer Settings"
+msgstr ""
+
+msgctxt "#40735"
+msgid "Debrid APIKEYS"
+msgstr ""
+
+msgctxt "#40736"
+msgid "MDBList APIKEY And Other"
+msgstr ""
+
+msgctxt "#40737"
+msgid "TVDB Persist (Auto)"
+msgstr ""
+
+msgctxt "#40738"
+msgid "Hosting"
+msgstr ""
+
+msgctxt "#40739"
+msgid "MDBList API"
+msgstr ""
+
