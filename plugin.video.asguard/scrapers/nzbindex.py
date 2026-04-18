@@ -338,7 +338,7 @@ class Scraper(scraper.Scraper):
         return [
             f'''\t\t<setting id="{parent_id}" type="boolean" label="{label_id}" help="">
 \t\t\t<level>0</level>
-\t\t\t<default>true</default>
+\t\t\t<default>false</default>
 \t\t\t<dependencies>
 \t\t\t\t<dependency type="visible">
 \t\t\t\t\t<condition on="property" name="InfoBool">true</condition>
