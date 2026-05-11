@@ -1,6 +1,6 @@
 """
     Asguard Addon
-    Copyright (C) 2024 MrBlamo
+    Copyright (C) 2026 MrBlamo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,35 +16,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import io, urllib.parse, urllib.request, urllib.error
-
-import requests, urllib3, cache
-from urllib3.util import Retry
-import xbmcaddon
-import os, ssl, socket, json, zipfile, time, six
-
+# Standard library imports
+import io, json, os, threading, random, socket, ssl, time, urllib.parse, urllib.request, xml.etree.ElementTree as ET, zipfile
+import asyncio
+# Third-party library imports
+import cache, requests, six, urllib3
 from bs4 import BeautifulSoup
-import utils
-import log_utils
-import kodi
-from asguard_lib import utils2, client
-import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from asguard_lib.db_utils import DB_Connection
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
+
+# Kodi-specific imports
+import xbmcaddon
+
+# Local module imports
+import kodi, log_utils, utils
+from asguard_lib import client, utils2
 from asguard_lib.constants import VIDEO_TYPES
-import xml.etree.ElementTree as ET
-import logging
+from asguard_lib.constants import *
+from asguard_lib.db_utils import DB_Connection
 logger = log_utils.Logger.get_logger(__name__)
 
 # Since the image_cache module is now local, we can directly import it
 from . import image_cache
 
-logging.basicConfig(level=logging.DEBUG)
-# Add this at the top of the file, after the imports
 CACHE_INSTALLED = 'image_cache' in globals()
-
+index = random.randrange(len(RAND_UAS))
+versions = {'win_ver': random.choice(WIN_VERS), 'feature': random.choice(FEATURES), 'br_ver': random.choice(BR_VERS[index])}
+user_agent = RAND_UAS[index].format(**versions)
 db_connection = DB_Connection()
 PLACE_POSTER = os.path.join(kodi.get_path(), 'resources', 'place_poster.png')
 DEFAULT_FANART = utils2.art('fanart.jpg')
@@ -62,6 +61,9 @@ GIF_ENABLED = False
 ZIP_CACHE = 24
 OBJ_PERSON = 'person'
 PROXY_TEMPLATE = 'http://127.0.0.1:{port}{action}'
+
+UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+
 
 class SessionManager:
     _instance = None
@@ -85,25 +87,31 @@ class SessionManager:
         
         # Configure retry strategy
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
+            total=None,
+            backoff_factor=0.3,
             status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "OPTIONS", "POST"]
         )
         
         # Mount adapter with connection pooling
         adapter = HTTPAdapter(
             max_retries=retry_strategy,
-            pool_connections=20,
-            pool_maxsize=20,
+            pool_connections=15,
+            pool_maxsize=15,
             pool_block=False
         )
         
+
         cls._session.mount('http://', adapter)
         cls._session.mount('https://', adapter)
         
-        # Create shared thread pool with reduced workers
-        cls._executor = ThreadPoolExecutor(max_workers=10)
-    
+        # Create shared thread pool with DAEMON threads
+        cls._executor = ThreadPoolExecutor(
+            max_workers=5, 
+            thread_name_prefix='image_scraper',
+            initializer=lambda: setattr(threading.current_thread(), "daemon", True)
+        )
+
     @classmethod
     def get_session(cls):
         if cls._instance is None:
@@ -130,15 +138,17 @@ class SessionManager:
 class Scraper(object):
     protocol = 'http://'
     def __init__(self):
-        self.session = SessionManager.get_session()
-        self.executor = SessionManager.get_executor()
+        self.session = self._create_session()
+        self.executor = self._create_executor()
         self.protocol = 'http://'
     
     def _create_session(self):
         """No longer needed - using shared session"""
         return SessionManager.get_session()
     
-    
+    def _create_executor(self):
+        """No longer needed - using shared executor"""
+        return SessionManager.get_executor()
     
     def _clean_art(self, art_dict):
         new_dict = {}
@@ -158,6 +168,7 @@ class Scraper(object):
         # Prepare data if needed
         if data is not None:
             if isinstance(data, six.string_types):
+                data = data
                 logger.log('String image Data: %s' % (data), log_utils.LOGDEBUG)
             else:
                 data = urllib.parse.urlencode(data, True)
@@ -187,7 +198,7 @@ class Scraper(object):
                 # Set default headers
                 headers.setdefault('Accept-Encoding', 'gzip')
                 headers.setdefault('Connection', 'keep-alive')
-                headers.setdefault('User-Agent', 'Kodi/21.0')
+                headers.setdefault('User-Agent', user_agent)
                 
                 logger.log('+++Image Scraper Call: %s, header: %s, data: %s cache_limit: %s' % 
                           (url, headers, data, cache_limit), log_utils.LOGDEBUG)
@@ -196,8 +207,7 @@ class Scraper(object):
                 response = self.session.get(
                     url, 
                     data=data, 
-                    headers=headers, 
-                    timeout=(3.05, 27)  # (connect timeout, read timeout)
+                    headers=headers
                 )
                 response.raise_for_status()  # Raise exception for 4XX/5XX status codes
                 
@@ -283,7 +293,7 @@ class FanartTVScraper(Scraper):
 
     def __init__(self):
         self.session = self._create_session()
-        self.executor = ThreadPoolExecutor(max_workers=5)  # Limit concurrent requests
+        self.executor = self._create_executor()
     
         self.headers = {'api-key': self.API_KEY}
         if self.CLIENT_KEY:
@@ -295,8 +305,9 @@ class FanartTVScraper(Scraper):
         video_id = ids.get('tmdb') or ids.get('imdb')
         any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and any_art and video_id:
-            url = f'/movies/{video_id}?api_key={self.API_KEY}'
-            images = self._get_url(url, headers=self.headers)
+            params = {'api_key': self.API_KEY}
+            url = f'/movies/{video_id}'
+            images = self._get_url(url, headers=self.headers, params=params)
             if BG_ENABLED:
                 art_dict['fanart'] = self.__get_best_image(images.get('moviebackground', []))
 
@@ -321,9 +332,11 @@ class FanartTVScraper(Scraper):
         video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt')
         any_art = any((BG_ENABLED, BANNER_ENABLED, POSTER_ENABLED, CLEARART_ENABLED, THUMB_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
-            url = f'/tv/{video_id}?api_key={self.API_KEY}'
-            logger.log('FanartTVScraper.get_tvshow_images: %s' % (url), log_utils.LOGDEBUG)
-            images = self._get_url(url, headers=self.headers)
+            params = {'api_key': self.API_KEY}
+            url = f'/tv/{video_id}'
+            
+            images = self._get_url(url, headers=self.headers, params=params)
+            logger.log('FanartTVScraper.get_tvshow_images: %s' % (images), log_utils.LOGDEBUG)
             if BG_ENABLED:
                 art_dict['fanart'] = self.__get_best_image(images.get('showbackground', []))
 
@@ -349,8 +362,9 @@ class FanartTVScraper(Scraper):
         video_id = ids.get('tvdb') or ids.get('imdb') or ids.get('trakt') or ids.get('tmdb') or ids.get('code')
         any_art = any((BANNER_ENABLED, POSTER_ENABLED, THUMB_ENABLED))
         if FANARTTV_ENABLED and self.API_KEY and 'tvdb' in ids and ids['tvdb'] and video_id and any_art:
-            url = f'/tv/{video_id}?api_key={self.API_KEY}'
-            images = self._get_url(url, headers=self.headers)
+            params = {'api_key': self.API_KEY}
+            url = f'/tv/{video_id}'
+            images = self._get_url(url, headers=self.headers, params=params)
             seasons = set()
             for name in ['seasonposter', 'seasonthumb', 'seasonbanner']:
                 seasons |= {str(i.get('season')) for i in images.get(name, []) if 'season' in i and i.get('season') is not None}
@@ -855,6 +869,8 @@ class TVDBScraper(Scraper):
 
 class TVDBAPI(Scraper):
     def __init__(self):
+        self.session = self._create_session()
+        self.executor = self._create_executor()
         self.apiKey = {'apikey': 'b64a2c35-ba29-4353-b46c-1e306874afb6'}
         self.headers = {'User-Agent': 'Asguard'}
         self.baseUrl = 'https://api4.thetvdb.com/v4/'
@@ -900,69 +916,7 @@ class TVDBAPI(Scraper):
 
 class TVMazeScraper(Scraper):
     BASE_URL = 'api.tvmaze.com'
-    
-    def _get_url(self, url, params=None, data=None, headers=None, cache_limit=1):
-        if headers is None: headers = {}
-        if data is not None:
-            if isinstance(data, six.string_types):
-                data = data
-                logger.log('Data: %s' % (data), log_utils.LOGDEBUG)
-            else:
-                data = urllib.parse.urlencode(data, True)
-                logger.log('Data: %s' % (data), log_utils.LOGDEBUG)
-        if not url.startswith('http'):
-            url = '%s%s%s' % (self.protocol, self.BASE_URL, url)
-            logger.log('URL: %s' % (url), log_utils.LOGDEBUG)
-        if params: 
-            url += '?' + urllib.parse.urlencode(params)
-        _created, cached_headers, html = db_connection.get_cached_url(url, data, cache_limit=cache_limit)
-        if html:
-            logger.log('Using Cached result for: %s' % (url))
-            result = html
-            res_headers = dict(cached_headers)
-            logger.log('Result: %s' % (result), log_utils.LOGDEBUG)
-        else:
-            try:
-                headers['Accept-Encoding'] = 'gzip'
-                headers['Connection'] = 'keep-alive'  # For connection reuse
-                headers['User-Agent'] = 'Kodi/21.0'  # Identify as Kodi 21
-                logger.log('+++TV MAZE Image Scraper Call: %s, header: %s, data: %s cache_limit: %s' % (url, headers, data, cache_limit), log_utils.LOGDEBUG)
-                request = urllib.request.Request(url, data=data, headers=headers)
-                logger.log('Request: %s' % (request), log_utils.LOGDEBUG)
-                response = urllib.request.urlopen(request)
-                result = b''
-                while True:
-                    data = response.read()
-                    if not data: break
-                    result += data
-                res_headers = dict(response.info().items())
-                if res_headers.get('content-encoding') == 'gzip':
-                    result = utils2.ungz(result)
-                db_connection.cache_url(url, result, data, res_header=res_headers)
-            except (ssl.SSLError, socket.timeout) as e:
-                logger.log('Image Scraper Timeout: %s' % (url))
-                return {}
-            except urllib.error.HTTPError as e:
-                if e.code != 404:
-                    logger.log('HTTP Error (%s) during image scraper http get: %s' % (e, url), log_utils.LOGWARNING)
-                return {}
-            except Exception as e:
-                logger.log('Error (%s) during image scraper http get: %s' % (str(e), url), log_utils.LOGWARNING)
-                return {}
 
-        try:
-            if 'application/json' in res_headers.get('content-type', ''):
-                return_data = utils.json_loads_as_str(result)
-            else:
-                # try/except to handle older responses that might be missing headers
-                try: return_data = utils.json_loads_as_str(result)
-                except ValueError: return_data = result
-        except ValueError:
-            return_data = ''
-            if result:
-                logger.log('Invalid JSON API Response: %s - |%s|' % (url, return_data), log_utils.LOGERROR)
-
-        return return_data
 
     def get_episode_images(self, ids, season, episode):
         art_dict = {}
@@ -1150,10 +1104,14 @@ class OMDBScraper(Scraper):
         return self._clean_art(art_dict)
 
 fanart_scraper = FanartTVScraper()
+omdb_scraper = OMDBScraper()
+tvmaze_scraper = TVMazeScraper()
 imdb_scraper = IMDBScraper()
 tvdbapi_scraper = TVDBAPI()
 tvdb_scraper = TVDBScraper()
 tmdb_scraper = TMDBScraper()
+
+    
 def get_person_images(video_ids, person, cached=True):
     if cached:
         ids = person['person']['ids']
@@ -1223,12 +1181,21 @@ def get_images(video_type, video_ids, season='', episode='', cached=True):
         trakt_id = video_ids['trakt']
         video_ids = json.dumps(video_ids)
         art_dict = {}
-        for image_type in ['banner', 'fanart', 'thumb', 'poster', 'clearart', 'clearlogo']:
+        
+        # Only create proxy URLs for enabled image types
+        enabled_types = ['fanart', 'thumb', 'poster']  # Always enabled
+        if BANNER_ENABLED:
+            enabled_types.append('banner')
+        if CLEARART_ENABLED:
+            enabled_types.append('clearart')
+            enabled_types.append('clearlogo')
+        
+        for image_type in enabled_types:
             params = {'image_type': image_type, 'video_type': video_type, 'trakt_id': trakt_id, 'video_ids': video_ids}
             # logger.log('image_scraper params: %s' % params)
             if video_type == VIDEO_TYPES.SEASON or video_type == VIDEO_TYPES.EPISODE:
                 params['season'] = season
-            
+
             if video_type == VIDEO_TYPES.EPISODE:
                 params['episode'] = episode
             image_url = PROXY_TEMPLATE.format(port=port, action='') + '?' + urllib.parse.urlencode(params)
@@ -1239,79 +1206,110 @@ def get_images(video_type, video_ids, season='', episode='', cached=True):
         return scrape_images(video_type, video_ids, season, episode, cached)
 
 
+
 def scrape_images(video_type, video_ids, season='', episode='', cached=True):
-    art_dict = {'banner': None, 'fanart': DEFAULT_FANART, 'thumb': None, 'poster': PLACE_POSTER, 'clearart': None, 'clearlogo': None}
-    trakt_id = video_ids['trakt']
+    """
+    Fetch images from multiple scrapers in parallel for improved performance.
+
+    This version executes multiple scraper calls concurrently instead of sequentially,
+    significantly reducing wait time when images are not cached.
+
+    Args:
+        video_type: Type of video (MOVIE, TVSHOW, SEASON, EPISODE)
+        video_ids: Dictionary containing various IDs (trakt, tmdb, imdb, tvdb, etc.)
+        season: Season number (for TV shows)
+        episode: Episode number (for episodes)
+        cached: Whether to check cache first
+
+    Returns:
+        Dictionary containing image URLs for different art types
+    """
+    art_dict = {
+        'banner': None,
+        'fanart': DEFAULT_FANART,
+        'thumb': None,
+        'poster': PLACE_POSTER,
+        'clearart': None,
+        'clearlogo': None
+    }
+
+    trakt_id = video_ids.get('trakt')
     object_type = VIDEO_TYPES.MOVIE if video_type == VIDEO_TYPES.MOVIE else VIDEO_TYPES.TVSHOW
+
+    # Check cache first
     if cached:
         cached_art = db_connection.get_cached_images(object_type, trakt_id, season, episode)
         if cached_art:
             art_dict.update(cached_art)
+            return art_dict
     else:
         cached_art = {}
-    
+
+    # If not in cache, fetch from scrapers in parallel
     if not cached_art:
-        fanart_scraper = FanartTVScraper()
-        omdb_scraper = OMDBScraper()
-        tvmaze_scraper = TVMazeScraper()
-        tvdb_scraper = TVDBScraper()
-        tmdb_scraper = TMDBScraper()
-        imdb_scraper = IMDBScraper()
+        global fanart_scraper, omdb_scraper, tvmaze_scraper, tvdb_scraper, tmdb_scraper, imdb_scraper
+
+        # Define scraper tasks based on video type
+        scraper_tasks = []
 
         if video_type == VIDEO_TYPES.MOVIE:
-            if  POSTER_ENABLED:
-                art_dict.update(fanart_scraper.get_movie_images(video_ids))
-            # if GIF_ENABLED and POSTER_ENABLED:
-            #     art_dict.update(gif_scraper.get_movie_images(video_ids))
-             
-            need = []
-            if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
-            if art_dict['poster'] == PLACE_POSTER: need.append('poster')
-            if need:
-                art_dict.update(tmdb_scraper.get_movie_images(video_ids, need))
-                
-            if art_dict['poster'] == PLACE_POSTER:
-                art_dict.update(omdb_scraper.get_images(video_ids))
+            # Movie scraping tasks
+            if POSTER_ENABLED:
+                scraper_tasks.append(('fanarttv', fanart_scraper.get_movie_images, [video_ids]))
+
+            # TMDB scraper (for fanart and poster if needed)
+            scraper_tasks.append(('tmdb', tmdb_scraper.get_movie_images, [video_ids, ['fanart', 'poster']]))
+
+            # OMDB scraper (for poster if needed)
+            scraper_tasks.append(('omdb', omdb_scraper.get_images, [video_ids]))
 
         elif video_type == VIDEO_TYPES.TVSHOW:
-            art_dict.update(fanart_scraper.get_tvshow_images(video_ids))
-             
-            need = []
-            if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
-            if art_dict['poster'] == PLACE_POSTER: need.append('poster')
-            if not art_dict['banner']: need.append('banner')
-            if need:
-                art_dict.update(tvdb_scraper.get_tvshow_images(video_ids, need))
-                
-            
-            if art_dict['poster'] == PLACE_POSTER:
-                art_dict.update(omdb_scraper.get_images(video_ids))
-            if art_dict['poster'] == PLACE_POSTER:
-                art_dict.update(tmdb_scraper.get_tmdbshow_images(video_ids))
+            # TV Show scraping tasks
+            scraper_tasks.append(('fanarttv', fanart_scraper.get_tvshow_images, [video_ids]))
+            scraper_tasks.append(('tvdb', tvdb_scraper.get_tvshow_images, [video_ids, ['fanart', 'poster', 'banner']]))
+            scraper_tasks.append(('tmdb', tmdb_scraper.get_tmdbshow_images, [video_ids, ['fanart', 'poster']]))
+            scraper_tasks.append(('omdb', omdb_scraper.get_images, [video_ids]))
 
         elif video_type == VIDEO_TYPES.SEASON:
-            art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
-            season_art = fanart_scraper.get_season_images(video_ids)
-            logger.log('season_art: %s' % season_art)
-            tvdb_season_art = tvdb_scraper.get_season_images(video_ids)
-            logger.log('tvdb_season_art: %s' % tvdb_season_art)
-            
+            # Season scraping - first get TV show images, then season-specific images
+            tvshow_art = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
+            art_dict.update(tvshow_art)
+
+            # Get season images from both scrapers in parallel
+            season_tasks = [
+                ('fanart_season', fanart_scraper.get_season_images, [video_ids]),
+                ('tvdb_season', tvdb_scraper.get_season_images, [video_ids])
+            ]
+
+            season_results = _execute_scraper_tasks(season_tasks)
+
+            # Process season results
+            fanart_season_art = season_results.get('fanart_season', {})
+            tvdb_season_art = season_results.get('tvdb_season', {})
+
+            # Merge season art with TVDB as fallback
             for key in tvdb_season_art:
                 tvdb_poster = tvdb_season_art[key].get('poster')
                 tvdb_banner = tvdb_season_art[key].get('banner')
 
-                if tvdb_poster and not season_art.get(key, {}).get('poster'):
-                    season_art.setdefault(key, {}).setdefault('poster', tvdb_poster)
+                if tvdb_poster and not fanart_season_art.get(key, {}).get('poster'):
+                    fanart_season_art.setdefault(key, {}).setdefault('poster', tvdb_poster)
 
-                if tvdb_banner and not season_art.get(key, {}).get('banner'):
-                    season_art.setdefault(key, {}).setdefault('banner', tvdb_banner)
-            
-            for key in season_art:
+                if tvdb_banner and not fanart_season_art.get(key, {}).get('banner'):
+                    fanart_season_art.setdefault(key, {}).setdefault('banner', tvdb_banner)
+
+            # Cache all season images
+            for key in fanart_season_art:
                 temp_dict = art_dict.copy()
-                temp_dict.update(season_art[key])
+                temp_dict.update(fanart_season_art[key])
                 db_connection.cache_images(object_type, trakt_id, temp_dict, key)
-            
-            art_dict.update(season_art.get(str(season), {}))
+
+            # Update art_dict with current season
+            art_dict.update(fanart_season_art.get(str(season), {}))
+
+            # Cache and return
+            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
+            return art_dict
 
         elif video_type == VIDEO_TYPES.EPISODE:
             art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
@@ -1330,20 +1328,110 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
                 if art_dict['poster'] == PLACE_POSTER and 'poster' in tvmaze_art:
                     art_dict['poster'] = tvmaze_art['poster']
                     
-        if not art_dict['thumb']:
-            logger.log('Doing %s thumb fallback |%s|' % (video_type, art_dict))
-            if video_type == VIDEO_TYPES.MOVIE:
-                if art_dict['poster'] != PLACE_POSTER: art_dict['thumb'] = art_dict['poster']
-                elif art_dict['fanart'] != DEFAULT_FANART: art_dict['thumb'] = art_dict['fanart']
-                else: art_dict['thumb'] = art_dict['poster']
-            else:
-                if art_dict['fanart'] != DEFAULT_FANART: art_dict['thumb'] = art_dict['fanart']
-                elif art_dict['poster'] != PLACE_POSTER: art_dict['thumb'] = art_dict['poster']
-                else: art_dict['thumb'] = art_dict['fanart']
-        elif art_dict['fanart'] == DEFAULT_FANART:
-            logger.log('Doing %s fanart fallback |%s|' % (video_type, art_dict))
-            art_dict['fanart'] = art_dict['thumb']
+
+            # Cache and return
+            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
+            return art_dict
+
+        # Execute scraper tasks for MOVIE and TVSHOW types
+        if scraper_tasks:
+            results = _execute_scraper_tasks(scraper_tasks)
+            # Update art with episode results
+            if 'fanarttv' in results:
+                art_dict.update(results['fanarttv'])
             
-        db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
-    
+            if 'tvdb' in results:
+                art_dict.update(results['tvdb'])
+
+            if 'tmdb' in results:
+                tmdb_art = results['tmdb']
+                if not art_dict.get('thumb') or art_dict.get('poster') == PLACE_POSTER:
+                    art_dict['thumb'] = tmdb_art.get('thumb')
+                    if art_dict.get('poster') == PLACE_POSTER and 'poster' in tmdb_art:
+                        art_dict['poster'] = tmdb_art['poster']
+
+            if 'omdb' in results:
+                omdb_art = results['omdb']
+                if not art_dict.get('thumb') or art_dict.get('poster') == PLACE_POSTER:
+                    art_dict['thumb'] = omdb_art.get('poster')
+                    if art_dict.get('poster') == PLACE_POSTER and 'poster' in omdb_art:
+                        art_dict['poster'] = omdb_art['poster']
+
+            logger.log(f'Finished {video_type} scraping |{results}|', log_utils.LOGDEBUG)
+
+            # Apply fallbacks
+            _apply_fallbacks(art_dict, video_type)
+
+            # Cache the final results
+            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
+
     return art_dict
+
+
+def _execute_scraper_tasks(tasks, max_workers=4, timeout=15):
+
+    """
+    Execute multiple scraper tasks in parallel using the shared SessionManager executor.
+
+    Args:
+        tasks: List of tuples (name, function, args)
+        timeout: Maximum time to wait for each task
+
+    Returns:
+        Dictionary mapping task names to their results
+    """
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix='parallel_scraper') as executor:
+        # Submit all tasks
+        futures = {
+            executor.submit(func, *args): name 
+            for name, func, args in tasks
+        }
+
+        # Collect results as they complete
+        for future in as_completed(futures, timeout=timeout):
+            task_name = futures[future]
+            try:
+                result = future.result(timeout=timeout)
+                results[task_name] = result
+            except Exception as e:
+                logger.log(f'Error in {task_name} scraper: {str(e)}', log_utils.LOGWARNING)
+                results[task_name] = {}
+
+
+    return results
+
+
+
+def _apply_fallbacks(art_dict, video_type):
+    """
+    Apply fallback logic for missing images.
+
+    Args:
+        art_dict: Dictionary containing image URLs
+        video_type: Type of video (MOVIE, TVSHOW, SEASON, EPISODE)
+    """
+    # Thumb fallback
+    if not art_dict.get('thumb'):
+        logger.log(f'Doing {video_type} thumb fallback |{art_dict}|', log_utils.LOGDEBUG)
+        if video_type == VIDEO_TYPES.MOVIE:
+            if art_dict.get('poster') != PLACE_POSTER:
+                art_dict['thumb'] = art_dict['poster']
+            elif art_dict.get('fanart') != DEFAULT_FANART:
+                art_dict['thumb'] = art_dict['fanart']
+            else:
+                art_dict['thumb'] = art_dict['poster']
+        else:
+            if art_dict.get('fanart') != DEFAULT_FANART:
+                art_dict['thumb'] = art_dict['fanart']
+            elif art_dict.get('poster') != PLACE_POSTER:
+                art_dict['thumb'] = art_dict['poster']
+            else:
+                art_dict['thumb'] = art_dict['fanart']
+
+    # Fanart fallback
+    elif art_dict.get('fanart') == DEFAULT_FANART:
+        logger.log(f'Doing {video_type} fanart fallback |{art_dict}|', log_utils.LOGDEBUG)
+        art_dict['fanart'] = art_dict['thumb']
+

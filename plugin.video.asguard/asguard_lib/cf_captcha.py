@@ -11,7 +11,7 @@ from asguard_lib.constants import USER_AGENT
 
 logger = log_utils.Logger.get_logger(__name__)
 
-logger.disable()
+# logger.disable()
 
 class NoRedirection(urllib_request.HTTPErrorProcessor):
     def http_response(self, request, response):  # @UnusedVariable
@@ -28,6 +28,7 @@ def solve(url, cj, user_agent=None, name=None):
     try:
         response = urllib_request.urlopen(request)
         html = response.read()
+        logger.log('html: %s' % html, log_utils.LOGDEBUG)
         # Decode bytes to string for pattern matching
         if isinstance(html, bytes):
             html = html.decode('utf-8', errors='ignore')

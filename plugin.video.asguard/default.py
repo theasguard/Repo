@@ -16,33 +16,45 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import threading
-import random, sys, os, re, datetime, time, json, gzip
+# Standard library imports
+import datetime, gzip, json, os, random, re, sys, threading, time, shutil
+
+# Third-party library imports
 import requests
-import shutil
+import six
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Kodi-specific imports
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
 import urllib.request, urllib.parse
-from scrapers import local_scraper
-import log_utils
-import utils
-import kodi
-import six
-from asguard_lib import tvdb_helper
-from asguard_lib import tvdb_persist
-from url_dispatcher import URL_Dispatcher
-from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
-from asguard_lib.srt_scraper import SRT_Scraper
-from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
-from asguard_lib import salts_utils, utils2, gui_utils, strings, image_scraper, worker_pool, tmdb_api, control
-from asguard_lib.third_party.simkl import SimklAPI
-from asguard_lib.listitem import ListItemInfoTag, set_info_tag, _ListItemInfoTagVideo
-from asguard_lib.ui import makeitem
-from asguard_lib.constants import *  # @UnusedWildImport
-from asguard_lib.utils2 import i18n
-from asguard_lib.image_proxy import ImageProxy
+
+# Local module imports
+from scrapers import local_scraper, ScraperVideo
 from scrapers import *  # import all scrapers into this namespace @UnusedWildImport
-from scrapers import ScraperVideo
+from url_dispatcher import URL_Dispatcher
+
+# Asguard library imports
+from asguard_lib import (
+    control, gui_utils, image_scraper, salts_utils, strings, 
+    tmdb_api, tvdb_helper, tvdb_persist, utils2, worker_pool
+)
+from asguard_lib.db_utils import DB_Connection, DatabaseRecoveryError
+from asguard_lib.image_proxy import ImageProxy
+from asguard_lib.listitem import ListItemInfoTag, set_info_tag, _ListItemInfoTagVideo
+from asguard_lib.srt_scraper import SRT_Scraper
+from asguard_lib.third_party.simkl import SimklAPI
+from asguard_lib.trakt_api import Trakt_API, TransientTraktError, TraktNotFoundError, TraktError, TraktAuthError
+from asguard_lib.ui import makeitem
+from asguard_lib.utils2 import i18n
+from asguard_lib.image_scraper import SessionManager
+
+# Constants (consider replacing with specific imports if possible)
+from asguard_lib.constants import *
+
+# Initialize logger and other globals
+import log_utils
+import kodi
+import utils
 
 try:
     import resolveurl
@@ -62,7 +74,7 @@ addonicon = xbmcvfs.translatePath(os.path.join(addonfolder, 'icon.png'))
 addonfanart = xbmcvfs.translatePath(os.path.join(addonfolder, 'fanart.jpg'))
 execute = xbmc.executebuiltin
 TOKEN = kodi.get_setting('trakt_oauth_token')
-logger.log('Trakt OAuth Token: %s' % TOKEN, log_utils.LOGDEBUG)
+
 use_https = kodi.get_setting('use_https') == 'true'
 trakt_timeout = int(kodi.get_setting('trakt_timeout'))
 list_size = int(kodi.get_setting('list_size'))
@@ -1385,17 +1397,6 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
         li.setProperty('playcount', '1')
     else:
         li.setProperty('playcount', '0')
-    # # Set unique IDs
-    # valid_ids = {
-    #     'imdb': meta.get('imdbnumber'),
-    #     'tmdb': meta.get('tmdb_id'),
-    #     'tvdb': meta.get('tvdb_id'),
-    #     'trakt': meta.get('trakt_id'),
-    #     'slug': meta.get('slug'),
-    #     'tvshow.tmdb': str(tmdb_id),  # TV show context
-    #     'tvshow.imdb': meta.get('imdb_id', '')  # TV show context
-    # }
-    # li.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
     
 
     # Set artwork
@@ -1507,17 +1508,29 @@ def browse_episode_groups(tmdb_id, trakt_id, title='', tvdb_id=None):
                 season_query = {'mode': MODES.EPISODE_GROUPS, 'group_id': group_id, 'season': season_number, 'trakt_id': trakt_id}
                 art = image_scraper.get_images(VIDEO_TYPES.SEASON, ids, season_number)
                 li = utils.make_list_item(season_label, meta, art=art)
-                # valid_ids = {
-                #     'imdb': 'imdbnumber' in meta and meta['imdbnumber'] or None,
-                #     'tmdb': meta.get('tmdb_id'),
-                #     'tvdb': meta.get('tvdb_id'),
-                #     'trakt': meta.get('trakt_id'),
-                #     'slug': meta.get('slug')
-                # }
-                # li.setUniqueIDs({k: v for k, v in valid_ids.items() if v})
+
                 set_info_tag(li, meta, 'video', 
                             old_method_keys=('size', 'count', 'date',))
-                li.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
+                # Get user settings for art types
+                banner_enabled = kodi.get_setting('banner_enable') == 'true'
+                clearart_enabled = kodi.get_setting('clearart_enable') == 'true'
+
+                # Build art dictionary based on user settings
+                art_dict = {
+                    'icon': art['thumb'],
+                    'poster': art['poster'],
+                    'fanart': art['fanart']
+                }
+
+                # Only add banner and clearlogo if enabled in settings
+                if banner_enabled:
+                    art_dict['banner'] = art['banner']
+                    
+                if clearart_enabled:
+                    art_dict['clearlogo'] = art['clearlogo']
+
+                # Set the art with only enabled types
+                li.setArt(art_dict)
                 kodi.add_item(queries=season_query, list_item=li, is_folder=True)
     
     kodi.set_view(CONTENT_TYPES.SEASONS, True)
@@ -3358,8 +3371,26 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id, tmdb_id):
     set_info_tag(liz, info, 'video', 
                 old_method_keys=('size', 'count', 'date',))
         
-    liz.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
+    # Get user settings for art types
+    banner_enabled = kodi.get_setting('banner_enable') == 'true'
+    clearart_enabled = kodi.get_setting('clearart_enable') == 'true'
 
+    # Build art dictionary based on user settings
+    art_dict = {
+        'icon': art['thumb'],
+        'poster': art['poster'],
+        'fanart': art['fanart']
+    }
+
+    # Only add banner and clearlogo if enabled in settings
+    if banner_enabled:
+        art_dict['banner'] = art['banner']
+        
+    if clearart_enabled:
+        art_dict['clearlogo'] = art['clearlogo']
+
+    # Set the art with only enabled types
+    liz.setArt(art_dict)
     menu_items = []
 
     if 'playcount' in info and info['playcount']:
@@ -3389,7 +3420,7 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id, tmdb_id):
 
 
 def make_episode_item(show, episode, show_subs=True, menu_items=None):
-
+    logger.log('Make Episode: Show: %s, Episode: %s, Show Subs: %s, Menu Items: %s' % (show, episode, show_subs, menu_items), log_utils.LOGDEBUG)
     if menu_items is None: menu_items = []
 
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
@@ -3546,8 +3577,26 @@ def make_item(section_params, show, menu_items=None):
     info_tag = set_info_tag(liz, info, 'video', 
                 old_method_keys=('size', 'count', 'date',))
         
-    liz.setArt({'icon': art['thumb'], 'poster': art['poster'], 'banner': art['banner'], 'clearlogo': art['clearlogo'], 'fanart': art['fanart']})
+    # Get user settings for art types
+    banner_enabled = kodi.get_setting('banner_enable') == 'true'
+    clearart_enabled = kodi.get_setting('clearart_enable') == 'true'
 
+    # Build art dictionary based on user settings
+    art_dict = {
+        'icon': art['thumb'],
+        'poster': art['poster'],
+        'fanart': art['fanart']
+    }
+
+    # Only add banner and clearlogo if enabled in settings
+    if banner_enabled:
+        art_dict['banner'] = art['banner']
+        
+    if clearart_enabled:
+        art_dict['clearlogo'] = art['clearlogo']
+
+    # Set the art with only enabled types
+    liz.setArt(art_dict)
     liz_url = kodi.get_plugin_url(queries)
 
     queries = {'video_type': section_params['video_type'], 'title': show['title'], 'year': show['year'], 'trakt_id': trakt_id}
@@ -3869,7 +3918,7 @@ def main(argv=None):
 
     try:
         global db_connection
-        # global mode
+
         db_connection = DB_Connection()
         logger.log('GlobalDB Connection: %s' % (db_connection), log_utils.LOGNOTICE)
         mode = queries.get('mode', None)

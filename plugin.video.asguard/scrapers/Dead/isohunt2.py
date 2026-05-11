@@ -45,6 +45,7 @@ class Scraper(scraper.Scraper):
         source_url = self.get_url(video)
 
         html = self._http_get(source_url, require_debrid=True)
+        logger.log('ISOHUNT html: %s' % (html), log_utils.LOGDEBUG)
         rows = client.parseDOM(html, 'tr', attrs={'data-key': '0'})
         threads = []
         for row in rows:

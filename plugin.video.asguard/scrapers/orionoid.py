@@ -9,7 +9,7 @@
 	this stuff is worth it, you can buy me a beer in return.
 '''
 
-import logging
+
 from orion import *
 from orion.modules.orionnetworker import *
 import threading

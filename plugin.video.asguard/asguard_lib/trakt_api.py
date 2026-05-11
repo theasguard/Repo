@@ -43,7 +43,7 @@ def __enum(**enums):
 # Modern retry configuration
 retry_strategy = Retry(
     total=None,  # Total number of retries
-    backoff_factor=1,  # Exponential backoff factor
+    backoff_factor=0.3,  # Exponential backoff factor
     status_forcelist=[429, 502, 503, 504],  # HTTP status codes to retry on
     allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
     raise_on_status=False  # Don't raise exception immediately on status codes
@@ -506,6 +506,88 @@ class Trakt_API():
     def delete_bookmark(self, bookmark_id):
         url = '/sync/playback/%s' % (bookmark_id)
         return self.__call_trakt(url, method='DELETE', cached=False)
+
+    def scrobble_start(self, section, item, season='', episode='', progress=0):
+        """
+        Notify Trakt that playback has started
+        
+        Args:
+            section: SECTIONS.MOVIES or SECTIONS.TV
+            item: Dictionary with ids (e.g., {'trakt': 12345})
+            season: Season number (for TV shows)
+            episode: Episode number (for TV shows)
+            progress: Progress percentage (0-100)
+        
+        Returns:
+            API response
+        """
+        url = '/scrobble/start'
+        data = self.__make_scrobble_data(section, item, season, episode, progress)
+        return self.__call_trakt(url, data=data, cache_limit=0)
+
+    def scrobble_pause(self, section, item, season='', episode='', progress=0):
+        """
+        Notify Trakt that playback has paused with current progress
+        
+        Args:
+            section: SECTIONS.MOVIES or SECTIONS.TV
+            item: Dictionary with ids (e.g., {'trakt': 12345})
+            season: Season number (for TV shows)
+            episode: Episode number (for TV shows)
+            progress: Progress percentage (0-100)
+        
+        Returns:
+            API response
+        """
+        url = '/scrobble/pause'
+        data = self.__make_scrobble_data(section, item, season, episode, progress)
+        return self.__call_trakt(url, data=data, cache_limit=0)
+
+    def scrobble_stop(self, section, item, season='', episode='', progress=0):
+        """
+        Notify Trakt that playback has stopped with final progress
+        
+        Args:
+            section: SECTIONS.MOVIES or SECTIONS.TV
+            item: Dictionary with ids (e.g., {'trakt': 12345})
+            season: Season number (for TV shows)
+            episode: Episode number (for TV shows)
+            progress: Progress percentage (0-100)
+        
+        Returns:
+            API response
+        """
+        url = '/scrobble/stop'
+        data = self.__make_scrobble_data(section, item, season, episode, progress)
+        return self.__call_trakt(url, data=data, cache_limit=0)
+
+    def __make_scrobble_data(self, section, item, season='', episode='', progress=0):
+        """
+        Create scrobble data structure for Trakt API
+        
+        Args:
+            section: SECTIONS.MOVIES or SECTIONS.TV
+            item: Dictionary with ids (e.g., {'trakt': 12345})
+            season: Season number (for TV shows)
+            episode: Episode number (for TV shows)
+            progress: Progress percentage (0-100)
+        
+        Returns:
+            Dictionary formatted for Trakt scrobble API
+        """
+        data = {'progress': float(progress)}
+        
+        if section == SECTIONS.MOVIES:
+            data['movie'] = {'ids': item}
+        else:
+            data['show'] = {'ids': item}
+            if season:
+                data['episode'] = {
+                    'season': int(season),
+                    'number': int(episode) if episode else 0
+                }
+        
+        return data
         
     def rate(self, section, item, rating, season='', episode=''):
         url = '/sync/ratings'

@@ -51,7 +51,7 @@ class WorkerPool(object):
         # tell all consumers to die
         self.in_q.put(None)
         if self.manager is not None:
-            self.manager.join()
+            self.manager.join(timeout=5.0)
             
         return reap_workers(self.workers)
 

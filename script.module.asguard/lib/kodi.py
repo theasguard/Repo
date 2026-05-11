@@ -237,7 +237,11 @@ def add_item(queries, list_item, fanart='', is_folder=None, is_playable=None, to
     liz_url = get_plugin_url(queries)
     if fanart:
         list_item.setProperty('fanart_image', fanart)
-    list_item.setInfo('video', {'title': list_item.getLabel()})
+    if _kodiver > 19.8:
+        vtag = list_item.getVideoInfoTag()
+        vtag.setTitle(list_item.getLabel())
+    else:
+        list_item.setInfo('video', {'title': list_item.getLabel()})
     list_item.setProperty('isPlayable', playable)
     list_item.addContextMenuItems(menu_items, replaceItems=replace_menu)
     xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, list_item, isFolder=is_folder, totalItems=total_items)

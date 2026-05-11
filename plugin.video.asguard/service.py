@@ -31,6 +31,7 @@ import os
 import urllib.request
 import ssl
 from asguard_lib import control, salts_utils, image_proxy, utils2
+from asguard_lib.image_scraper import SessionManager
 from asguard_lib.utils2 import i18n
 from asguard_lib.constants import MODES
 from asguard_lib.db_utils import DB_Connection
@@ -421,42 +422,55 @@ class Service(xbmc.Player):
 
 def show_next_up(last_label, sf_begin):
     token = kodi.get_setting('trakt_oauth_token')
-
     container_content = xbmc.getInfoLabel('Container.Content')
 
-    if token and xbmc.getInfoLabel('Container.PluginName') == kodi.get_id() and xbmc.getInfoLabel('Container.Content') == 'tvshows':
-        if xbmc.getInfoLabel('ListItem.Title') != last_label:
+    if token and xbmc.getInfoLabel('Container.PluginName') == kodi.get_id() and container_content == 'tvshows':
+        # Use Label or FileNameAndPath for more reliable change detection
+        current_label = xbmc.getInfoLabel('ListItem.Label') or xbmc.getInfoLabel('ListItem.Title')
+        logger.log('Next Up: %s' % current_label, log_utils.LOGDEBUG)
+        if current_label != last_label:
             sf_begin = time.time()
 
-        last_label = xbmc.getInfoLabel('ListItem.Title')
+        last_label = current_label
+        
         if sf_begin and (time.time() - sf_begin) >= int(kodi.get_setting('next_up_delay')):
-            liz_url = xbmc.getInfoLabel('ListItem.FileNameAndPath')
-            queries = kodi.parse_query(liz_url[liz_url.find('?'):])
-            if 'trakt_id' in queries:
-                try: list_size = int(kodi.get_setting('list_size'))
-                except: list_size = 30
-                try: trakt_timeout = int(kodi.get_setting('trakt_timeout'))
-                except: trakt_timeout = 20
-                trakt_api = Trakt_API(token, kodi.get_setting('use_https') == 'true', list_size, trakt_timeout, kodi.get_setting('trakt_offline') == 'true')
-                progress = trakt_api.get_show_progress(queries['trakt_id'], full=True)
-                logger.log(f'Service: Progress: {progress}', log_utils.LOGDEBUG)
-                if 'next_episode' in progress and progress['next_episode']:
-                    if progress['completed'] or kodi.get_setting('next_unwatched') == 'true':
-                        next_episode = progress['next_episode']
-                        date = utils2.make_day(utils2.make_air_date(next_episode['first_aired']))
-                        if kodi.get_setting('next_time') != '0':
-                            date_time = '%s@%s' % (date, utils2.make_time(utils.iso_2_utc(next_episode['first_aired']), 'next_time'))
-                        else:
-                            date_time = date
-                        msg = f'[[COLOR deeppink]{date_time}[/COLOR]] - {next_episode["season"]}x{next_episode["number"]}'
-                        if next_episode['title']: msg += f' - {next_episode["title"]}'
-                        duration = int(kodi.get_setting('next_up_duration')) * 1000
-                        kodi.notify(header=i18n('next_episode'), msg=msg, duration=duration)
-            sf_begin = 0
+            # Fallback to ListItem.Path if FileNameAndPath is empty
+            liz_url = xbmc.getInfoLabel('ListItem.FileNameAndPath') or xbmc.getInfoLabel('ListItem.Path')
+            
+            # Safely parse the query string
+            query_index = liz_url.find('?')
+            if query_index != -1:
+                queries = kodi.parse_query(liz_url[query_index:])
+                
+                if 'trakt_id' in queries:
+                    try: list_size = int(kodi.get_setting('list_size'))
+                    except: list_size = 30
+                    try: trakt_timeout = int(kodi.get_setting('trakt_timeout'))
+                    except: trakt_timeout = 20
+                    
+                    trakt_api = Trakt_API(token, kodi.get_setting('use_https') == 'true', list_size, trakt_timeout, kodi.get_setting('trakt_offline') == 'true')
+                    progress = trakt_api.get_show_progress(queries['trakt_id'], full=True)
+                    
+                    if 'next_episode' in progress and progress['next_episode']:
+                        if progress['completed'] or kodi.get_setting('next_unwatched') == 'true':
+                            next_episode = progress['next_episode']
+                            date = utils2.make_day(utils2.make_air_date(next_episode['first_aired']))
+                            if kodi.get_setting('next_time') != '0':
+                                date_time = '%s@%s' % (date, utils2.make_time(utils.iso_2_utc(next_episode['first_aired']), 'next_time'))
+                            else:
+                                date_time = date
+                            msg = f'[[COLOR deeppink]{date_time}[/COLOR]] - {next_episode["season"]}x{next_episode["number"]}'
+                            if next_episode['title']: msg += f' - {next_episode["title"]}'
+                            duration = int(kodi.get_setting('next_up_duration')) * 1000
+                            kodi.notify(header=i18n('next_episode'), msg=msg, duration=duration)
+            
+            # Always reset sf_begin so the delay works for the next focused item
+            sf_begin = 0 
     else:
         last_label = ''
     
     return last_label, sf_begin
+
 
 def main(argv=None):  # @UnusedVariable
     if sys.argv: argv = sys.argv  # @UnusedVariable
@@ -469,6 +483,9 @@ def main(argv=None):  # @UnusedVariable
     logger.log('Service: Installed Version: %s' % (kodi.get_version()), log_utils.LOGNOTICE)
     monitor = xbmc.Monitor()
     proxy = image_proxy.ImageProxy()
+    sm = SessionManager()  # Always returns same instance
+    session = sm._initialize()
+    logger.log('Service: Session: %s' % (session), log_utils.LOGDEBUG)
     service = Service()
     
     # Add port conflict check

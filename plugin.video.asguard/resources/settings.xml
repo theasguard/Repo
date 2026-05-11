@@ -280,6 +280,21 @@
 						<heading/>
 					</control>
 				</setting>
+				<setting id="current_image_ua" type="string" label="40741" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
 				<setting id="rewatch_min_list" type="string" label="40560" help="">
 					<level>0</level>
 					<default/>
@@ -311,6 +326,18 @@
 					</control>
 				</setting>
 				<setting id="last_ua_create" type="integer" label="40562" help="">
+					<level>0</level>
+					<default>0</default>
+					<dependencies>
+						<dependency type="visible">
+							<condition on="property" name="InfoBool">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="integer">
+						<heading/>
+					</control>
+				</setting>
+				<setting id="last_image_ua_create" type="integer" label="40742" help="">
 					<level>0</level>
 					<default>0</default>
 					<dependencies>
@@ -1045,6 +1072,16 @@
 					<control type="edit" format="string">
 						<heading>Trakt Expires</heading>
 					</control>
+				</setting>
+				<setting id="trakt_scrobble" type="boolean" label="40740" help="">
+					<level>0</level>
+					<default>false</default>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="trakt_offline">false</condition>
+						</dependency>
+					</dependencies>
+					<control type="toggle"/>
 				</setting>
 				<setting id="TV_sub_slug" type="string" label="40574" help="">
 					<level>0</level>
@@ -2696,6 +2733,41 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+					<setting id="AnimeStream-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="AnimeStream-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://animestream-addon.keypop3750.workers.dev</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AnimeStream-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="AnimeStream-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="AnimeStream-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
 					<setting id="Animetosho-enable" type="boolean" label="30400" help="">
 						<level>0</level>
 						<default>true</default>
@@ -2766,6 +2838,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_2" label="30319" help="">
+			<group id="102">
 					<setting id="BitCQ-enable" type="boolean" label="40616" help="">
 						<level>0</level>
 						<default>true</default>
@@ -2804,10 +2880,6 @@
 							<popup>false</popup>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_2" label="30319" help="">
-			<group id="102">
 					<setting id="Bitsearch-enable" type="boolean" label="30420" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3021,6 +3093,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_3" label="30320" help="">
+			<group id="103">
 					<setting id="EasyNews-enable" type="boolean" label="30402" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3119,10 +3195,6 @@
 							<popup>false</popup>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_3" label="30320" help="">
-			<group id="103">
 					<setting id="EZTV-enable" type="boolean" label="30423" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3154,6 +3226,41 @@
 						<dependencies>
 							<dependency type="visible">
 								<condition operator="is" setting="EZTV-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="FlixFinder-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="FlixFinder-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://flixnest.app</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="FlixFinder-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="FlixFinder-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="FlixFinder-enable">true</condition>
 							</dependency>
 						</dependencies>
 						<control type="toggle"/>
@@ -3307,6 +3414,10 @@
 							<popup>false</popup>
 						</control>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_4" label="30321" help="">
+			<group id="104">
 					<setting id="IsoHunt2-enable" type="boolean" label="40614" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3412,10 +3523,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_4" label="30321" help="">
-			<group id="104">
 					<setting id="Local-enable" type="boolean" label="30404" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3576,6 +3683,45 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_5" label="30322" help="">
+			<group id="105">
+					<setting id="NebulaStreams-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="NebulaStreams-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://nebulastreams.onrender.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="NebulaStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="NebulaStreams-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="NebulaStreams-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
 					<setting id="Noxx-enable" type="boolean" label="40822" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3648,7 +3794,7 @@
 					</setting>
 					<setting id="NZBIndex-enable" type="boolean" label="40824" help="">
 						<level>0</level>
-						<default>true</default>
+						<default>false</default>
 						<dependencies>
 							<dependency type="visible">
 								<condition on="property" name="InfoBool">true</condition>
@@ -3684,10 +3830,6 @@
 							<popup>false</popup>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_5" label="30322" help="">
-			<group id="105">
 					<setting id="Orion-enable" type="boolean" label="30405" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3833,6 +3975,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_6" label="30323" help="">
+			<group id="106">
 					<setting id="Premiumize.V2-enable" type="boolean" label="30407" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3958,10 +4104,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_6" label="30323" help="">
-			<group id="106">
 					<setting id="Thepiratebay-enable" type="boolean" label="40628" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4108,6 +4250,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_7" label="40710" help="">
+			<group id="107">
 					<setting id="TorrentGalaxy-enable" type="boolean" label="30410" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4213,10 +4359,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_7" label="40710" help="">
-			<group id="107">
 					<setting id="Torrentz2-enable" type="boolean" label="30430" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4369,6 +4511,10 @@
 							<heading>MediaFlow Proxy Password</heading>
 						</control>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_8" label="40711" help="">
+			<group id="108">
 					<setting id="YourBittorrent-enable" type="boolean" label="40615" help="">
 						<level>0</level>
 						<default>true</default>

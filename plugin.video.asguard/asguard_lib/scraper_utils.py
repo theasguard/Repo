@@ -51,7 +51,7 @@ def disable_sub_check(settings):
 def get_ua():
     try:
         last_gen = int(kodi.get_setting('last_ua_create'))
-        print(last_gen)
+        
     except:
         last_gen = 0
     if not kodi.get_setting('current_ua') or last_gen < (time.time() - (7 * 24 * 60 * 60)):

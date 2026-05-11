@@ -338,8 +338,9 @@ def filter_exclusions(hosters):
     return filtered_hosters
 
 def filter_quality(video_type, hosters):
-    qual_filter = 5 - int(kodi.get_setting('%s_quality' % video_type))  # subtract to match Q_ORDER
-    if qual_filter == 5:
+    qual_filter = 6 - int(kodi.get_setting('%s_quality' % video_type))  # subtract to match Q_ORDER
+    logger.log('Filtering hosters by quality: %s' % qual_filter, log_utils.LOGDEBUG)
+    if qual_filter == 6:
         return hosters
     else:
         return [hoster for hoster in hosters if hoster['quality'] is not None and Q_ORDER[hoster['quality']] <= qual_filter]
@@ -541,6 +542,7 @@ def get_params():
     return param
 
 def format_source_label(item):
+    logger.log('Formatting source label: %s' % (item), log_utils.LOGDEBUG)
     color = kodi.get_setting('debrid_color') or 'green'
     # BLAMO
     orion = 'orion' in item and kodi.get_setting('show_orion') == 'true'
@@ -548,7 +550,7 @@ def format_source_label(item):
     # BLAMO
     label = item['class'].format_source_label(item)
     label = '[%s] %s' % (item['class'].get_name(), label)
-    if kodi.get_setting('show_debrid') == 'true' and ('debrid' in item or 'torbox' in item) and item['debrid']:
+    if kodi.get_setting('show_debrid') == 'true' and ('debrid' in item or 'magnet' in item) and item['debrid']:
         label = '[COLOR %s]%s[/COLOR]' % (color, label)
     # BLAMO
     elif orion: label = '[COLOR %s]%s[/COLOR]' % (color, label)

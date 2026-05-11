@@ -13,7 +13,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import logging
+
 import re
 import json
 import urllib.parse
@@ -34,7 +34,7 @@ except ImportError:
     kodi.notify(msg=i18n('smu_failed'), duration=5000)
 
 logger = log_utils.Logger.get_logger()
-
+logger.disable()
 BASE_URL = 'https://meteorfortheweebs.midnightignite.me'
 
 class Scraper(scraper.Scraper):
@@ -267,15 +267,7 @@ class Scraper(scraper.Scraper):
         elif 'X264' in combined_text:
             quality_info.append('x264')
 
-        # Resolution
-        if '2160P' in combined_text or '4K' in combined_text:
-            quality_info.append('4K')
-        elif '1080P' in combined_text:
-            quality_info.append('1080p')
-        elif '720P' in combined_text:
-            quality_info.append('720p')
-        elif '480P' in combined_text:
-            quality_info.append('480p')
+
 
         metadata['quality_info'] = quality_info
         return metadata

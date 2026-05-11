@@ -45,15 +45,42 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
         elapsed = time.time() - self.start_time
         progress = (elapsed / self.duration) * 100
         self.getControl(3014).setPercent(progress)
-        
-        while not self.closed and self.player.isPlaying():
-            if elapsed < self.duration and not self.result:
+
+        try:
+            while not self.closed:  # <-- Changed: Removed self.player.isPlaying() from condition
+                # Check if player is still playing
+                if not self.player.isPlaying():  # <-- Added: Explicit check
+                    logger.log('NextEpisodeDialog: Playback ended, closing dialog', log_utils.LOGDEBUG)
+                    self.close()
+                    break
+                
+                # Calculate remaining time and progress
+                try:
+                    total_time = self.player.getTotalTime()
+                    current_time = self.player.getTime()
+                    remaining = total_time - current_time
+
+                    # Calculate progress based on remaining time vs initial duration
+                    progress = (remaining / self.duration) * 100
+
+                    # Update progress bar
+                    try:
+                        self.getControl(3014).setPercent(progress)
+                    except:
+                        pass
+
+                    # Close if less than 1% remaining or user has taken action
+                    if progress < 1 or self.result:
+                        self.close()
+                        break
+                except Exception as e:
+                    logger.log(f'NextEpisodeDialog: Error getting playback info: {e}', log_utils.LOGWARNING)
+
                 xbmc.sleep(100)
-                self.background_tasks()
-            if progress < 1:  # Close if less than 1% remaining
-                break
-            else:
-                self.close()
+        except Exception as e:
+            logger.log(f'NextEpisodeDialog: Error in background_tasks: {e}', log_utils.LOGERROR)
+            self.close()
+
 
     def onClick(self, controlId):
         self.handle_action(7, controlId)

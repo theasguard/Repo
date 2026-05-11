@@ -1,43 +1,184 @@
-[B]New Version 0.1.7[/B]]
-- Updated Image scraper
-- Tweaks to a couple things
-- Scraper fixed removed dead
-- Tweaks to orion scraper to support .torrent
-- Overall code work up
-- Sorted an issue todo with speed
-- Sorted tvdb image bug
-- rewrote the services properly
+[B]Version 2.0[/B] (Addon) / [B]Version 0.0.4[/B] (Module)
+
+User Interface Improvements:
+- Updated Session Manager thread pool to utilize daemon threads via initializer, improving overall performance and ensuring clean Kodi exit behavior
+- Fixed progress update for next episode popup during playback - resolved infinite loop issue
+- Updated listitem.py to preserve labels with color formatting, year, or season x episode format
+- Improved artwork handling in main to prevent hanging when clear art or banners are disabled
+
+
+Search and Scraping Enhancements:
+- Major image scraper overhaul: Implemented ThreadPoolExecutor for parallel execution of all scraper calls
+  - scrape_images function now executes multiple scrapers concurrently instead of sequentially
+  - Added _execute_scraper_tasks helper function to manage parallel scraper execution
+  - Significantly reduced wait time when images are not cached
+  - Improved fallback logic with _apply_fallbacks function for better image handling
+- Added Flixfinder scraper for enhanced content discovery
+- Added Anime stream scrapers for anime content support
+- Removed dead scrapers to improve performance and reliability
+
+Code Improvements:
+- Updated all listitem references to Kodi 20+ - no deprecated listitems should show in log
+- Created watched cache.py with comprehensive documentation
+- General code cleanup and optimization for better performance
+
+[B]Version 0.1.9[/B] (Addon) / [B]Version 0.0.3[/B] (Module)
+
+Settings and Configuration:
+- Comprehensive settings cleanup and reorganization for better user experience
+- Added reset proxy function to settings for easier troubleshooting
+- Added missing scraper names to settings for clarity
+- Replaced all missing names throughout settings
+- Disabled scrapers with known issues and premium scrapers by default
+
+User Interface Improvements:
+- Fixed next episode progress bug that kept dialog open when untouched
+- Re-tested and verified enhanced Get Sourced dialog (enable in settings)
+- Improved browsing seasons performance - significantly faster loading
+- Improved playing sources loading for smoother playback
+
+Search and Scraping Enhancements:
+- Updated and relocated TMDB TV search and movie search to appropriate sections
+- Completed implementation of TMDB movie and show searches
+- Fixed get sources functionality for both search types
+- Fixed artwork display for TMDB searches
+- Rewrote image scraper and resolved identified issues
+- Added NZBIndex support for Premiumize, Torbox, and other debrid services
+
+Database and Connection Management:
+- Fixed database connection cleanup with WAL checkpointing
+- Proper termination of image proxy threads to prevent hangs
+- Fixed startup task monitor issues
+- Improved error handling throughout shutdown sequence
+
+Bug Fixes:
+- Fixed bug affecting certain episode groups
+- Fixed Trakt refresh token bug that caused frequent reauthorization
+- Orion scraper fixes: now attempts all show IDs, not just IMDb
+- Fixed search function bug when TMDB IDs are blank or None
+- Rewrote Trakt expires function (untested for duration)
+
+Code Improvements:
+- General code cleanup and optimization
+- Created MDBList file for future integration
+
+[B]Version 0.1.8[/B]
+
+Database Connection Management:
+- Added detailed logging for connection cleanup process
+- Ensured all instance variables are properly reset after closing
+- Added explicit call to close database connections before proxy shutdown
+- Added try-except block for robust error handling
+- Added logging for both successful and failed cleanup operations
+- Ensures cleanup happens even if errors occur
+
+Thread and Service Management:
+- Added warning log if thread doesn't terminate gracefully
+- Improved logging for thread reaping process
+- Added call to httpd.server_close() after shutdown
+- Ensures worker pool threads are properly terminated
+- Added logging for server close operation
+
+This update addresses Kodi 21+ shutdown hanging issues by ensuring all resources (database connections, threads, etc.) are properly cleaned up.
+
+[B]Version 0.1.7[/B]
+
+Image Scraping:
+- Updated image scraper for better performance and reliability
+- Fixed TVDB image bug that was causing display issues
+
+Scraper Improvements:
+- Tweaked Orion scraper to support .torrent files
+- Fixed and removed dead scrapers
+
+Performance and Code:
+- Resolved speed-related issues for faster operation
+- Overall code optimization and cleanup
+
+Service Management:
+- Rewrote services properly for better stability
+
+
+[B]Version 0.1.0 - 0.1.6 Current Development[/B]
+
+Major Migration - Python 2 to Python 3+:
+- Complete codebase migration from Python 2 to Python 3+ for Kodi 21+ compatibility
+- Updated all Python syntax and libraries to Python 3 standards
+- Fixed print statements, exception handling, and string operations
+- Updated imports and dependencies to Python 3 compatible versions
+
+Code Overhaul:
+- Comprehensive codebase refactoring for modern Python practices
+- Improved code structure and organization
+- All New Scrapers and Modules are now written in Python 3
+- Enhanced error handling and exception management
+- Updated database operations for Python 3 compatibility
+- Optimized performance for better responsiveness
+
+Compatibility:
+- Full compatibility with Kodi 21+ (Nexus) and future versions
+- Maintained backward compatibility where possible
+- Updated addon.xml for Python 3 requirement
+
+Testing and Stability:
+- Extensive testing of all core functionality
+- Fixed numerous compatibility issues discovered during migration
+- Improved overall addon stability and performance
 
 
 
 
-[B]Version 2.6.2[/B]]
-- Updated 20 Cents code lol
-- Tweaks to some things
-- Scraper fixed removed few things
-[B]Version 2.6.0[/B]]
--Few scraper fixed
-- Tweaks to code
-- Updated settings
-- Removed a few imports
-- Fixed a few bugs
-[B]Version 2.5.8[/B]]
-- Fixed a error
-[B]Version 2.5.7[/B]]
-- Fixed some scrapers
-- Removed dead scrapers 
-- Few little Tweaks
-[B]Version 2.5.6[/B]]
-- Fixed a few scrapers
-- Removed dead scrapers 
-- Removed a few imports and some other things. (speed it up a bit)
-- removed a a few unneeded files
-[B]Version 2.5.5[/B]]
-- Fixed a source name
-- Moved 2 scrapers to fixed folder
-[B]Version 2.5.4[/B]]
-- Fixed import errors
-- Added a missing import. (blame the testers)
+[B]Version 2.6.2 Previous Developments Below By MrBlamo/TkNorris[/B]
+
+Scraper Updates:
+- Updated 20 Cents scraper code
+- Fixed and removed problematic scrapers
+
+General Improvements:
+- Various tweaks and improvements
+[B]Version 2.6.0[/B]
+
+Scraper Fixes:
+- Fixed multiple scrapers for better reliability
+
+Code and Settings:
+- Code tweaks and optimizations
+- Updated settings for improved user experience
+- Removed unnecessary imports to streamline code
+
+Bug Fixes:
+- Fixed several bugs affecting addon functionality
+[B]Version 2.5.8[/B]
+
+Bug Fixes:
+- Fixed error affecting addon stability
+[B]Version 2.5.7[/B]
+
+Scraper Maintenance:
+- Fixed multiple scrapers for better performance
+- Removed dead scrapers to improve efficiency
+
+General Improvements:
+- Various minor tweaks and improvements
+[B]Version 2.5.6[/B]
+
+Scraper Maintenance:
+- Fixed multiple scrapers for better reliability
+- Removed dead scrapers to improve efficiency
+
+Performance Optimization:
+- Removed unnecessary imports and other elements to speed up the addon
+- Removed unneeded files to streamline the codebase
+[B]Version 2.5.5[/B]
+
+Source Management:
+- Fixed source name for proper identification
+- Moved 2 scrapers to fixed folder for better organization
+[B]Version 2.5.4[/B]
+
+Code Fixes:
+- Fixed import errors that were causing issues
+- Added missing import to resolve functionality problems
 
 [B]Version 2.5.3[/B]
 - Scraper tweaks

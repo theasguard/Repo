@@ -70,7 +70,7 @@ class Scraper(scraper.Scraper):
         query = self._build_query(video)
         search_url = scraper_utils.urljoin(self.base_url, SEARCH_URL % urllib.parse.quote_plus(query))
         html = self._http_get(search_url, cache_limit=1)
-        
+        logger.log(f'TORLOCK HTML: {html}', log_utils.LOGDEBUG)
         if not html:
             logger.log('TORLOCK: No HTML returned from search', log_utils.LOGWARNING)
             return sources

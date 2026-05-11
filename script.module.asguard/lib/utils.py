@@ -62,12 +62,55 @@ def make_list_item(label, meta, art=None, cast=None):
     # Set properties for the list item
     listitem.setProperty('isPlayable', 'false')
 
-    # Add empty stream info for video
-    listitem.addStreamInfo('video', {})
 
-    listitem.setUniqueIDs(
-        {i.split("_")[0]: meta[i] for i in meta if i.endswith("id")},
-    )
+    # Add empty stream info for video - use InfoTagVideo for Kodi 21+
+    try:
+        # Try the new Kodi 21+ InfoTagVideo API
+        video_tag = listitem.getVideoInfoTag()
+        video_tag.addVideoStream(xbmc.VideoStreamDetail())
+    except (AttributeError, TypeError):
+        # Fallback to deprecated methods for older Kodi versions
+        listitem.addStreamInfo('video', {})
+    # Set unique IDs - use InfoTagVideo for Kodi 21+, fallback to old method
+    unique_ids = {i.split("_")[0]: str(meta[i]) for i in meta if i.endswith("id")}
+
+    try:
+        # Try the new Kodi 21+ InfoTagVideo API
+        video_tag = listitem.getVideoInfoTag()
+        video_tag.setUniqueIDs(unique_ids)
+        
+        # Set other metadata on the VideoInfoTag if available
+        # Don't override the label if it contains formatting (like unaired indicator), SxE format, or year
+        if 'title' in meta and not ('[COLOR' in label or '[I]' in label or re.search(r'\d+x\d+', label) or re.search(r'\(\d{4}\)', label)):
+            video_tag.setTitle(meta['title'])
+        if 'first_aired' in meta:
+            video_tag.setFirstAired(meta['first_aired'])
+        if 'plot' in meta:
+            video_tag.setPlot(meta['plot'])
+        if 'year' in meta:
+            video_tag.setYear(int(meta['year']))
+        if 'mediatype' in meta:
+            video_tag.setMediaType(meta['mediatype'])
+        if 'rating' in meta:
+            video_tag.setRating(float(meta['rating']))
+        if 'votes' in meta:
+            video_tag.setVotes(int(meta['votes']))
+        if 'premiered' in meta:
+            video_tag.setPremiered(meta['premiered'])
+        if 'season' in meta:
+            video_tag.setSeason(int(meta['season']))
+        if 'episode' in meta:
+            video_tag.setEpisode(int(meta['episode']))
+        if 'tvshowtitle' in meta:
+            video_tag.setTvShowTitle(meta['tvshowtitle'])
+        if 'duration' in meta:
+            video_tag.setDuration(int(meta['duration']))
+        if cast:
+            video_tag.setCast(cast)
+            
+    except (AttributeError, TypeError):
+        # Fallback to deprecated methods for older Kodi versions
+        listitem.setUniqueIDs(unique_ids)
 
     # Set IMDb and TVDB ids as properties if available in meta
     if 'ids' in meta:

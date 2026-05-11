@@ -25,6 +25,7 @@ from asguard_lib import utils2
 from asguard_lib.constants import FORCE_NO_MATCH
 from asguard_lib.constants import VIDEO_TYPES
 from asguard_lib import control
+import xbmcaddon
 
 files = os.listdir(os.path.dirname(__file__))
 __all__ = [filename[:-3] for filename in files if not filename.startswith('__') and filename.endswith('.py')]
@@ -32,7 +33,11 @@ __all__ = [filename[:-3] for filename in files if not filename.startswith('__') 
 from . import *
 
 logger = log_utils.Logger.get_logger()
-  
+
+addon = xbmcaddon.Addon('plugin.video.asguard')
+def get_profile():
+    return addon.getAddonInfo('profile')
+
 class ScraperVideo:
     def __init__(self, video_type, title, year, trakt_id, season='', episode='', ep_title='', ep_airdate=''):
         """
@@ -208,7 +213,11 @@ def validate_xml_basic(xml):
 def update_settings():
     full_path = os.path.join(kodi.get_path(), 'resources', 'settings.xml')
     logger.log('Updating settings: %s' % (full_path), log_utils.LOGDEBUG)
-    
+
+    DB_FOLDER = kodi.translate_path(get_profile())
+    user_xml = os.path.join(DB_FOLDER, 'settings.xml')
+    logger.log('user_xml: %s' % (user_xml), log_utils.LOGDEBUG)
+
     try:
         # open for append; skip update if it fails
         with open(full_path, 'a') as f:

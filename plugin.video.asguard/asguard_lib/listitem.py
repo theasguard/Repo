@@ -4,6 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 #<addon id="script.module.infotagger" name="InfoTagger" provider-name="jurialmunkey" version="0.0.8">
 
+import re
 from xbmc import Actor, VideoStreamDetail, AudioStreamDetail, SubtitleStreamDetail, LOGINFO
 from xbmc import log as kodi_log
 
@@ -52,8 +53,18 @@ class _ListItemInfoTag():
 
     def set_info(self, infolabels: dict):
         """ Wrapper for compatibility with Matrix ListItem.setInfo() method """
+        # Get the current label to check if it contains formatting
+        current_label = self._listitem.getLabel()
+        has_formatting = '[COLOR' in current_label or '[I]' in current_label
+        has_sxe_format = re.search(r'\d+x\d+', current_label) is not None
+        has_year_format = re.search(r'\(\d{4}\)', current_label) is not None
+
         for k, v in infolabels.items():
             if v is None:
+                continue
+
+            # Skip setting title if label already has formatting (like unaired indicator), SxE format, or year
+            if k == 'title' and (has_formatting or has_sxe_format or has_year_format):
                 continue
 
             try:

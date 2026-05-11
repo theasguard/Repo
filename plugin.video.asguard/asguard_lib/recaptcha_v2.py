@@ -33,7 +33,7 @@ import dom_parser2
 
 
 logger = log_utils.Logger.get_logger(__name__)
-logger.disable()
+# logger.disable()
 
 class cInputWindow(xbmcgui.WindowDialog):
     def __init__(self, *args, **kwargs):  # @UnusedVariable

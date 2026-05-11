@@ -3017,3 +3017,14 @@ msgctxt "#40739"
 msgid "MDBList API"
 msgstr ""
 
+msgctxt "#40740"
+msgid "Trakt Scrobble"
+msgstr ""
+
+msgctxt "#40741"
+msgid "Current Image UA"
+msgstr ""
+
+msgctxt "#40742"
+msgid "Last Image UA"
+msgstr ""
