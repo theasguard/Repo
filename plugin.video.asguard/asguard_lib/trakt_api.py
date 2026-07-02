@@ -722,7 +722,7 @@ class Trakt_API():
 
 
 
-    def __call_trakt(self, url: str, method: str = None, data: Any = None, params: dict = None, auth: bool = True, cache_limit: float = .25, cached: bool = True) -> Union[str, list, dict, Any]:
+    def __call_trakt(self, url, method=None, data=None, params=None, auth=True, cache_limit=.25, cached=True):
         res_headers = {}
         if not cached: cache_limit = 0
         if self.offline:
@@ -753,12 +753,12 @@ class Trakt_API():
                 try:
                     if auth: 
                         headers.update({'Authorization': 'Bearer %s' % (self.token)})
-                    logger.log('***Trakt Call: %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
-                    # Use persistent HTTP session with retries
+
                     logger.log('***Trakt Call (requests): %s, header: %s, data: %s cache_limit: %s cached: %s' % (url, headers, json_data, cache_limit, cached), log_utils.LOGDEBUG)
-                    req_method = 'POST' if json_data is not None else (method.upper() if method else 'GET')
+                    req_method = method.upper() if method else ('POST' if json_data is not None else 'GET')
+
                     try:
-                        r = session.request(req_method, url, headers=headers, data=json_data, timeout=self.timeout)
+                        r = session.request(req_method, url, headers=headers, json=data, timeout=self.timeout)
                     except requests.exceptions.SSLError as e:
                         raise ssl.SSLError(str(e))
                     except requests.exceptions.Timeout as e:
@@ -778,8 +778,6 @@ class Trakt_API():
                         if url.endswith('/oauth/device/token'):
                             raise urllib_error.HTTPError(url, status, None, r.headers, None)
 
-                        elif url.endswith('/oauth/token'):
-                            raise urllib_error.HTTPError(url, status, None, r.headers, None)
                         if status in TEMP_ERRORS:
                             if cached_result:
                                 result = cached_result
@@ -821,22 +819,10 @@ class Trakt_API():
                     if cached_result:
                         result = cached_result
                         logger.log('Temporary Trakt Error (%s). Using Cached Page Instead.' % (str(e)), log_utils.LOGWARNING)
+                        break
                     else:
                         raise TransientTraktError('Temporary Trakt Error: ' + str(e))
-                except urllib_error.URLError as e:
-                    # CHANGED: Simplified URL error handling - delegate to main logic
-                    if isinstance(e, urllib_error.HTTPError):
-                        # Re-raise to be handled by the main status code logic above
-                        raise
-                    elif isinstance(e.reason, socket.timeout) or isinstance(e.reason, ssl.SSLError):
-                        if cached_result:
-                            result = cached_result
-                            logger.log('Temporary Trakt Error (%s). Using Cached Page Instead' % (str(e)), log_utils.LOGWARNING)
-                            break
-                        else:
-                            raise TransientTraktError('Temporary Trakt Error: ' + str(e))
-                    else:
-                        raise TraktError('Trakt Error: ' + str(e))
+
                 except Exception as e:
                     logger.log('Unexpected error: {}'.format(e), log_utils.LOGERROR)
                     raise

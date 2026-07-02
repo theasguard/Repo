@@ -17,8 +17,10 @@
 """
 
 # Standard library imports
+import datetime
 import io, json, os, threading, random, socket, ssl, time, urllib.parse, urllib.request, xml.etree.ElementTree as ET, zipfile
 import asyncio
+
 # Third-party library imports
 import cache, requests, six, urllib3
 from bs4 import BeautifulSoup
@@ -141,6 +143,8 @@ class Scraper(object):
         self.session = self._create_session()
         self.executor = self._create_executor()
         self.protocol = 'http://'
+
+
     
     def _create_session(self):
         """No longer needed - using shared session"""
@@ -540,6 +544,54 @@ class TMDBScraper(Scraper):
             
             if POSTER_ENABLED and 'poster' in need:
                 art_dict['poster'] = self.__get_best_image(images.get('posters', []))
+
+        return self._clean_art(art_dict)
+
+    def get_tmdb_season_images(self, ids, season, need=None):
+        if need is None: need = ['fanart', 'poster']
+        art_dict = {}
+        any_art = any((BG_ENABLED, POSTER_ENABLED))
+        if 'tmdb' in ids and ids['tmdb'] and any_art and self.__get_image_base():
+            images = image_cache.get_season_images(ids['tmdb'], season) if CACHE_INSTALLED else {}
+            if not images:
+                url = f'{self.protocol}{self.BASE_URL}/tv/{ids["tmdb"]}/season/{season}/images'
+                params = {'api_key': self.API_KEY, 'include_image_language': 'en,null'}
+                images = self._get_url(url, params, headers=self.headers)
+                logger.log(f"TMDB Season Images - {images}", log_utils.LOGDEBUG)
+
+                # Cache the response for future use
+                if images and CACHE_INSTALLED:
+                    from asguard_lib.image_cache import local_lib
+                    cache_db = local_lib.db_utils.DBCache()
+                    unique_key = f"{season}"
+                    # Use the public execute method instead of private __execute
+                    cache_db.execute('REPLACE INTO api_cache (tmdb_id, object_type, data) values (?, ?, ?)',
+                                  (ids['tmdb'], f"S_{unique_key}", json.dumps(images)))
+                    cache_db.close()
+
+            
+            # Process posters (season images)
+            if images and 'posters' in images and images['posters']:
+                # Sort by vote_average and vote_count to get the best image
+                best_still = sorted(images['posters'], 
+                                 key=lambda x: (x.get('vote_average', 0), x.get('vote_count', 0)), 
+                                 reverse=True)[0]
+                
+                # Build the full image URL
+                image_path = best_still.get('file_path', '')
+                if image_path:
+                    full_url = f"{self.image_base}{image_path}"
+                    
+                    # Use the same image for poster, thumb and fanart for episodes
+                    if POSTER_ENABLED and 'poster' in need:
+                        art_dict['poster'] = full_url
+                    if BG_ENABLED and 'fanart' in need:
+                        art_dict['fanart'] = full_url
+                    
+                    # Also set thumb if needed
+                    art_dict['thumb'] = full_url
+                    
+                    logger.log(f"TMDB Season Images - Selected image: {full_url}", log_utils.LOGDEBUG)
 
         return self._clean_art(art_dict)
 
@@ -1249,67 +1301,65 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
     if not cached_art:
         global fanart_scraper, omdb_scraper, tvmaze_scraper, tvdb_scraper, tmdb_scraper, imdb_scraper
 
-        # Define scraper tasks based on video type
-        scraper_tasks = []
-
         if video_type == VIDEO_TYPES.MOVIE:
-            # Movie scraping tasks
-            if POSTER_ENABLED:
-                scraper_tasks.append(('fanarttv', fanart_scraper.get_movie_images, [video_ids]))
-
-            # TMDB scraper (for fanart and poster if needed)
-            scraper_tasks.append(('tmdb', tmdb_scraper.get_movie_images, [video_ids, ['fanart', 'poster']]))
-
-            # OMDB scraper (for poster if needed)
-            scraper_tasks.append(('omdb', omdb_scraper.get_images, [video_ids]))
+            if  POSTER_ENABLED:
+                art_dict.update(fanart_scraper.get_movie_images(video_ids))
+            # if GIF_ENABLED and POSTER_ENABLED:
+            #     art_dict.update(gif_scraper.get_movie_images(video_ids))
+             
+            need = []
+            if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
+            if art_dict['poster'] == PLACE_POSTER: need.append('poster')
+            if need:
+                art_dict.update(tmdb_scraper.get_movie_images(video_ids, need))
+                
+            if art_dict['poster'] == PLACE_POSTER:
+                art_dict.update(omdb_scraper.get_images(video_ids))
+            # Cache and return
+            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
 
         elif video_type == VIDEO_TYPES.TVSHOW:
-            # TV Show scraping tasks
-            scraper_tasks.append(('fanarttv', fanart_scraper.get_tvshow_images, [video_ids]))
-            scraper_tasks.append(('tvdb', tvdb_scraper.get_tvshow_images, [video_ids, ['fanart', 'poster', 'banner']]))
-            scraper_tasks.append(('tmdb', tmdb_scraper.get_tmdbshow_images, [video_ids, ['fanart', 'poster']]))
-            scraper_tasks.append(('omdb', omdb_scraper.get_images, [video_ids]))
+            art_dict.update(fanart_scraper.get_tvshow_images(video_ids))
+             
+            need = []
+            if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
+            if art_dict['poster'] == PLACE_POSTER: need.append('poster')
+            if not art_dict['banner']: need.append('banner')
+            if need:
+                art_dict.update(tvdb_scraper.get_tvshow_images(video_ids, need))
+                
+            
+            if art_dict['poster'] == PLACE_POSTER:
+                art_dict.update(imdb_scraper.get_tvshow_images(video_ids))
+            # Cache and return
+            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
 
         elif video_type == VIDEO_TYPES.SEASON:
-            # Season scraping - first get TV show images, then season-specific images
-            tvshow_art = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
-            art_dict.update(tvshow_art)
-
-            # Get season images from both scrapers in parallel
-            season_tasks = [
-                ('fanart_season', fanart_scraper.get_season_images, [video_ids]),
-                ('tvdb_season', tvdb_scraper.get_season_images, [video_ids])
-            ]
-
-            season_results = _execute_scraper_tasks(season_tasks)
-
-            # Process season results
-            fanart_season_art = season_results.get('fanart_season', {})
-            tvdb_season_art = season_results.get('tvdb_season', {})
-
-            # Merge season art with TVDB as fallback
+            art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
+            season_art = fanart_scraper.get_season_images(video_ids)
+            logger.log('season_art: %s' % season_art)
+            tvdb_season_art = tvdb_scraper.get_season_images(video_ids)
+            logger.log('tvdb_season_art: %s' % tvdb_season_art)
+            
             for key in tvdb_season_art:
                 tvdb_poster = tvdb_season_art[key].get('poster')
                 tvdb_banner = tvdb_season_art[key].get('banner')
 
-                if tvdb_poster and not fanart_season_art.get(key, {}).get('poster'):
-                    fanart_season_art.setdefault(key, {}).setdefault('poster', tvdb_poster)
+                if tvdb_poster and not season_art.get(key, {}).get('poster'):
+                    season_art.setdefault(key, {}).setdefault('poster', tvdb_poster)
 
-                if tvdb_banner and not fanart_season_art.get(key, {}).get('banner'):
-                    fanart_season_art.setdefault(key, {}).setdefault('banner', tvdb_banner)
-
-            # Cache all season images
-            for key in fanart_season_art:
+                if tvdb_banner and not season_art.get(key, {}).get('banner'):
+                    season_art.setdefault(key, {}).setdefault('banner', tvdb_banner)
+            
+            for key in season_art:
                 temp_dict = art_dict.copy()
-                temp_dict.update(fanart_season_art[key])
+                temp_dict.update(season_art[key])
                 db_connection.cache_images(object_type, trakt_id, temp_dict, key)
-
-            # Update art_dict with current season
-            art_dict.update(fanart_season_art.get(str(season), {}))
+            
+            art_dict.update(season_art.get(str(season), {}))
 
             # Cache and return
             db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
-            return art_dict
 
         elif video_type == VIDEO_TYPES.EPISODE:
             art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
@@ -1331,39 +1381,12 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
 
             # Cache and return
             db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
-            return art_dict
-
-        # Execute scraper tasks for MOVIE and TVSHOW types
-        if scraper_tasks:
-            results = _execute_scraper_tasks(scraper_tasks)
-            # Update art with episode results
-            if 'fanarttv' in results:
-                art_dict.update(results['fanarttv'])
-            
-            if 'tvdb' in results:
-                art_dict.update(results['tvdb'])
-
-            if 'tmdb' in results:
-                tmdb_art = results['tmdb']
-                if not art_dict.get('thumb') or art_dict.get('poster') == PLACE_POSTER:
-                    art_dict['thumb'] = tmdb_art.get('thumb')
-                    if art_dict.get('poster') == PLACE_POSTER and 'poster' in tmdb_art:
-                        art_dict['poster'] = tmdb_art['poster']
-
-            if 'omdb' in results:
-                omdb_art = results['omdb']
-                if not art_dict.get('thumb') or art_dict.get('poster') == PLACE_POSTER:
-                    art_dict['thumb'] = omdb_art.get('poster')
-                    if art_dict.get('poster') == PLACE_POSTER and 'poster' in omdb_art:
-                        art_dict['poster'] = omdb_art['poster']
-
-            logger.log(f'Finished {video_type} scraping |{results}|', log_utils.LOGDEBUG)
 
             # Apply fallbacks
-            _apply_fallbacks(art_dict, video_type)
+    _apply_fallbacks(art_dict, video_type)
 
             # Cache the final results
-            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
+    db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
 
     return art_dict
 
@@ -1382,7 +1405,7 @@ def _execute_scraper_tasks(tasks, max_workers=4, timeout=15):
     """
     results = {}
 
-    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix='parallel_scraper') as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
         futures = {
             executor.submit(func, *args): name 
