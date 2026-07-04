@@ -3238,10 +3238,7 @@ def make_dir_from_list(section, list_data, slug=None, query=None, page=None):
             if section == SECTIONS.MOVIES:
                 watched[item['movie']['ids']['trakt']] = item['plays'] > 0
             elif section == SECTIONS.TV:
-                if 'seasons' in item:
-                    watched[item['show']['ids']['trakt']] = len([e for s in item['seasons'] if s['number'] != 0 for e in s['episodes']])
-                else:
-                    watched[item['show']['ids']['trakt']] = item.get('plays', 0)
+                watched[item['show']['ids']['trakt']] = item.get('plays', 0)
 
         if slug == COLLECTION_SLUG:
             in_collection = dict.fromkeys([show['ids']['trakt'] for show in list_data], True)
