@@ -1940,7 +1940,7 @@ def get_sources(mode, video_type, title, year, trakt_id, season='', episode='', 
                     logger.log('No Sources found for: |%s|' % (video), log_utils.LOGWARNING)
                     msg = i18n('no_sources')
                     msg += ' (%s)' % timeout_msg if timeout_msg else ''
-                    kodi.close_all_dialog()
+                    kodi.close_all()
                     kodi.notify(msg=msg, duration=5000)
                     return False
 
