@@ -69,14 +69,14 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
                     except:
                         pass
 
-                    # Close if less than 1% remaining or user has taken action
-                    if progress < 1 or self.result:
+                    # Close if less than 3% remaining or user has taken action
+                    if progress < 3 or self.result:
                         self.close()
                         break
                 except Exception as e:
                     logger.log(f'NextEpisodeDialog: Error getting playback info: {e}', log_utils.LOGWARNING)
 
-                xbmc.sleep(100)
+                xbmc.sleep(1000)  # Sleep for 1 second before checking again
         except Exception as e:
             logger.log(f'NextEpisodeDialog: Error in background_tasks: {e}', log_utils.LOGERROR)
             self.close()
@@ -122,9 +122,19 @@ class NextEpisodeDialog(xbmcgui.WindowXMLDialog):
     def close(self):
         self.closed = True
         try:
+            # Signal all background threads to stop
+            if hasattr(self, 'threads'):
+                for thread in self.threads:
+                    if thread.is_alive():
+                        logger.log(f'NextEpisodeDialog: Waiting for thread {thread.name} to finish', log_utils.LOGDEBUG)
+                        # Give threads a moment to clean up
+                        thread.join(timeout=1.0)
+                        if thread.is_alive():
+                            logger.log(f'NextEpisodeDialog: Thread {thread.name} did not terminate cleanly', log_utils.LOGWARNING)
+            
             # Clear properties when closing
             self.clearProperty('item.info.tvshowtitle')
             self.clearProperty('item.info.title')
             super(NextEpisodeDialog, self).close()
         except Exception as e:
-            logger.log(f'NextEpisodeDialog: Error closing dialog: {e}', log_utils.LOGERROR)
+            logger.log(f'NextEpisodeDialog: Error during close: {str(e)}', log_utils.LOGERROR)

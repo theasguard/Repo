@@ -17,7 +17,8 @@
 """
 import os, time, datetime, xbmc, xbmcgui, xbmcvfs, sys
 import string
-
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 addon_dir = os.path.dirname(os.path.dirname(__file__)) 
 scrapers_dir = os.path.join(addon_dir, 'scrapers')
 sys.path.append(scrapers_dir)
@@ -59,6 +60,7 @@ def make_info(item, show=None, people=None):
     info['originaltitle'] = info['title'] = item['title']
     if 'originaltitle' in item: info['originaltitle'] = item['originaltitle']
     info['mediatype'] = 'tvshow' if 'aired_episodes' in item else 'movie'
+
     if 'overview' in item: info['plot'] = info['plotoutline'] = item['overview']
     if 'runtime' in item and item['runtime'] is not None: info['duration'] = item['runtime'] * 60
     if 'certification' in item: info['mpaa'] = item['certification']
@@ -211,8 +213,9 @@ def parallel_search(scraper, video_type, title, year, season):
 
 def parallel_get_progress(trakt_id, cached, cache_limit):
     progress = trakt_api.get_show_progress(trakt_id, full=True, cached=cached, cache_limit=cache_limit)
+    logger.log('Progress: %s' % (progress), log_utils.LOGDEBUG)
     progress['trakt'] = trakt_id  # add in a hacked show_id to be used to match progress up to the show its for
-    logger.log('Got progress for Trakt ID: %s' % (trakt_id), log_utils.LOGDEBUG)
+
     return progress
 
 def parallel_get_url(scraper, video):

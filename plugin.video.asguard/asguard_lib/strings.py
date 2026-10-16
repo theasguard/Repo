@@ -379,4 +379,14 @@ STRINGS = {
     'trakt_reauth': 40524,
     'tv_shows_base_url': 50525,
     'movies_base_url': 50526,
+    'refresh_trakt_cache': 50527,
+    'trakt_cache_refreshed': 50528,
+    'trakt_cache_refresh_failed': 50529,
+    'show_nextup': 50530,
+    'discover_nextup': 50531,
+    'retr_nextup': 50532,
+    'req_nextup': 50533,
+    'rec_nextup': 50534,
+    'nextup_timeouts': 50535,
+
 }

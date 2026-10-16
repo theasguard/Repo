@@ -536,8 +536,9 @@ class TMDBScraper(Scraper):
             images = image_cache.get_tv_images(ids['tmdb']) if CACHE_INSTALLED else {}
             if not images:
                 url = f'{self.protocol}{self.BASE_URL}/tv/{ids["tmdb"]}/images'
-                params = {'api_key': self.API_KEY, 'include_image_language': 'en,null'}
+                params = {'api_key': self.API_KEY, 'include_image_language': 'en,ja,null'}
                 images = self._get_url(url, params, headers=self.headers)
+                logger.log(f"TMDB Show Images - {images}", log_utils.LOGDEBUG)
                 
             if BG_ENABLED and 'fanart' in need:
                 art_dict['fanart'] = self.__get_best_image(images.get('backdrops', []))
@@ -1315,8 +1316,6 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
                 
             if art_dict['poster'] == PLACE_POSTER:
                 art_dict.update(omdb_scraper.get_images(video_ids))
-            # Cache and return
-            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
 
         elif video_type == VIDEO_TYPES.TVSHOW:
             art_dict.update(fanart_scraper.get_tvshow_images(video_ids))
@@ -1328,11 +1327,15 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
             if need:
                 art_dict.update(tvdb_scraper.get_tvshow_images(video_ids, need))
                 
-            
+            need = []
+            if art_dict['fanart'] == DEFAULT_FANART: need.append('fanart')
+            if art_dict['poster'] == PLACE_POSTER: need.append('poster')
+            if not art_dict['banner']: need.append('banner')
+            if need:
+                art_dict.update(tmdb_scraper.get_tmdbshow_images(video_ids, need))
+
             if art_dict['poster'] == PLACE_POSTER:
                 art_dict.update(imdb_scraper.get_tvshow_images(video_ids))
-            # Cache and return
-            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
 
         elif video_type == VIDEO_TYPES.SEASON:
             art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
@@ -1358,9 +1361,6 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
             
             art_dict.update(season_art.get(str(season), {}))
 
-            # Cache and return
-            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
-
         elif video_type == VIDEO_TYPES.EPISODE:
             art_dict = scrape_images(VIDEO_TYPES.TVSHOW, video_ids, cached=cached)
             art_dict.update(tvdb_scraper.get_episode_images(video_ids, season, episode))
@@ -1378,9 +1378,6 @@ def scrape_images(video_type, video_ids, season='', episode='', cached=True):
                 if art_dict['poster'] == PLACE_POSTER and 'poster' in tvmaze_art:
                     art_dict['poster'] = tvmaze_art['poster']
                     
-
-            # Cache and return
-            db_connection.cache_images(object_type, trakt_id, art_dict, season, episode)
 
             # Apply fallbacks
     _apply_fallbacks(art_dict, video_type)

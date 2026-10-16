@@ -23,7 +23,7 @@ import urllib.parse
 from asguard_lib import scraper_utils
 from asguard_lib.constants import VIDEO_TYPES, QUALITIES
 import kodi
-from . import scraper
+from scrapers import scraper
 import log_utils
 
 logger = log_utils.Logger.get_logger()

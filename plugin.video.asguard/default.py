@@ -49,7 +49,7 @@ from asguard_lib.utils2 import i18n
 from asguard_lib.image_scraper import SessionManager
 
 # Constants (consider replacing with specific imports if possible)
-from asguard_lib.constants import *
+from asguard_lib.constants import * # @UnusedWildImport
 
 # Initialize logger and other globals
 import log_utils
@@ -65,7 +65,7 @@ try:
 except IndexError:
     HANDLE = -1
 
-logger = log_utils.Logger.get_logger()
+logger = log_utils.Logger.get_logger(__name__)
 
 addon = xbmcaddon.Addon('plugin.video.asguard')
 datafolder = xbmcvfs.translatePath(os.path.join('special://profile/addon_data/', addon.getAddonInfo('id')))
@@ -80,7 +80,7 @@ trakt_timeout = int(kodi.get_setting('trakt_timeout'))
 list_size = int(kodi.get_setting('list_size'))
 OFFLINE = kodi.get_setting('trakt_offline') == 'true'
 trakt_api = Trakt_API(TOKEN, use_https, list_size, trakt_timeout, OFFLINE)
-proxy = ImageProxy()
+image_proxy = ImageProxy()
 
 url_dispatcher = URL_Dispatcher()
 
@@ -157,12 +157,12 @@ def settings_menu():
 def restart_image_proxy():
     try:
         # Stop the proxy if it's running
-        if proxy.running:
-            proxy.stop_proxy()
+        if image_proxy.running:
+            image_proxy.stop_proxy()
             logger.log('Image Proxy stopped for restart', log_utils.LOGNOTICE)
         
         # Start the proxy
-        proxy.start_proxy()
+        image_proxy.start_proxy()
         logger.log('Image Proxy restarted successfully', log_utils.LOGNOTICE)
         
         # Notify the user
@@ -219,6 +219,8 @@ def browse_menu(section):
         if TOKEN:
             if utils2.menu_on('progress'):
                 add_refresh_item({'mode': MODES.SHOW_PROGRESS}, i18n('my_next_episodes'), utils2.art('my_progress.png'), utils2.art('fanart.jpg'))
+            if utils2.menu_on('progress'):
+                add_refresh_item({'mode': MODES.SHOW_NEXTUP}, i18n('show_nextup'), utils2.art('nextup.png'), utils2.art('fanart.jpg'))
             if utils2.menu_on('rewatch'):
                 add_refresh_item({'mode': MODES.SHOW_REWATCH}, i18n('my_rewatches'), utils2.art('my_rewatch.png'), utils2.art('fanart.jpg'))
             if utils2.menu_on('my_cal'):
@@ -228,7 +230,7 @@ def browse_menu(section):
         if utils2.menu_on('premiere_cal'):
             add_refresh_item({'mode': MODES.PREMIERES}, i18n('premiere_calendar'), utils2.art('premiere_calendar.png'), utils2.art('fanart.jpg'))
         if utils2.menu_on('search'):
-            kodi.create_item({'mode': MODES.TMDB_TV_SEARCH, 'section': section}, i18n('tmdb_tv_search'), thumb=utils2.art('television_search.png'), fanart=utils2.art('fanart.jpg'))
+            kodi.create_item({'mode': MODES.TMDB_TV_SEARCH, 'section': section}, i18n('tmdb_tv_search'), thumb=utils2.art('tmdbsearch.png'), fanart=utils2.art('fanart.jpg'))
     if utils2.menu_on('search'):
         kodi.create_item({'mode': MODES.SEARCH, 'section': section}, i18n('search'), thumb=utils2.art(section_params['search_img']), fanart=utils2.art('fanart.jpg'))
     if utils2.menu_on('search'):
@@ -443,6 +445,12 @@ def force_refresh(refresh_mode, section=None, slug=None, username=None):
         finally:
             try: worker_pool.reap_workers(workers, None)
             except: pass
+    elif refresh_mode == MODES.SHOW_NEXTUP:
+            try:
+                workers, _nextup = get_nextup(cached=False)
+            finally:
+                try: worker_pool.reap_workers(workers, None)
+                except: pass
     elif refresh_mode == MODES.MY_CAL:
         trakt_api.get_my_calendar(start_date, 8, cached=False)
     elif refresh_mode == MODES.CAL:
@@ -802,7 +810,7 @@ def add_other_list_item(mode, section, other_list, total_items=0):
         menu_items.append((i18n('rename_list'), 'RunPlugin(%s)' % (kodi.get_plugin_url(queries))),)
 
     if header:
-        queries = {'mode': MODES.SHOW_LIST, 'section': section, 'slug': other_list[1], 'username': other_list[0]}
+        queries = {'mode': MODES.SHOW_LIST, 'section': section, 'slug': other_list[1], 'username': other_list[0], 'page': 1}
     else:
         queries = {'mode': MODES.OTHER_LISTS, 'section': section}
     label = '[[COLOR blue]%s[/COLOR]] %s' % (other_list[0], name)
@@ -970,11 +978,11 @@ def manage_rewatch(trakt_id, new_method):
     kodi.set_setting('rewatch_max_list', '|'.join(max_list))
     kodi.refresh_container()
     
-@url_dispatcher.register(MODES.SHOW_LIST, ['section', 'slug'], ['username'])
-def show_list(section, slug, username=None):
-    items = get_list(section, slug, username)
+@url_dispatcher.register(MODES.SHOW_LIST, ['section', 'slug'], ['username', 'page'])
+def show_list(section, slug, username=None, page=None):
+    items = get_list(section, slug, username, page=page)
     if items is not None:
-        make_dir_from_list(section, items, slug)
+        make_dir_from_list(section, items, slug, query={'mode': MODES.SHOW_LIST, 'section': section, 'slug': slug, 'username': username}, page=page)
 
 @url_dispatcher.register(MODES.SHOW_WATCHLIST, ['section'])
 def show_watchlist(section):
@@ -1001,9 +1009,12 @@ def show_collection(section):
 
     make_dir_from_list(section, items, COLLECTION_SLUG)
 
-def get_progress(cached=True):
+
+def get_progress(cached=True, page=None):
+    cache_key = '%s_page_%s' % (get_progress.__name__, page) if page else get_progress.__name__
+    logger.log('Cache Key: %s' % (cache_key), log_utils.LOGDEBUG)
     if cached:
-        in_cache, result = db_connection.get_cached_function(get_progress.__name__, cache_limit=15 * 60)
+        in_cache, result = db_connection.get_cached_function(cache_key, cache_limit=15 * 60)
         if in_cache:
             return [], utils2.sort_progress(result, sort_order=SORT_MAP[int(kodi.get_setting('sort_progress'))])
 
@@ -1013,7 +1024,9 @@ def get_progress(cached=True):
         begin = time.time()
         timeout = max_timeout = int(kodi.get_setting('trakt_timeout'))
         pd.update(0, line1=i18n('retr_history'))
-        progress_list = trakt_api.get_watched(SECTIONS.TV, full=True, noseasons=True, cached=cached)
+        progress_list = trakt_api.get_watched(SECTIONS.TV, full=True, noseasons=True, cached=cached, page=page)
+        logger.log('Progress List Page: %s, Items: %s' % (page, len(progress_list) if progress_list else 0), log_utils.LOGDEBUG)
+
         if kodi.get_setting('include_watchlist_next') == 'true':
             pd.update(5, line1=i18n('retr_watchlist'))
             watchlist = trakt_api.show_watchlist(SECTIONS.TV)
@@ -1029,7 +1042,7 @@ def get_progress(cached=True):
         use_exclusion = kodi.get_setting('use_cached_exclusion') == 'true'
         progress_size = len(progress_list)
         try:
-            wp = worker_pool.WorkerPool(max_workers=25)
+            wp = worker_pool.WorkerPool(max_workers=15)
             for i, show in enumerate(progress_list):
                 trakt_id = show['show']['ids']['trakt']
                 # skip hidden shows
@@ -1090,15 +1103,20 @@ def get_progress(cached=True):
             logger.log(timeout_msg, log_utils.LOGWARNING)
         else:
             # only cache the results if all results were successful
-            db_connection.cache_function(get_progress.__name__, result=episodes)
+            db_connection.cache_function(cache_key, result=episodes)
         
     return workers, utils2.sort_progress(episodes, sort_order=SORT_MAP[int(kodi.get_setting('sort_progress'))])
 
 
 @url_dispatcher.register(MODES.SHOW_PROGRESS)
 def show_progress():
+    # Extract page parameter from URL
+    params = urllib.parse.parse_qs(sys.argv[2][1:])
+    page = int(params.get('page', [1])[0]) if params.get('page') else 1
+    logger.log('Showing progress page: %s' % page, log_utils.LOGDEBUG)
+
     try:
-        workers, progress = get_progress()
+        workers, progress = get_progress(page=page)
         for episode in progress:
             logger.log('Episode: Sort Keys: Tile: |%s| Last Watched: |%s| Percent: |%s%%| Completed: |%s|' % (episode['show']['title'], episode['last_watched_at'], episode['percent_completed'], episode['completed']), log_utils.LOGDEBUG)
             first_aired_utc = utils.iso_2_utc(episode['episode']['first_aired'])
@@ -1118,6 +1136,180 @@ def show_progress():
                 label = '[[COLOR deeppink]%s[/COLOR]] %s - %s' % (date_time, show['title'], label)
                 liz.setLabel(label)
     
+                xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=False)
+                
+        # Add next page button if there are more items
+        list_size = 30
+        logger.log('Progress list length: %s, List size setting: %s' % (len(progress), list_size), log_utils.LOGDEBUG)
+        if len(progress) >= list_size:
+            next_page = page + 1
+            query = {'mode': MODES.SHOW_PROGRESS, 'page': next_page}
+            label = '%s >>' % (i18n('next_page'))
+            logger.log('Adding next page button for page: %s' % next_page, log_utils.LOGDEBUG)
+            next_item = xbmcgui.ListItem(label)
+            next_item.setProperty('fanart_image', utils2.art('fanart.jpg'))
+            next_item.setArt({
+                'thumb': utils2.art('nextpage.png'),  # or use an existing icon from your addon
+                'icon': utils2.art('nextpage.png')
+            })
+            xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=kodi.get_plugin_url(query), listitem=next_item, isFolder=True)
+
+
+        kodi.set_content(CONTENT_TYPES.EPISODES)
+        kodi.end_of_directory(cache_to_disc=False)
+    finally:
+        try: worker_pool.reap_workers(workers, None)
+        except UnboundLocalError: pass
+
+
+def get_nextup(cached=True):
+    if cached:
+        in_cache, result = db_connection.get_cached_function(get_nextup.__name__, cache_limit=15 * 60)
+        if in_cache:
+            return [], utils2.sort_progress(result, sort_order=SORT_MAP[int(kodi.get_setting('sort_progress'))])
+
+    workers = []
+    episodes = []
+    with kodi.ProgressDialog(i18n('discover_nextup'), background=True) as pd:
+        begin = time.time()
+        timeout = max_timeout = int(kodi.get_setting('trakt_timeout'))
+
+        pd.update(0, line1=i18n('retr_nextup'))
+        hidden = set([item['show']['ids']['trakt'] for item in trakt_api.get_hidden_progress(cached=cached)])
+
+        # Get next up episodes
+        nextup_list = trakt_api.get_nextup_progress(full=True, noseasons=True, cached=cached)
+        logger.log('NextUp List: %s' % (nextup_list), log_utils.LOGDEBUG)
+        shows = {}
+        filter_list = set(utils2.get_progress_skip_list())
+        force_list = set(utils2.get_force_progress_list())
+        use_exclusion = kodi.get_setting('use_cached_exclusion') == 'true'
+        progress_size = len(nextup_list)
+
+        try:
+            wp = worker_pool.WorkerPool(max_workers=1)
+            for i, episode_data in enumerate(nextup_list):
+                logger.log('Episode Data: %s' % (episode_data), log_utils.LOGDEBUG)
+                show = episode_data.get('show', {})
+                episode = episode_data.get('episode', {})
+
+
+                trakt_id = show['ids']['trakt']
+
+                # skip hidden shows
+                if trakt_id in hidden:
+                    continue
+
+                # skip cached ended 100% shows
+                if use_exclusion and str(trakt_id) in filter_list and str(trakt_id) not in force_list:
+                    logger.log('Skipping %s (%s) as cached MNE ended exclusion' % (trakt_id, show['title']), log_utils.LOGDEBUG)
+                    continue
+
+                percent = (i + 1) * 25 / progress_size + 10
+                pd.update(percent, line1=i18n('req_nextup') % (show['title']))
+
+                # You should try to get the data from the nested structure:
+                progress_data = episode_data.get('progress', {})
+                logger.log('Progress Data: %s' % (progress_data), log_utils.LOGDEBUG)
+                # Get next and last episode details from within progress_info
+                next_ep_details = progress_data.get('next_episode', {})
+                logger.log('Next Episode Details: %s' % (next_ep_details), log_utils.LOGDEBUG)
+                last_ep_details = progress_data.get('last_episode', {})
+                ep_title = next_ep_details.get('title', last_ep_details.get('title', 'Next Episode'))
+                fair = next_ep_details.get('first_aired', '')
+                next_number = next_ep_details.get('number')
+                # Fallback for episode number if next_episode is missing
+                if next_number is None:
+                    next_number = progress_data.get('completed', 0) + 1
+
+
+                episode_info = {
+                    'show': show,
+                    'title': ep_title,
+                    'season': next_ep_details.get('season', 1),
+                    'number': next_number,
+                    'first_aired': fair,
+                    'overview': next_ep_details.get('overview', ''),
+                    'last_watched_at': progress_data.get('last_watched_at'),
+                    'percent_completed': progress_data.get('stats', {}).get('minutes_watched', 0) / (progress_data.get('stats', {}).get('minutes_watched', 0) + progress_data.get('stats', {}).get('minutes_left', 1)) * 100,
+                    'completed': progress_data.get('completed', 0)
+                }
+                logger.log('Episode Info dict: %s' % (episode_info), log_utils.LOGDEBUG)
+
+                episodes.append(episode_info)
+                shows[trakt_id] = show
+
+            total_shows = len(shows)
+            progress_count = 0
+            while progress_count < total_shows:
+                try:
+                    logger.log('Waiting for NextUp - Timeout: %s' % (timeout), log_utils.LOGDEBUG)
+                    progress_count += 1
+                    percent = (progress_count * 65 / total_shows) + 35
+                    pd.update(percent, line1=i18n('rec_nextup'))
+
+                    # No worker pool processing needed for nextup as it's already retrieved
+                    # Just update the UI
+
+                    if max_timeout > 0:
+                        timeout = max_timeout - (time.time() - begin)
+                        if timeout < 0: timeout = 0
+                except worker_pool.Empty:
+                    logger.log('Get NextUp Process Timeout', log_utils.LOGWARNING)
+                    timeout = True
+                    break
+            else:
+                logger.log('All nextup results received', log_utils.LOGDEBUG)
+                timeout = False
+        finally:
+            workers = wp.close()
+
+        if timeout:
+            timeouts = total_shows - progress_count
+            timeout_msg = i18n('nextup_timeouts') % (timeouts, total_shows)
+            kodi.notify(msg=timeout_msg, duration=5000)
+            logger.log(timeout_msg, log_utils.LOGWARNING)
+        else:
+            # only cache the results if all results were successful
+            db_connection.cache_function(get_nextup.__name__, result=episodes)
+
+    return workers, utils2.sort_progress(episodes, sort_order=SORT_MAP[int(kodi.get_setting('sort_progress'))])
+
+@url_dispatcher.register(MODES.SHOW_NEXTUP)
+def show_nextup_progress():
+    try:
+        workers, progress = get_nextup()
+        for episode in progress:
+            logger.log('EPISoDE: %s' % (episode), log_utils.LOGDEBUG)
+            
+            logger.log('Episode: Sort Keys: Tile: |%s| Last Watched: |%s| Percent: |%s%%| Completed: |%s|' % (episode['show']['title'], episode['last_watched_at'], episode['percent_completed'], episode['completed']), log_utils.LOGDEBUG)
+            first_aired_utc = utils.iso_2_utc(episode['first_aired'])
+            if kodi.get_setting('show_unaired_next') == 'true' or first_aired_utc <= time.time():
+                show = episode['show']
+                date = utils2.make_day(utils2.make_air_date(episode['first_aired']))
+                if kodi.get_setting('mne_time') != '0':
+                    date_time = '%s@%s' % (date, utils2.make_time(first_aired_utc, 'mne_time'))
+                else:
+                    date_time = date
+
+                menu_items = []
+                queries = {'mode': MODES.SEASONS, 'trakt_id': show['ids']['trakt'], 'title': show['title'], 'year': show['year'], 'tvdb_id': show['ids']['tvdb'], 'tmdb_id': show['ids']['tmdb']}
+                menu_items.append((i18n('browse_seasons'), 'Container.Update(%s)' % (kodi.get_plugin_url(queries))),)
+
+                episode_for_item = {
+                    'title': episode.get('title', 'Unknown Episode'),
+                    'season': episode.get('season', 0),
+                    'number': episode.get('number', 0),
+                    'overview': episode.get('overview', ''),
+                    'rating': episode.get('rating', 0.0),
+                    'first_aired': episode.get('first_aired', ''),
+                    # Add any other episode-level fields that make_episode_item might need
+                }
+                liz, liz_url = make_episode_item(show, episode, show_subs=False, menu_items=menu_items)
+                label = liz.getLabel()
+                label = '[[COLOR deeppink]%s[/COLOR]] %s - %s' % (date_time, show['title'], label)
+                liz.setLabel(label)
+
                 xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=False)
         kodi.set_content(CONTENT_TYPES.EPISODES)
         kodi.end_of_directory(cache_to_disc=False)
@@ -1334,8 +1526,8 @@ def browse_seasons(trakt_id, title, year, tvdb_id=None, tmdb_id=None):
             # Add a single Episode Groups item if groups exist
             if tmdb_seasons:
                 liz = utils.make_list_item('[B]Episode Groups[/B]', {'type': 'groups'})
-                liz.setArt({'icon': os.path.join(kodi.get_path(), 'resources', 'groups.png'),
-                            'thumb': os.path.join(kodi.get_path(), 'resources', 'groups.png')})
+                liz.setArt({'icon': os.path.join(kodi.get_path(), 'resources', 'epgroups.png'),
+                            'thumb': os.path.join(kodi.get_path(), 'resources', 'epgroups.png')})
                 liz_url = kodi.get_plugin_url({'mode': MODES.TRAKT_EPISODE_GROUPS, 'tmdb_id': tmdb_id, 'trakt_id': trakt_id, 'title': title, 'tvdb_id': tvdb_id})
                 xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True)
         
@@ -1367,7 +1559,7 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
     logger.log('Actual episode: %s' % actual_episode, log_utils.LOGDEBUG)
     
     # Create proper show metadata
-    show_info = {
+    show = {
         'title': show_title,
         'year': year,
         'ids': {'trakt': trakt_id, 'tmdb': tmdb_id},
@@ -1381,6 +1573,8 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
         'episode': actual_episode,
         'title': episode.get('name', 'Episode'),
         'overview': episode.get('overview', ''),
+        'year': year,
+        'ids': {'trakt': trakt_id, 'tmdb': tmdb_id},
         'tvshowtitle': show_title,
         'showtitle': show_title,
         'mediatype': 'episode',
@@ -1389,16 +1583,15 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
     logger.log('Group Episode info: %s' % episode_info, log_utils.LOGDEBUG)
     
     # Combine show and episode info
-    meta = salts_utils.make_info(episode_info, show_info)
+    meta = salts_utils.make_info(episode_info, show)
     
     # Create list item
     li = utils.make_list_item(label, meta)
+    
     if ep_watched:
         li.setProperty('playcount', '1')
     else:
         li.setProperty('playcount', '0')
-    
-
     # Set artwork
     if episode.get('still_path'):
         li.setArt({'thumb': f'https://image.tmdb.org/t/p/w500{episode["still_path"]}'})
@@ -1423,7 +1616,7 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
     menu_items = []
     
     # Add "Mark as watched/unwatched" option
-    if ep_watched:
+    if episode_info.get('watched', False):
         watched = False
         label_watched = i18n('mark_as_unwatched')
     else:
@@ -1451,10 +1644,9 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
     li.setProperty('season', str(actual_season))
     li.setProperty('episode', str(actual_episode))
 
-    
     # Add context menu to list item
     li.addContextMenuItems(menu_items, replaceItems=True)
-
+    li.setInfo('video', meta)
     # Set info tag
     set_info_tag(li, meta, 'video', 
                 old_method_keys=('size', 'count', 'date',))
@@ -1539,15 +1731,11 @@ def browse_episode_groups(tmdb_id, trakt_id, title='', tvdb_id=None):
 @url_dispatcher.register(MODES.EPISODE_GROUPS, ['group_id', 'season'], ['trakt_id', 'title', 'tvdb_id', 'trakt'])
 def browse_group_episodes(group_id, season, trakt_id=None):
     logger.log('Browsing group episodes for group_id=%s, season=%s, trakt_id=%s' % (group_id, season, trakt_id), log_utils.LOGDEBUG)
-    # Get watched history if logged in to Trakt
-    watched = {}
-    if TOKEN:
-        watched_history = trakt_api.get_watched(SECTIONS.TV)
-        for item in watched_history:
-            show_id = item['show']['ids']['trakt']
-            watched[show_id] = {}
-            for s in item['seasons']:
-                watched[show_id][s['number']] = set(e['number'] for e in s['episodes'])
+    # Get show progress if logged in to Trakt
+    progresswatch = None
+    if TOKEN and trakt_id:
+        progresswatch = trakt_api.get_show_progress(trakt_id, full=True)
+        logger.log('Group Progress: %s' % progresswatch, log_utils.LOGDEBUG)
 
 
     group_data = tmdb_api.get_episode_group_details(group_id)
@@ -1586,21 +1774,30 @@ def browse_group_episodes(group_id, season, trakt_id=None):
                     actual_season = int(season)  # Fallback to group season if not available
                 
                 ep_watched = False
-                if trakt_id and trakt_id in watched:
-                    if actual_season in watched[trakt_id]:
-                        ep_watched = ep['episode_number'] in watched[trakt_id][actual_season]
+                if progresswatch and 'seasons' in progresswatch:
+                    # Find the season in progress data
+                    for season_data in progresswatch['seasons']:
+                        if season_data['number'] == actual_season:
+                            # Find the specific episode in the season
+                            for episode_data in season_data['episodes']:
+                                if episode_data['number'] == ep['episode_number']:
+                                    ep_watched = episode_data['completed']
+                                    logger.log('Episode watched: %s' % ep_watched, log_utils.LOGDEBUG)
+                                    break
+                            break
                 
                 overview = ep.get('overview')
                 ep_num = ep.get('order', 0) + 1
                 year = ep.get('air_date').split('-')[0]
                 tmdb_id = ep.get('show_id')
                 tmdb_group_details = show_details_map.get(str(tmdb_id), {})
+                trakt_id = db_connection.get_cached_tmdb_trakt_mapping(tmdb_id)
                 if tmdb_group_details:
                     title = tmdb_group_details.get('name')
                     external_ids = tmdb_group_details.get('external_ids')
                     logger.log('TMDB group external IDs: %s' % external_ids, log_utils.LOGDEBUG)
                     # year = tmdb_group_details.get('first_air_date').split('-')[0]
-                    trakt_id = db_connection.get_trakt_id_by_tmdb(tmdb_id)
+                    
                     ids = {'trakt': trakt_id, 'tmdb': tmdb_id}
                     logger.log('Group IDs: %s' % ids, log_utils.LOGDEBUG)
                     li, liz_url = make_group_episode_item(
@@ -2375,6 +2572,20 @@ def play_source(mode, hoster_url, direct, video_type, trakt_id, season='', episo
         
         listitem.setArt({'icon': art['thumb'], 'thumb': art['thumb'], 'fanart': art['fanart']})
         listitem.setPath(stream_url)
+        # 1. Extract and remove the rich cast data from the info dict to prevent setInfo TypeError
+        cast_data = info.pop('cast', None)
+        
+        # 2. Apply cast using the proper Kodi methods
+        if cast_data:
+            if getattr(listitem, 'setCast', None) is not None:
+                # Kodi 19+ supports setCast for rich cast data (list of dicts)
+                listitem.setCast(cast_data)
+            else:
+                # Fallback for older Kodi: use tuples for setInfo
+                info['castandrole'] = [(person['name'], person['role']) for person in cast_data]
+
+        listitem.setInfo('video', info)
+
         # Replace direct setInfo with hybrid approach
         set_info_tag(listitem, info, 'video', 
                     old_method_keys=('size', 'count', 'date',))
@@ -2770,11 +2981,9 @@ def manage_collection(mode, section, id_type, show_id):
     item = {id_type: show_id}
     if mode == MODES.ADD_TO_COLL:
         trakt_api.add_to_collection(section, item)
-        msg = i18n('item_to_collection')
     else:
         trakt_api.remove_from_collection(section, item)
-        msg = i18n('item_from_collection')
-    kodi.notify(msg=msg)
+
     kodi.refresh_container()
 
 @url_dispatcher.register(MODES.ADD_TO_LIST, ['section', 'id_type', 'show_id'], ['slug'])
@@ -2791,8 +3000,10 @@ def add_many_to_list(section, items, slug=None):
             
     if slug == utils.WATCHLIST_SLUG:
         response = trakt_api.add_to_watchlist(section, items)
+        logger.log('Added to watchlist: %s' % (response), log_utils.LOGDEBUG)
     elif slug:
         response = trakt_api.add_to_list(section, slug, items)
+        logger.log('Added to list: %s' % (response), log_utils.LOGDEBUG)
     else:
         response = None
     return response
@@ -3068,6 +3279,65 @@ def man_add_to_library(video_type, title, year, trakt_id):
     
     kodi.notify(msg=i18n('added_to_lib') % (msg), duration=5000)
 
+@url_dispatcher.register(MODES.REFRESH_TRAKT_CACHE, ['video_type', 'season', 'title', 'year', 'trakt_id'])
+def refresh_trakt_cache(video_type, season, title, year, trakt_id):
+    """
+    Force refresh cached Trakt data for a season or show
+    Parameters are passed in order by URL dispatcher
+    """
+    logger.log('Refresh Trakt Cache: Trakt ID: %s, Type: %s, Season: %s, Title: %s, Year: %s' % 
+              (trakt_id, video_type, season, title, year), log_utils.LOGDEBUG)
+    
+    try:
+        # Use the global db_connection
+
+        
+        # Clear cached Trakt data for this show/season
+        patterns = []
+        if season:
+            # Clear season-specific cache
+            patterns.extend([
+                f'https://api.trakt.tv/shows/{trakt_id}/seasons/{season}%',
+                f'https://api.trakt.tv%season={season}%trakt_id={trakt_id}%'
+            ])
+
+            patterns.extend([
+                f'https://api.trakt.tv/shows/{trakt_id}/seasons%',
+                f'https://api.trakt.tv/shows/{trakt_id}?extended=full'
+            ])
+
+        else:
+            # Clear all cache for this show
+            patterns.extend([
+                f'https://api.trakt.tv/shows/{trakt_id}%',
+                f'https://api.trakt.tv%trakt_id={trakt_id}%'
+            ])
+        
+        # Delete matching cache entries using the global db_connection
+        for pattern in patterns:
+            sql = 'DELETE FROM url_cache WHERE url LIKE ?'
+            db_connection._DB_Connection__execute(sql, (pattern,))
+            logger.log('Cleared cache pattern: %s' % pattern, log_utils.LOGDEBUG)
+        
+        # Also clear image cache for this season/show
+        if season:
+            db_connection._DB_Connection__execute('DELETE FROM image_cache WHERE object_type=? AND trakt_id=? AND season=?', 
+                                    (VIDEO_TYPES.SEASON, trakt_id, season))
+        else:
+            db_connection._DB_Connection__execute('DELETE FROM image_cache WHERE object_type=? AND trakt_id=?', 
+                                    (VIDEO_TYPES.SEASON, trakt_id))
+        
+        kodi.notify(msg=i18n('trakt_cache_refreshed'), duration=3000)
+        logger.log('Trakt cache refresh completed for Trakt ID: %s, Season: %s' % (trakt_id, season), log_utils.LOGNOTICE)
+        
+        # Refresh the current container to show updated data
+        xbmc.executebuiltin('Container.Refresh')
+        
+    except Exception as e:
+        logger.log('Trakt cache refresh failed: %s' % str(e), log_utils.LOGERROR)
+        kodi.notify(msg=i18n('trakt_cache_refresh_failed'), duration=5000)
+
+
 def add_to_library(video_type, title, year, trakt_id):
     logger.log('Creating .strm for |%s|%s|%s|%s|' % (video_type, title, year, trakt_id), log_utils.LOGDEBUG)
     scraper = local_scraper.Scraper()
@@ -3234,11 +3504,14 @@ def make_dir_from_list(section, list_data, slug=None, query=None, page=None):
     watched = {}
     in_collection = {}
     if TOKEN:
-        for item in trakt_api.get_watched(section):
+        for item in trakt_api.get_watched(section, full=True):
             if section == SECTIONS.MOVIES:
                 watched[item['movie']['ids']['trakt']] = item['plays'] > 0
             elif section == SECTIONS.TV:
-                watched[item['show']['ids']['trakt']] = item.get('plays', 0)
+                if 'seasons' in item:
+                    watched[item['show']['ids']['trakt']] = len([e for s in item['seasons'] if s['number'] != 0 for e in s['episodes']])
+                else:
+                    watched[item['show']['ids']['trakt']] = item.get('plays', 0)
 
         if slug == COLLECTION_SLUG:
             in_collection = dict.fromkeys([show['ids']['trakt'] for show in list_data], True)
@@ -3304,7 +3577,7 @@ def make_dir_from_cal(mode, start_date, days):
 
     watched = {}
     if TOKEN:
-        watched_history = trakt_api.get_watched(SECTIONS.TV)
+        watched_history = trakt_api.get_watched(SECTIONS.TV, full=True)
         for item in watched_history:
             trakt_id = item['show']['ids']['trakt']
             watched[trakt_id] = {}
@@ -3415,6 +3688,11 @@ def make_season_item(season, info, trakt_id, title, year, tvdb_id, tmdb_id):
     queries = {'mode': MODES.SET_URL_MANUAL, 'video_type': VIDEO_TYPES.SEASON, 'title': title, 'year': year, 'trakt_id': trakt_id, 'season': season['number']}
     menu_items.append((i18n('set_rel_url_manual'), 'RunPlugin(%s)' % (kodi.get_plugin_url(queries))),)
 
+    # Add Trakt cache refresh option
+    queries = {'mode': MODES.REFRESH_TRAKT_CACHE, 'video_type': VIDEO_TYPES.SEASON, 'trakt_id': trakt_id, 'season': season['number'], 'title': title, 'year': year}
+    menu_items.append((i18n('refresh_trakt_cache'), 'RunPlugin(%s)' % (kodi.get_plugin_url(queries))),)
+
+
     liz.addContextMenuItems(menu_items, replaceItems=True)
     return liz
 
@@ -3456,9 +3734,10 @@ def make_episode_item(show, episode, show_subs=True, menu_items=None):
 
     art = image_scraper.get_images(VIDEO_TYPES.EPISODE, show['ids'], episode['season'], episode['number'])
     liz = utils.make_list_item(label, meta, art)
-        # Replace direct setInfo with hybrid approach
+
     set_info_tag(liz, meta, 'video', 
                 old_method_keys=('size', 'count', 'date', ))
+    liz.setInfo('video', meta)
         
     air_date = ''
     if episode['first_aired']:
@@ -3535,15 +3814,21 @@ def make_item(section_params, show, menu_items=None):
     show['title'] = re.sub(' \(\d{4}\)$', '', show['title'])
     # tmdb_id = show['ids']['tmdb']
     # Only try to get TVDB ID for TV shows, not movies
+
+    if 'year' not in show: show['year'] = None
+    if show['year']:
+        label = '%s (%s)' % (show['title'], show['year'])
+        logger.log('make_item_label: %s' % label, log_utils.LOGDEBUG)
+    else:
+        label = show['title']
+    trakt_id = show['ids']['trakt']
+
+    art = image_scraper.get_images(section_params['video_type'], show['ids'])
+
     if section_params['section'] == SECTIONS.TV:
         tvdb_id = tvdb_persist.enrich_tvdb_id(show, tmdb_api, trakt_api=trakt_api)
         if tvdb_id:
             show['ids']['tvdb'] = tvdb_id
-    if 'year' not in show: show['year'] = None
-    label = '%s (%s)' % (show['title'], show['year'])
-    trakt_id = show['ids']['trakt']
-
-    art = image_scraper.get_images(section_params['video_type'], show['ids'])
 
     if kodi.get_setting('include_people') == 'true':
         people = trakt_api.get_people(section_params['section'], trakt_id)
@@ -3556,6 +3841,22 @@ def make_item(section_params, show, menu_items=None):
     liz.setProperty('trakt_id', str(trakt_id))
     info = salts_utils.make_info(show, people=people)
 
+    # 1. Extract and remove the rich cast data from the info dict to prevent setInfo TypeError
+    cast_data = info.pop('cast', None)
+    
+    # 2. Apply cast using the proper Kodi methods
+    if cast_data:
+        if getattr(liz, 'setCast', None) is not None:
+            # Kodi 19+ supports setCast for rich cast data (list of dicts)
+            liz.setCast(cast_data)
+        else:
+            # Fallback for older Kodi: use tuples for setInfo
+            info['castandrole'] = [(person['name'], person['role']) for person in cast_data]
+
+
+    # mix-in cast in liz metadata if the setCast method doesn't exist
+    # if cast and getattr(liz, 'setCast', None) is None:
+    #     info['castandrole'] = info['cast'] = [(person['name'], person['role']) for person in cast]
 
     if 'TotalEpisodes' in info:
         liz.setProperty('TotalEpisodes', str(info['TotalEpisodes']))
@@ -3573,10 +3874,9 @@ def make_item(section_params, show, menu_items=None):
         queries = {'mode': section_params['next_mode'], 'video_type': section_params['video_type'], 'title': show['title'], 'year': show['year'], 'trakt_id': trakt_id}
     queries['random'] = time.time()
 
-        # Replace direct setInfo with hybrid approach
-    info_tag = set_info_tag(liz, info, 'video', 
-                old_method_keys=('size', 'count', 'date',))
-        
+    set_info_tag(liz, info, 'video', 
+                old_method_keys=('size', 'count', 'date', ))
+    liz.setInfo('video', info)    
     # Get user settings for art types
     banner_enabled = kodi.get_setting('banner_enable') == 'true'
     clearart_enabled = kodi.get_setting('clearart_enable') == 'true'
@@ -3698,12 +3998,13 @@ def make_item(section_params, show, menu_items=None):
     liz.setProperty('total', str(1))
     return liz, liz_url
 
-def get_list(section, slug, username=None, cached=True):
+def get_list(section, slug, username=None, cached=True, page=None):
     if slug == utils.WATCHLIST_SLUG:
         items = trakt_api.show_watchlist(section, cached=cached)
     else:
         try:
-            items = trakt_api.show_list(slug, section, username, auth=bool(TOKEN), cached=cached)
+            items = trakt_api.show_list(slug, section, username, auth=bool(TOKEN), cached=cached, page=page)
+            logger.log(f"Items from trakt: {items}", log_utils.LOGDEBUG)
         except TraktNotFoundError:
             msg = i18n('list_not_exist') % (slug)
             kodi.notify(msg=msg, duration=5000)
@@ -3746,7 +4047,8 @@ def tmdb_search(section=None, query=None):
             xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=False)
         else:
             logger.warning(f"TMDB ID not found in result: {result}")
-    kodi.set_view(CONTENT_TYPES.MOVIES, True)
+    content_type = CONTENT_TYPES.EPISODES if section == SECTIONS.TV else CONTENT_TYPES.MOVIES
+    kodi.set_view(content_type, True)
     kodi.end_of_directory()
 
 @url_dispatcher.register(MODES.TMDB_TV_SEARCH, ['section'])
@@ -3781,7 +4083,8 @@ def tmdb_tv_search(section=None):
     for show in shows:
         liz, liz_url = makeitem.make_tv_show_item(show)
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True, totalItems=totalItems)
-    kodi.set_view(CONTENT_TYPES.TVSHOWS, True)
+    content_type = CONTENT_TYPES.EPISODES if section == SECTIONS.TV else CONTENT_TYPES.MOVIES
+    kodi.set_view(content_type, True)
     kodi.end_of_directory()
 
 @url_dispatcher.register(MODES.TMDB_SEASONS, ['tmdb_id'])
@@ -3792,8 +4095,8 @@ def browse_tmdb_seasons(tmdb_id):
     groups = tmdb_api.get_tv_episode_groups(tmdb_id)
     if groups:
         liz = utils.make_list_item('[B]Episode Groups[/B]', {'type': 'groups'})
-        liz.setArt({'icon': os.path.join(kodi.get_path(), 'resources', 'episode_groups.png'),
-                   'thumb': os.path.join(kodi.get_path(), 'resources', 'episode_groups.png')})
+        liz.setArt({'icon': os.path.join(kodi.get_path(), 'resources', 'epgroups.png'),
+                   'thumb': os.path.join(kodi.get_path(), 'resources', 'epgroups.png')})
         liz_url = kodi.get_plugin_url({'mode': MODES.TMDB_EPISODES, 'tmdb_id': tmdb_id, 'season': -1})
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, liz, isFolder=True)
 

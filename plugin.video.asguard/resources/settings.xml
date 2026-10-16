@@ -2803,45 +2803,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-					<setting id="AniRena-enable" type="boolean" label="40639" help="">
-						<level>0</level>
-						<default>true</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition on="property" name="InfoBool">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="toggle"/>
-					</setting>
-					<setting id="AniRena-base_url" type="string" label="30175" help="">
-						<level>0</level>
-						<default>https://www.anirena.com</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition operator="is" setting="AniRena-enable">true</condition>
-							</dependency>
-						</dependencies>
-						<constraints>
-							<allowempty>true</allowempty>
-						</constraints>
-						<control type="edit" format="string">
-							<heading>Base Url</heading>
-						</control>
-					</setting>
-					<setting id="AniRena-sub_check" type="boolean" label="30176" help="">
-						<level>0</level>
-						<default>true</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition operator="is" setting="AniRena-enable">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="toggle"/>
-					</setting>
-			</group>
-		</category>
-		<category id="scrapers_2" label="30319" help="">
-			<group id="102">
 					<setting id="BitCQ-enable" type="boolean" label="40616" help="">
 						<level>0</level>
 						<default>true</default>
@@ -2880,6 +2841,10 @@
 							<popup>false</popup>
 						</control>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_2" label="30319" help="">
+			<group id="102">
 					<setting id="Bitsearch-enable" type="boolean" label="30420" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3093,10 +3058,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_3" label="30320" help="">
-			<group id="103">
 					<setting id="EasyNews-enable" type="boolean" label="30402" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3195,6 +3156,10 @@
 							<popup>false</popup>
 						</control>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_3" label="30320" help="">
+			<group id="103">
 					<setting id="EZTV-enable" type="boolean" label="30423" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3414,10 +3379,6 @@
 							<popup>false</popup>
 						</control>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_4" label="30321" help="">
-			<group id="104">
 					<setting id="IsoHunt2-enable" type="boolean" label="40614" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3488,6 +3449,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_4" label="30321" help="">
+			<group id="104">
 					<setting id="LimeTorrents-enable" type="boolean" label="40608" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3613,6 +3578,41 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+					<setting id="Magnetio-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Magnetio-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://magnetio.peterdsp.dev</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Magnetio-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Magnetio-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Magnetio-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
 					<setting id="Mediafusion-enable" type="boolean" label="40629" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3683,10 +3683,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_5" label="30322" help="">
-			<group id="105">
 					<setting id="NebulaStreams-enable" type="boolean" label="30000" help="">
 						<level>0</level>
 						<default>true</default>
@@ -3722,6 +3718,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_5" label="30322" help="">
+			<group id="105">
 					<setting id="Noxx-enable" type="boolean" label="40822" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4104,6 +4104,41 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+					<setting id="Supreme-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Supreme-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://sup-nyp1.onrender.com</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Supreme-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Supreme-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Supreme-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
 					<setting id="Thepiratebay-enable" type="boolean" label="40628" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4135,6 +4170,41 @@
 						<dependencies>
 							<dependency type="visible">
 								<condition operator="is" setting="Thepiratebay-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torii-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="Torii-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://torii.nexioapp.org</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torii-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="Torii-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="Torii-enable">true</condition>
 							</dependency>
 						</dependencies>
 						<control type="toggle"/>
@@ -4176,6 +4246,45 @@
 						<control type="slider" format="integer">
 							<popup>false</popup>
 						</control>
+					</setting>
+			</group>
+		</category>
+		<category id="scrapers_7" label="40710" help="">
+			<group id="107">
+					<setting id="TorrentClaw-enable" type="boolean" label="30000" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition on="property" name="InfoBool">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
+					</setting>
+					<setting id="TorrentClaw-base_url" type="string" label="30175" help="">
+						<level>0</level>
+						<default>https://torrentclaw.com/api/stremio</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentClaw-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<constraints>
+							<allowempty>true</allowempty>
+						</constraints>
+						<control type="edit" format="string">
+							<heading>Base Url</heading>
+						</control>
+					</setting>
+					<setting id="TorrentClaw-sub_check" type="boolean" label="30176" help="">
+						<level>0</level>
+						<default>true</default>
+						<dependencies>
+							<dependency type="visible">
+								<condition operator="is" setting="TorrentClaw-enable">true</condition>
+							</dependency>
+						</dependencies>
+						<control type="toggle"/>
 					</setting>
 					<setting id="TorrentDownload-enable" type="boolean" label="30433" help="">
 						<level>0</level>
@@ -4250,10 +4359,6 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
-			</group>
-		</category>
-		<category id="scrapers_7" label="40710" help="">
-			<group id="107">
 					<setting id="TorrentGalaxy-enable" type="boolean" label="30410" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4416,6 +4521,10 @@
 						</dependencies>
 						<control type="toggle"/>
 					</setting>
+			</group>
+		</category>
+		<category id="scrapers_8" label="40711" help="">
+			<group id="108">
 					<setting id="WebStreamr-enable" type="boolean" label="40915" help="">
 						<level>0</level>
 						<default>true</default>
@@ -4509,32 +4618,6 @@
 						</constraints>
 						<control type="edit" format="string">
 							<heading>MediaFlow Proxy Password</heading>
-						</control>
-					</setting>
-			</group>
-		</category>
-		<category id="scrapers_8" label="40711" help="">
-			<group id="108">
-					<setting id="YourBittorrent-enable" type="boolean" label="40615" help="">
-						<level>0</level>
-						<default>true</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition on="property" name="InfoBool">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="toggle"/>
-					</setting>
-					<setting id="YourBittorrent-base_url" type="string" label="30175" help="">
-						<level>0</level>
-						<default>https://yourbittorrent.com</default>
-						<dependencies>
-							<dependency type="visible">
-								<condition operator="is" setting="YourBittorrent-enable">true</condition>
-							</dependency>
-						</dependencies>
-						<control type="edit" format="string">
-							<heading>Base Url</heading>
 						</control>
 					</setting>
 			</group>

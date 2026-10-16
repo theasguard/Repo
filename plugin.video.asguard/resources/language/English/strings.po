@@ -3028,3 +3028,39 @@ msgstr ""
 msgctxt "#40742"
 msgid "Last Image UA"
 msgstr ""
+
+msgctxt "#50527"
+msgid "Refresh Trakt Cache"
+msgstr ""
+
+msgctxt "#50528"
+msgid "Successfully refreshed Trakt cache"
+msgstr ""
+
+msgctxt "#50529"
+msgid "Failed to refresh Trakt cache"
+msgstr ""
+
+msgctxt "#50530"
+msgid "Next Up"
+msgstr ""
+
+msgctxt "#50531"
+msgid "Discover Next Up"
+msgstr ""
+
+msgctxt "#50532"
+msgid "Retrieving Next Up"
+msgstr ""
+
+msgctxt "#50533"
+msgid "Requesting Next Up for: %s"
+msgstr ""
+
+msgctxt "#50534"
+msgid "Received Next Up for: %s"
+msgstr ""
+
+msgctxt "#50535"
+msgid "Next Up Timeouts: %s/%s"
+msgstr ""

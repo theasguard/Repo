@@ -159,8 +159,7 @@ class Scraper(object):
                 response = self.session.get(
                     url, 
                     data=data, 
-                    headers=headers, 
-                    timeout=(3.05, 6)  # (connect timeout, read timeout)
+                    headers=headers
                 )
                 response.raise_for_status()  # Raise exception for 4XX/5XX status codes
                 
@@ -448,15 +447,15 @@ class IMDbDetails:
         return None
 
 # Example usage
-imdb_details = IMDbDetails()
-movie_details = imdb_details.get_movie_details('tt0111161')  # Replace with your movie IMDb ID
-tv_show_details = imdb_details.get_tv_show_details('tt0903747')  # Replace with your TV show IMDb ID
-episode_details = imdb_details.get_episode_details('tt0903747', 1, 1)  # Replace with your TV show IMDb ID, season, and episode
+# imdb_details = IMDbDetails()
+# movie_details = imdb_details.get_movie_details('tt0111161')  # Replace with your movie IMDb ID
+# tv_show_details = imdb_details.get_tv_show_details('tt0903747')  # Replace with your TV show IMDb ID
+# episode_details = imdb_details.get_episode_details('tt0903747', 1, 1)  # Replace with your TV show IMDb ID, season, and episode
 
-# Print the results
-print('Movie Details:')
-print(json.dumps(movie_details, indent=4))
-print('TV Show Details:')
-print(json.dumps(tv_show_details, indent=4))
-print('Episode Details:')
-print(json.dumps(episode_details, indent=4))
+# # Print the results
+# print('Movie Details:')
+# print(json.dumps(movie_details, indent=4))
+# print('TV Show Details:')
+# print(json.dumps(tv_show_details, indent=4))
+# print('Episode Details:')
+# print(json.dumps(episode_details, indent=4))

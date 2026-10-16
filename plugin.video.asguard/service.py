@@ -15,21 +15,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import ctypes
-import gc
-import re, subprocess
-import socket
-import sys
-import threading
+import ctypes, gc, re, subprocess, sys, socket, threading, os, ssl
+import requests, time
 import xbmc, xbmcgui, xbmcaddon
-import time
 import kodi
 import log_utils
 import utils
 from urllib.parse import quote
-import os
 import urllib.request
-import ssl
 from asguard_lib import control, salts_utils, image_proxy, utils2
 from asguard_lib.image_scraper import SessionManager
 from asguard_lib.utils2 import i18n
@@ -98,11 +91,6 @@ class Service(xbmc.Player):
             
             trakt_api = Trakt_API(token, use_https, list_size, trakt_timeout, trakt_offline)
 
-            # Create a custom opener without authentication handlers
-            opener = urllib.request.build_opener(
-                urllib.request.HTTPHandler(),
-                urllib.request.HTTPSHandler(context=ssl.create_default_context())
-            )
 
             # First get SERIES metadata
             show_details = trakt_api.get_show_details(self.trakt_id)
@@ -249,7 +237,7 @@ class Service(xbmc.Player):
             except: 
                 progress = 0  # guard div by zero
                 
-            if progress >= 97 and not self._from_library:
+            if progress >= 97:
                 logger.log('Service: Triggering next episode prompt at 97%', log_utils.LOGDEBUG)
                 self.show_next_episode_prompt()
                 self._progress_check_enabled = False
@@ -330,94 +318,6 @@ class Service(xbmc.Player):
                 logger.log('Skipped to last 5 seconds of playback', log_utils.LOGDEBUG)
             except Exception as e:
                 logger.log(f'Skip to end failed: {str(e)}', log_utils.LOGERROR)
-
-    def check_threads(self):
-        """Enhanced thread tracking with file origin"""
-        active_threads = []
-        main_thread = threading.current_thread()
-        
-        for thread in threading.enumerate():
-            if thread.is_alive() and thread != main_thread:
-                # Get file origin from thread's frame
-                import sys
-                frame = sys._current_frames().get(thread.ident)
-                if frame:
-                    filename = frame.f_code.co_filename
-                    lineno = frame.f_lineno
-                    func_name = frame.f_code.co_name
-                    logger.log(f'Thread {thread.name} (ID: {thread.ident}) from {filename}:{lineno} in {func_name}', log_utils.LOGDEBUG)
-
-        # Second pass: Try different termination strategies
-        for thread in active_threads:
-            try:
-                # Strategy 1: Try standard stop method if available
-                if hasattr(thread, 'stop'):
-                    logger.log('Attempting standard stop on thread %s' % thread.name, log_utils.LOGDEBUG)
-                    thread.stop()
-                    thread.join(timeout=1.0)
-                    if not thread.is_alive():
-                        logger.log('Successfully terminated thread %s with standard stop' % thread.name, log_utils.LOGDEBUG)
-                        continue
-                
-                # Strategy 2: Try _stop method if available
-                if hasattr(thread, '_stop'):
-                    logger.log('Attempting _stop on thread %s' % thread.name, log_utils.LOGDEBUG)
-                    thread._stop()
-                    thread.join(timeout=1.0)
-                    if not thread.is_alive():
-                        logger.log('Successfully terminated thread %s with _stop' % thread.name, log_utils.LOGDEBUG)
-                        continue
-                
-                # Strategy 3: Try _Thread__stop method if available
-                if hasattr(thread, '_Thread__stop'):
-                    logger.log('Attempting _Thread__stop on thread %s' % thread.name, log_utils.LOGDEBUG)
-                    thread._Thread__stop()
-                    thread.join(timeout=1.0)
-                    if not thread.is_alive():
-                        logger.log('Successfully terminated thread %s with _Thread__stop' % thread.name, log_utils.LOGDEBUG)
-                        continue
-                
-                # Strategy 4: For daemon threads, set daemon status and try to trigger exit
-                if thread.daemon:
-                    logger.log('Attempting daemon thread termination for %s' % thread.name, log_utils.LOGDEBUG)
-                    # Set an exception in the thread to try to break it out of any loops
-                    try:
-                        # This is a bit hacky but can work for some threads
-                        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit))
-                        thread.join(timeout=1.0)
-                        if not thread.is_alive():
-                            logger.log('Successfully terminated daemon thread %s with async exception' % thread.name, log_utils.LOGDEBUG)
-                            continue
-                    except Exception as e:
-                        logger.log('Failed to terminate daemon thread %s with async exception: %s' % (thread.name, str(e)), log_utils.LOGWARNING)
-                
-                # Strategy 5: Last resort - log details about the stubborn thread
-                if thread.is_alive():
-                    logger.log('WARNING: Thread %s (ID: %s) refused to terminate. Details: %s' % 
-                            (thread.name, thread.ident, str(thread)), log_utils.LOGWARNING)
-                    
-                    # Log thread stack trace if possible
-                    try:
-                        import sys, traceback
-                        for thread_id, frame in sys._current_frames().items():
-                            if thread_id == thread.ident:
-                                logger.log('Stack trace for thread %s:\n%s' % 
-                                        (thread.name, ''.join(traceback.format_stack(frame))), log_utils.LOGDEBUG)
-                                break
-                    except Exception as e:
-                        logger.log('Failed to get stack trace for thread %s: %s' % (thread.name, str(e)), log_utils.LOGWARNING)
-            
-            except Exception as e:
-                logger.log('Error attempting to terminate thread %s: %s' % (thread.name, str(e)), log_utils.LOGERROR)
-        
-        # Final report
-        remaining_threads = [t for t in threading.enumerate() if t.is_alive() and t != main_thread]
-        if remaining_threads:
-            logger.log('WARNING: %d threads remain after termination attempts' % len(remaining_threads), log_utils.LOGWARNING)
-            for thread in remaining_threads:
-                logger.log('Remaining thread: %s (ID: %s)' % (thread.name, thread.ident), log_utils.LOGWARNING)
-        else:
-            logger.log('All non-main threads successfully terminated', log_utils.LOGDEBUG)
 
 
 def show_next_up(last_label, sf_begin):

@@ -66,7 +66,7 @@ def make_list_item(label, meta, art=None, cast=None):
     # Add empty stream info for video - use InfoTagVideo for Kodi 21+
     try:
         # Try the new Kodi 21+ InfoTagVideo API
-        video_tag = listitem.getVideoInfoTag()
+        video_tag = listitem.getVideoInfoTag(offscreen=True)
         video_tag.addVideoStream(xbmc.VideoStreamDetail())
     except (AttributeError, TypeError):
         # Fallback to deprecated methods for older Kodi versions
@@ -76,21 +76,21 @@ def make_list_item(label, meta, art=None, cast=None):
 
     try:
         # Try the new Kodi 21+ InfoTagVideo API
-        video_tag = listitem.getVideoInfoTag()
+        video_tag = listitem.getVideoInfoTag(offscreen=True)
         video_tag.setUniqueIDs(unique_ids)
-        
+        video_tag.setTitle(label)
         # Set other metadata on the VideoInfoTag if available
-        # Don't override the label if it contains formatting (like unaired indicator), SxE format, or year
-        if 'title' in meta and not ('[COLOR' in label or '[I]' in label or re.search(r'\d+x\d+', label) or re.search(r'\(\d{4}\)', label)):
-            video_tag.setTitle(meta['title'])
+
         if 'first_aired' in meta:
             video_tag.setFirstAired(meta['first_aired'])
         if 'plot' in meta:
             video_tag.setPlot(meta['plot'])
         if 'year' in meta:
             video_tag.setYear(int(meta['year']))
+            listitem.setProperty('year', str(meta['year']))
         if 'mediatype' in meta:
             video_tag.setMediaType(meta['mediatype'])
+
         if 'rating' in meta:
             video_tag.setRating(float(meta['rating']))
         if 'votes' in meta:
@@ -105,8 +105,13 @@ def make_list_item(label, meta, art=None, cast=None):
             video_tag.setTvShowTitle(meta['tvshowtitle'])
         if 'duration' in meta:
             video_tag.setDuration(int(meta['duration']))
+
+
+
+        # Set other metadata on the ListItem if available
         if cast:
-            video_tag.setCast(cast)
+            kodi_actors = [xbmc.Actor(name=actor.get('name', ''), role=actor.get('role', ''), thumbnail=actor.get('thumbnail', '')) for actor in cast]
+            video_tag.setCast(kodi_actors)
             
     except (AttributeError, TypeError):
         # Fallback to deprecated methods for older Kodi versions
@@ -374,7 +379,7 @@ def __auth_trakt(trakt_api, code, i18n):
     try:
         result = trakt_api.get_device_token(code)
         return result
-    except urllib_error.URLError as e:
+    except urllib_error.HTTPError as e:
         # authorization is pending; too fast
         if e.code in [400, 429]:
             return

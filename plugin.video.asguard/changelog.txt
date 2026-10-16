@@ -1,11 +1,10 @@
 [B]Version 2.0[/B] (Addon) / [B]Version 0.0.4[/B] (Module)
 
 User Interface Improvements:
-- Updated Session Manager thread pool to utilize daemon threads via initializer, improving overall performance and ensuring clean Kodi exit behavior
+- Updated SessionManager thread pool to utilize daemon threads via initializer, improving overall performance and ensuring clean Kodi exit behavior
 - Fixed progress update for next episode popup during playback - resolved infinite loop issue
 - Updated listitem.py to preserve labels with color formatting, year, or season x episode format
 - Improved artwork handling in main to prevent hanging when clear art or banners are disabled
-
 
 Search and Scraping Enhancements:
 - Major image scraper overhaul: Implemented ThreadPoolExecutor for parallel execution of all scraper calls

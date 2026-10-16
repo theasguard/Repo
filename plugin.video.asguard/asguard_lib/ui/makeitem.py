@@ -57,7 +57,7 @@ list_size = int(kodi.get_setting('list_size'))
 OFFLINE = kodi.get_setting('trakt_offline') == 'true'
 trakt_api = Trakt_API(TOKEN, use_https, list_size, trakt_timeout, OFFLINE)
 proxy = ImageProxy()
-
+db_connection = DB_Connection()
 url_dispatcher = URL_Dispatcher()
 
 
@@ -99,7 +99,7 @@ def make_tv_show_item(show):
     # Second try: Use local cache as fallback
     if not trakt_id and tmdb_id:
         try:
-            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+            trakt_id = db_connection.get_trakt_id_by_tmdb_cached(tmdb_id)
         except Exception as e:
             logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
 
@@ -121,7 +121,7 @@ def make_tv_show_item(show):
         show_copy['ids']['trakt'] = int(trakt_id)
     
     liz = utils.make_list_item(label, show_copy, art)
-    liz.setInfo('video', salts_utils.make_info(show_copy))
+
 
     # Fallbacks using TMDB image paths (like episodes use still_path)
     poster_path = show.get('poster_path')
@@ -191,7 +191,7 @@ def make_tmdb_movie_item(movie):
     # Second try: Use local cache as fallback
     if not trakt_id and tmdb_id:
         try:
-            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+            trakt_id = db_connection.get_trakt_id_by_tmdb_cached(tmdb_id)
         except Exception as e:
             logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
 
@@ -297,7 +297,7 @@ def make_tmdb_season_item(season, show, tmdb_id):
     # Second try: Use local cache as fallback
     if not trakt_id and tmdb_id:
         try:
-            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+            trakt_id = db_connection.get_trakt_id_by_tmdb_cached(tmdb_id)
         except Exception as e:
             logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
 
@@ -385,7 +385,7 @@ def make_tmdb_episode_item(show, episode, tmdb_id):
     # Second try: Use local cache as fallback
     if not trakt_id and tmdb_id:
         try:
-            trakt_id = DB_Connection().get_trakt_id_by_tmdb_cached(tmdb_id)
+            trakt_id = db_connection.get_trakt_id_by_tmdb_cached(tmdb_id)
         except Exception as e:
             logger.log(f'Failed to get trakt_id from cache: {e}', log_utils.LOGWARNING)
 
@@ -565,7 +565,7 @@ def make_group_episode_item(show_title, year, trakt_id, tmdb_id, episode, season
     
     # Set info tag
     set_info_tag(li, meta, 'video', 
-                old_method_keys=('size', 'count', 'date', 'duration', 'genre', 'year', 'episode', 'season'))
+                old_method_keys=('size', 'count', 'date',))
     
     # Set artwork
     if episode.get('still_path'):

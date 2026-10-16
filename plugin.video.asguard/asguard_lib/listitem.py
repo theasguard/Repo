@@ -20,6 +20,7 @@ def set_info_tag(
 
     info_tag = ListItemInfoTag(listitem, tag_type, type_check)
     info_tag.set_info(infolabels)
+    
     return info_tag
 
 
@@ -54,10 +55,12 @@ class _ListItemInfoTag():
     def set_info(self, infolabels: dict):
         """ Wrapper for compatibility with Matrix ListItem.setInfo() method """
         # Get the current label to check if it contains formatting
+        # Get the current label to check if it contains formatting
         current_label = self._listitem.getLabel()
         has_formatting = '[COLOR' in current_label or '[I]' in current_label
         has_sxe_format = re.search(r'\d+x\d+', current_label) is not None
         has_year_format = re.search(r'\(\d{4}\)', current_label) is not None
+
 
         for k, v in infolabels.items():
             if v is None:
@@ -165,10 +168,10 @@ class _ListItemInfoTagVideo(_ListItemInfoTag):
         'mediatype': {'attr': 'setMediaType', 'convert': str, 'classinfo': str},
         'dbid': {'attr': 'setDbId', 'convert': int, 'classinfo': int},
         'imdb_id': {'attr': 'setIMDBNumber', 'convert': str, 'classinfo': str},
-        'tmdb_id': {'attr': 'setUniqueIDs', 'convert': lambda x: {'tmdb': x}, 'classinfo': dict},
-        'tvdb_id': {'attr': 'setUniqueIDs', 'convert': lambda x: {'tvdb': x}, 'classinfo': dict},
-        'trakt_id': {'attr': 'setUniqueIDs', 'convert': lambda x: {'trakt': x}, 'classinfo': dict},
-        'slug': {'attr': 'setUniqueIDs', 'convert': lambda x: {'slug': x}, 'classinfo': dict},
+        'tmdb_id': {'attr': 'setUniqueIDs', 'convert': str, 'classinfo': str},
+        'tvdb_id': {'attr': 'setUniqueIDs', 'convert': str, 'classinfo': str},
+        'trakt_id': {'attr': 'setUniqueIDs', 'convert': str, 'classinfo': str},
+        'slug': {'attr': 'setUniqueIDs', 'convert': str, 'classinfo': str},
         'TotalEpisodes': {'attr': 'setTotalEpisodes', 'convert': int, 'classinfo': int},
         'WatchedEpisodes': {'attr': 'setWatchedEpisodes', 'convert': int, 'classinfo': int},
         'UnWatchedEpisodes': {'attr': 'setUnWatchedEpisodes', 'convert': int, 'classinfo': int},

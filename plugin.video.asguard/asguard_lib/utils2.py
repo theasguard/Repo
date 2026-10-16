@@ -155,7 +155,9 @@ def sort_list(sort_key, sort_direction, list_data):
 
     sort_functions = {
         TRAKT_LIST_SORT.RANK: lambda x: x['rank'],
-        TRAKT_LIST_SORT.RECENTLY_ADDED: lambda x: x['listed_at'],
+        TRAKT_LIST_SORT.RECENTLY_ADDED: lambda x: max(
+        utils.iso_2_utc(x.get('listed_at', 0)), 
+        utils.iso_2_utc(x.get('last_watched_at', 0))),
         TRAKT_LIST_SORT.TITLE: get_title,
         TRAKT_LIST_SORT.RELEASE_DATE: get_released,
         TRAKT_LIST_SORT.RUNTIME: get_runtime,

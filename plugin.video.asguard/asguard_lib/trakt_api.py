@@ -99,11 +99,7 @@ class Trakt_API():
         self.offline = offline
         self.__db_connection = DB_Connection()
         self.__worker_id = None
-                    # Create a custom opener without authentication handlers
-        self.opener = urllib_request.build_opener(
-            urllib_request.HTTPHandler(),
-            urllib_request.HTTPSHandler(context=ssl.create_default_context())
-        )
+
         # Enable optimized methods (set to True to use new efficient methods)
         self.use_optimized_methods = kodi.get_setting('trakt_use_optimized') == 'true'
         if self.use_optimized_methods:
@@ -130,7 +126,7 @@ class Trakt_API():
             
         return self.__call_trakt(url, data=data, auth=False, cached=False)
     
-    def show_list(self, slug, section, username=None, auth=True, cached=True):
+    def show_list(self, slug, section, username=None, auth=True, cached=True, page=None):
         if not username:
             username = 'me'
             cache_limit = self.__get_cache_limit('lists', 'updated_at', cached)
@@ -138,7 +134,9 @@ class Trakt_API():
             cache_limit = 1  # cache other user's list for one hour
 
         url = '/users/%s/lists/%s/items' % (utils.to_slug(username), slug)
+        logger.log('Trakt API: Getting list url %s' % url, log_utils.LOGDEBUG)
         params = {'extended': 'full'}
+        if page: params['page'] = page
         list_data = self.__call_trakt(url, params=params, auth=auth, cache_limit=cache_limit, cached=cached)
         return [item[item['type']] for item in list_data if item['type'] == TRAKT_SECTIONS[section][:-1]]
 
@@ -431,16 +429,62 @@ class Trakt_API():
             result.append(element)
         return result
 
-    def get_watched(self, section, full=False, noseasons=False, cached=True):
+    def get_watched(self, section, full=False, noseasons=False, cached=True, page=None):
         url = '/sync/watched/%s' % (TRAKT_SECTIONS[section])
         params = {'extended': 'full'} if full else {}
         if noseasons and params:
             params['extended'] += ',noseasons'
         elif noseasons:
             params['extended'] = 'noseasons'
+        # Trakt API change: need to add progress to get seasons data for TV shows
+        if section == SECTIONS.TV and params:
+            params['extended'] += ',progress'
+        if page:
+            params['page'] = page
+            params['limit'] = self.list_size
         media = 'movies' if section == SECTIONS.MOVIES else 'episodes'
         cache_limit = self.__get_cache_limit(media, 'watched_at', cached)
-        return self.__call_trakt(url, params=params, cache_limit=cache_limit, cached=cached)
+        result = self.__call_trakt(url, params=params, cache_limit=cache_limit, cached=cached, pagination=True)
+        logger.log('Trakt API Watched: %s' % result, log_utils.LOGDEBUG)
+        return result
+
+    def get_my_progress(self, full=False, noseasons=False, cached=True, page=None):
+        url = '/sync/progress/watched'
+        params = {'extended': 'full'} if full else {}
+        if noseasons and params:
+            params['extended'] += ',noseasons'
+        elif noseasons:
+            params['extended'] = 'noseasons'
+        # Trakt API change: need to add progress to get seasons data for TV shows
+        if params:
+            params['extended'] += ',progress'
+        if page: 
+            params['page'] = page
+            params['limit'] = self.list_size
+        media = 'episodes'
+        cache_limit = self.__get_cache_limit(media, 'watched_at', cached)
+        result = self.__call_trakt(url, params=params, cache_limit=cache_limit, cached=cached)
+        logger.log('Trakt API Watched: %s' % result, log_utils.LOGDEBUG)
+        return result
+
+    def get_nextup_progress(self, full=False, noseasons=False, cached=True, page=None):
+        url = '/sync/progress/up_next'
+        params = {'extended': 'full', 'limit': '250'} if full else {}
+        if noseasons and params:
+            params['extended'] += ',noseasons'
+        elif noseasons:
+            params['extended'] = 'noseasons'
+        # Trakt API change: need to add progress to get seasons data for TV shows
+        if params:
+            params['extended'] += ',progress'
+        if page: 
+            params['page'] = page
+            params['limit'] = self.list_size
+        media = 'episodes'
+        cache_limit = self.__get_cache_limit(media, 'watched_at', cached)
+        result = self.__call_trakt(url, params=params, cache_limit=cache_limit, cached=cached)
+        logger.log('Trakt API Next Up: %s' % result, log_utils.LOGDEBUG)
+        return result
 
     def get_history(self, section, full=False, page=None, cached=True):
         url = '/users/me/history/%s' % (TRAKT_SECTIONS[section])
@@ -673,7 +717,7 @@ class Trakt_API():
                 if action == 'add' and 'added' in result:
                     added_count = result['added'].get('movies', 0) + result['added'].get('episodes', 0)
                     if added_count > 0:
-                        kodi.notify(msg=f'✅ Added {added_count} item(s) to Trakt collection', duration=3000)
+                        kodi.notify(msg=f'Added {added_count} item(s) to Trakt collection', duration=3000)
                         # Trigger efficient cache refresh
                         self.__sync_activities_after_change('collection', section)
                     else:
@@ -682,7 +726,7 @@ class Trakt_API():
                 elif action == 'remove' and 'deleted' in result:
                     deleted_count = result['deleted'].get('movies', 0) + result['deleted'].get('episodes', 0)
                     if deleted_count > 0:
-                        kodi.notify(msg=f'✅ Removed {deleted_count} item(s) from Trakt collection', duration=3000)
+                        kodi.notify(msg=f'Removed {deleted_count} item(s) from Trakt collection', duration=3000)
                         # Trigger efficient cache refresh and UI update
                         self.__sync_activities_after_change('collection', section)
                         
@@ -722,7 +766,7 @@ class Trakt_API():
 
 
 
-    def __call_trakt(self, url, method=None, data=None, params=None, auth=True, cache_limit=.25, cached=True):
+    def __call_trakt(self, url, method=None, data=None, params=None, auth=True, cache_limit=.25, cached=True, pagination=False, page=None):
         res_headers = {}
         if not cached: cache_limit = 0
         if self.offline:
@@ -831,12 +875,18 @@ class Trakt_API():
             js_data = utils.json_loads_as_str(result)
             if 'x-sort-by' in res_headers and 'x-sort-how' in res_headers:
                 js_data = utils2.sort_list(res_headers['x-sort-by'], res_headers['x-sort-how'], js_data)
+            # NEW: Handle pagination similar to sorting
+            if pagination and 'X-Pagination-Page-Count' in res_headers:
+                page_count = int(res_headers['X-Pagination-Page-Count'])
+                return js_data, page_count
+            else:
+                return js_data
         except ValueError:
             js_data = ''
             if result:
                 logger.log('Invalid JSON Trakt API Response: %s - |%s|' % (url, js_data), log_utils.LOGERROR)
+            return js_data
 
-        return js_data
 
 
     def get_show_play_counts(self, trakt_id):

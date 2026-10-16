@@ -17,7 +17,7 @@
 """
 import abc
 import log_utils  # @UnusedImport
-from . import scraper
+from scrapers import scraper
 
 logger = log_utils.Logger.get_logger()
 

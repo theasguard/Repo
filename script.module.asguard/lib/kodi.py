@@ -235,10 +235,11 @@ def add_item(queries, list_item, fanart='', is_folder=None, is_playable=None, to
         playable = 'true' if is_playable else 'false'
 
     liz_url = get_plugin_url(queries)
+    
     if fanart:
         list_item.setProperty('fanart_image', fanart)
     if _kodiver > 19.8:
-        vtag = list_item.getVideoInfoTag()
+        vtag = list_item.getVideoInfoTag(offscreen=True)
         vtag.setTitle(list_item.getLabel())
     else:
         list_item.setInfo('video', {'title': list_item.getLabel()})

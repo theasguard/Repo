@@ -1366,21 +1366,6 @@ class DB_Connection():
         return sql
 
 
-    @abstractmethod
-    def set(self, cache_id, data, checksum=None, expiration=None):
-        """
-        Stores new value in cache location
-        :param cache_id: ID of cache to create
-        :type cache_id: str
-        :param data: value to store in cache
-        :type data: Any
-        :param checksum: Optional checksum to apply to item
-        :type checksum: str,int
-        :param expiration: Expiration of cache value in seconds since epoch
-        :type expiration: int
-        :return: None
-        :rtype:
-        """
 def get_mapping(anilist_id='', mal_id='', kitsu_id='', tmdb_id='', trakt_id=''):
     # Acquire the lock to ensure thread safety
     control.mappingDB_lock.acquire()

@@ -36,7 +36,7 @@ except ImportError:
     from pysqlite2 import dbapi2 as db, OperationalError
 
 logger = log_utils.Logger.get_logger(__name__)
-
+addon = xbmcaddon.Addon()
 try:
     cache_path = kodi.translate_path(os.path.join(kodi.get_profile(), 'cache'))
     if not os.path.exists(cache_path):
@@ -243,8 +243,8 @@ def _get_connection_cursor():
 
 
 def _get_connection():
-    xbmcvfs.mkdir(xbmc.translatePath(addonInfo('profile')).decode('utf-8'))
-    conn = db.connect(os.path.join(xbmc.translatePath(addonInfo('profile')).decode('utf-8'), 'cache.db'))
+    xbmcvfs.mkdir(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+    conn = db.connect(os.path.join(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'), 'cache.db'))
     conn.row_factory = _dict_factory
     return conn
 

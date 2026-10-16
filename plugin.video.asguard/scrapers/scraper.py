@@ -633,7 +633,7 @@ class Scraper(object):
                     return ''
         except urllib.error.HTTPError as e:
             try:
-                if e.info().get('Content-Encoding') == 'gzip':
+                if e.headers.get('Content-Encoding') == 'gzip':
                     html = ungz(e.read(MAX_RESPONSE))
                 else:
                     html = e.read(MAX_RESPONSE)

@@ -20,8 +20,11 @@ import urllib.request
 import urllib.parse
 import random, os, json
 import threading
+
+import requests
 import kodi
 import log_utils
+import ssl
 from asguard_lib import image_scraper
 from asguard_lib import worker_pool
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -37,20 +40,15 @@ class ImageProxy(object):
         self.port = int(kodi.get_setting('proxy_port') or self._get_port())
         self.svr_thread = None
         self.httpd = None
+        self.session = requests.Session() 
     
-    def check_threads(self):
-        """Check if any threads are stuck"""
-        for thread in threading.enumerate():
-            if thread.is_alive() and thread != threading.current_thread():
-                logger.log('Thread %s still alive' % thread.name, log_utils.LOGDEBUG)
-
     @property
     def running(self):
-        try: 
+        try:
             res = urllib.request.urlopen('http://%s:%s/ping' % (self.host, self.port)).read()
 
         except: 
-            res = ''
+            res = b''
         return res == b'OK'
     
     def start_proxy(self):
@@ -88,13 +86,13 @@ class ImageProxy(object):
 
     @staticmethod
     def _get_port():
-        port = random.randint(1000, 65535)
+        port = random.randint(10000, 65535)
         kodi.set_setting('proxy_port', str(port))
         return port
 
 class MyHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
-        self._wp = worker_pool.WorkerPool(max_workers=100)
+        self._wp = worker_pool.WorkerPool(max_workers=40)
         HTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
         
     def process_request(self, request, client_address):
@@ -111,7 +109,6 @@ class MyHTTPServer(HTTPServer):
             logger.log('Image Proxy Error: (%s) %s - %s' % (threading.current_thread().name, type(e), e), log_utils.LOGDEBUG)
     
     def server_close(self):
-        workers = self._wp.close()
         try:
             workers = self._wp.close()
         except:
